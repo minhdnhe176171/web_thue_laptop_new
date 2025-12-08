@@ -1,0 +1,131 @@
+﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.TechnicalTicket>
+
+@{
+    ViewData["Title"] = "TechFix Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Technical Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Danh sách thiết bị cần xử lý</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body fw-bold fs-5 text-white">Máy hư hỏng</div>
+                <div class="card-footer d-flex align-items-center justify-content-between bg-warning text-dark fw-bold fs-5">
+                    <span class="stretched-link">Cần xử lý gấp</span>
+                    <i class="fas fa-angle-right"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark mb-4">
+                <div class="card-body fw-bold fs-5">Đang sửa chữa</div>
+                <div class="card-footer d-flex align-items-center justify-content-between bg-success text-white fw-bold fs-5">
+                    <span class="stretched-link">Đang thực hiện</span>
+                    <i class="fas fa-angle-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+       <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-tools me-1"></i>
+            Danh sách các thiết bị cần sửa
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Mã Ticket</th>
+                            <th>Thiết bị (Laptop)</th>
+                            <th>Mô tả lỗi</th>
+                            <th>Ngày tạo</th>
+                            <th>Trạng thái</th>
+                            <th class="text-center">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td><strong>#@item.Id</strong></td>
+                                    <td>
+                                        <span class="fw-bold">@item.Laptop?.Name</span> <br />
+                                        <small class="text-muted">ID: @item.LaptopId</small>
+                                    </td>
+                                    <td>@item.Description</td>
+                                    <td>@item.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        @if (item.StatusId == 3) // Broken
+                                        {
+                                            <span class="badge bg-danger">Hư hỏng</span>
+                                        }
+                                        else if (item.StatusId == 4) // Processing
+                                        {
+                                            <span class="badge bg-warning text-dark">Đang sửa</span>
+                                        }
+                                        else if (item.StatusId == 5) // Fixed
+                                        {
+                                            <span class="badge bg-success">Đã sửa xong</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Khác (@item.StatusId)</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-edit"></i> Xử lý
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Không có dữ liệu hiển thị.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @{
+                
+                var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+            }
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <span class="text-muted fst-italic small">
+                    Trang @Model.PageIndex / @Model.TotalPages
+                </span>
+
+                <div>
+                    <a asp-action="Index"
+                       asp-route-pageNumber="@(Model.PageIndex - 1)"
+                       class="btn btn-outline-secondary btn-sm @prevDisabled">
+                        <i class="fas fa-chevron-left"></i> Trước
+                    </a>
+
+                    <a asp-action="Index"
+                       asp-route-pageNumber="@(Model.PageIndex + 1)"
+                       class="btn btn-outline-secondary btn-sm ms-2 @nextDisabled">
+                        Sau <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
