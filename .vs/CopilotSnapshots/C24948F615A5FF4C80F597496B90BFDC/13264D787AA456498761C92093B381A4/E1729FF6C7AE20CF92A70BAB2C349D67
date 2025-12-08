@@ -1,0 +1,193 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using web_chothue_laptop.Models;
+
+namespace web_chothue_laptop.Controllers
+{
+    [Route("student")]
+    public class StudentController : Controller
+    {
+        private readonly Swp391LaptopContext _context;
+
+        public StudentController(Swp391LaptopContext context)
+        {
+            _context = context;
+        }
+
+        // Demo: use a fixed student id. Replace with real authentication.
+        private long CurrentStudentId => 1;
+
+        [HttpGet("home")]
+        public async Task<IActionResult> Index()
+        {
+            var laptops = await _context.Laptops
+                .Include(l => l.Brand)
+                .Include(l => l.Status)
+                .Include(l => l.LaptopDetails)
+                .Where(l => l.StudentId == CurrentStudentId)
+                .ToListAsync();
+
+            return View(laptops);
+        }
+
+        [HttpGet("create")]
+        public async Task<IActionResult> Create()
+        {
+            ViewBag.Brands = await _context.Brands.ToListAsync();
+            var allowed = new[] { "?ang ch? x? lý", "?ã phê duy?t", "B? t? ch?i" };
+            ViewBag.Statuses = await _context.Statuses.Where(s => allowed.Contains(s.StatusName)).ToListAsync();
+            return View(new CreateLaptopViewModel());
+        }
+
+        [HttpPost("create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateLaptopViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Brands = await _context.Brands.ToListAsync();
+                var allowed = new[] { "?ang ch? x? lý", "?ã phê duy?t", "B? t? ch?i" };
+                ViewBag.Statuses = await _context.Statuses.Where(s => allowed.Contains(s.StatusName)).ToListAsync();
+                return View(model);
+            }
+
+            var laptop = new Laptop
+            {
+                Name = model.Name,
+                BrandId = model.BrandId,
+                Price = model.Price,
+                StatusId = model.StatusId,
+                StudentId = CurrentStudentId,
+                CreatedDate = DateTime.Now
+            };
+
+            _context.Laptops.Add(laptop);
+            await _context.SaveChangesAsync();
+
+            var detail = new LaptopDetail
+            {
+                LaptopId = laptop.Id,
+                Cpu = model.Cpu,
+                RamSize = model.RamSize,
+                RamType = model.RamType,
+                Storage = model.Storage,
+                Gpu = model.Gpu,
+                Os = model.Os,
+                ScreenSize = model.ScreenSize
+            };
+
+            _context.LaptopDetails.Add(detail);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet("edit/{id}")]
+        public async Task<IActionResult> Edit(long id)
+        {
+            var laptop = await _context.Laptops
+                .Include(l => l.LaptopDetails)
+                .FirstOrDefaultAsync(l => l.Id == id && l.StudentId == CurrentStudentId);
+
+            if (laptop == null) return NotFound();
+
+            ViewBag.Brands = await _context.Brands.ToListAsync();
+            var allowed = new[] { "?ang ch? x? lý", "?ã phê duy?t", "B? t? ch?i" };
+            ViewBag.Statuses = await _context.Statuses.Where(s => allowed.Contains(s.StatusName)).ToListAsync();
+
+            var model = new CreateLaptopViewModel
+            {
+                Id = laptop.Id,
+                Name = laptop.Name,
+                BrandId = laptop.BrandId,
+                Price = laptop.Price ?? 0,
+                StatusId = laptop.StatusId ?? 0,
+                Cpu = laptop.LaptopDetails.FirstOrDefault()?.Cpu,
+                RamSize = laptop.LaptopDetails.FirstOrDefault()?.RamSize,
+                RamType = laptop.LaptopDetails.FirstOrDefault()?.RamType,
+                Storage = laptop.LaptopDetails.FirstOrDefault()?.Storage,
+                Gpu = laptop.LaptopDetails.FirstOrDefault()?.Gpu,
+                Os = laptop.LaptopDetails.FirstOrDefault()?.Os,
+                ScreenSize = laptop.LaptopDetails.FirstOrDefault()?.ScreenSize
+            };
+
+            return View(model);
+        }
+
+        [HttpPost("edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(CreateLaptopViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Brands = await _context.Brands.ToListAsync();
+                var allowed = new[] { "?ang ch? x? lý", "?ã phê duy?t", "B? t? ch?i" };
+                ViewBag.Statuses = await _context.Statuses.Where(s => allowed.Contains(s.StatusName)).ToListAsync();
+                return View(model);
+            }
+
+            var laptop = await _context.Laptops
+                .Include(l => l.LaptopDetails)
+                .FirstOrDefaultAsync(l => l.Id == model.Id && l.StudentId == CurrentStudentId);
+
+            if (laptop == null) return NotFound();
+
+            laptop.Name = model.Name;
+            laptop.BrandId = model.BrandId;
+            laptop.Price = model.Price;
+            laptop.StatusId = model.StatusId;
+            laptop.UpdatedDate = DateTime.Now;
+
+            var detail = laptop.LaptopDetails.FirstOrDefault();
+            if (detail == null)
+            {
+                detail = new LaptopDetail { LaptopId = laptop.Id };
+                _context.LaptopDetails.Add(detail);
+            }
+
+            detail.Cpu = model.Cpu;
+            detail.RamSize = model.RamSize;
+            detail.RamType = model.RamType;
+            detail.Storage = model.Storage;
+            detail.Gpu = model.Gpu;
+            detail.Os = model.Os;
+            detail.ScreenSize = model.ScreenSize;
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost("delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(long id)
+        {
+            var laptop = await _context.Laptops.FirstOrDefaultAsync(l => l.Id == id && l.StudentId == CurrentStudentId);
+            if (laptop == null) return NotFound();
+
+            _context.Laptops.Remove(laptop);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet("report")]
+        public async Task<IActionResult> Report()
+        {
+            var myLaptops = await _context.Laptops.Where(l => l.StudentId == CurrentStudentId).ToListAsync();
+            var laptopIds = myLaptops.Select(l => l.Id).ToList();
+
+            var income = await _context.Bookings
+                .Where(b => laptopIds.Contains(b.LaptopId))
+                .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
+
+            var errors = await _context.TechnicalTickets
+                .Where(t => laptopIds.Contains(t.LaptopId))
+                .OrderByDescending(t => t.CreatedDate)
+                .ToListAsync();
+
+            ViewBag.Income = income;
+            return View(errors);
+        }
+    }
+}

@@ -1,0 +1,136 @@
+﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using web_chothue_laptop.Models;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+
+builder.Services.AddDbContext<Swp391LaptopContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+}
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Ensure statuses: keep only three canonical statuses and map/update references
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<Swp391LaptopContext>();
+    try
+    {
+        var required = new[] { "Đang chờ xử lý", "Đã phê duyệt", "Bị từ chối" };
+
+        var statuses = db.Statuses.ToList();
+
+        // Normalize some common English names to Vietnamese equivalents
+        var normalize = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "pending", "Đang chờ xử lý" }, { "in progress", "Đang chờ xử lý" }, { "in progress", "Đang chờ xử lý" },
+            { "approved", "Đã phê duyệt" }, { "rejected", "Bị từ chối" }, { "not working", "Bị từ chối" },
+            { "working", "Đã phê duyệt" }
+        };
+
+        foreach (var s in statuses)
+        {
+            var name = (s.StatusName ?? string.Empty).Trim();
+            if (normalize.TryGetValue(name, out var newName))
+            {
+                s.StatusName = newName;
+            }
+        }
+        db.SaveChanges();
+
+        // Ensure required exist
+        foreach (var name in required)
+        {
+            if (!db.Statuses.Any(x => x.StatusName == name))
+            {
+                db.Statuses.Add(new Status { StatusName = name });
+            }
+        }
+        db.SaveChanges();
+
+        var keep = db.Statuses.Where(x => required.Contains(x.StatusName)).ToList();
+        var keepIds = keep.Select(x => x.Id).ToList();
+        var defaultStatus = keep.FirstOrDefault(x => x.StatusName == "Đang chờ xử lý");
+        if (defaultStatus != null)
+        {
+            var defaultId = defaultStatus.Id;
+
+            // Remap references pointing to removed statuses to default
+            db.Laptops.Where(l => l.StatusId != null && !keepIds.Contains(l.StatusId.Value)).ToList()
+                .ForEach(l => l.StatusId = defaultId);
+
+            db.Bookings.Where(b => !keepIds.Contains(b.StatusId)).ToList()
+                .ForEach(b => b.StatusId = defaultId);
+
+            db.TechnicalTickets.Where(t => !keepIds.Contains(t.StatusId)).ToList()
+                .ForEach(t => t.StatusId = defaultId);
+
+            db.TicketLists.Where(t => !keepIds.Contains(t.StatusId)).ToList()
+                .ForEach(t => t.StatusId = defaultId);
+
+            db.Users.Where(u => u.StatusId != null && !keepIds.Contains(u.StatusId.Value)).ToList()
+                .ForEach(u => u.StatusId = defaultId);
+
+            // Technical.IsWorking references status too
+            db.Technicals.Where(tc => tc.IsWorking != null && !keepIds.Contains(tc.IsWorking.Value)).ToList()
+                .ForEach(tc => tc.IsWorking = defaultId);
+
+            db.SaveChanges();
+
+            // Delete any remaining statuses not in required
+            var toDelete = db.Statuses.Where(s => !required.Contains(s.StatusName)).ToList();
+            if (toDelete.Any())
+            {
+                db.Statuses.RemoveRange(toDelete);
+                db.SaveChanges();
+            }
+        }
+    }
+    catch
+    {
+        // ignore errors during cleanup in demo app
+    }
+}
+
+// Run this in your database (SSMS / Azure Data Studio) to recreate the three statuses if missing
+IF NOT EXISTS(SELECT 1 FROM STATUS WHERE STATUS_NAME = N'Đang chờ xử lý')
+    INSERT INTO STATUS (STATUS_NAME) VALUES (N'Đang chờ xử lý');
+
+IF NOT EXISTS(SELECT 1 FROM STATUS WHERE STATUS_NAME = N'Đã phê duyệt')
+    INSERT INTO STATUS (STATUS_NAME) VALUES (N'Đã phê duyệt');
+
+IF NOT EXISTS(SELECT 1 FROM STATUS WHERE STATUS_NAME = N'Bị từ chối')
+    INSERT INTO STATUS (STATUS_NAME) VALUES (N'Bị từ chối');
+
+// Optional: inspect current statuses
+SELECT ID, STATUS_NAME FROM STATUS ORDER BY ID;
+
+// Optional: if other rows reference removed status ids and you want to remap them to "Đang chờ xử lý"
+DECLARE @pendingId BIGINT = (SELECT TOP(1) ID FROM STATUS WHERE STATUS_NAME = N'Đang chờ xử lý');
+UPDATE LAPTOP SET STATUS_ID = @pendingId WHERE STATUS_ID IS NOT NULL AND STATUS_ID NOT IN (SELECT ID FROM STATUS);
+UPDATE BOOKING SET STATUS_ID = @pendingId WHERE STATUS_ID NOT IN (SELECT ID FROM STATUS);
+UPDATE TECHNICAL_TICKET SET STATUS_ID = @pendingId WHERE STATUS_ID NOT IN (SELECT ID FROM STATUS);
+UPDATE TICKET_LIST SET STATUS_ID = @pendingId WHERE STATUS_ID NOT IN (SELECT ID FROM STATUS);
+UPDATE [USER] SET STATUS_ID = @pendingId WHERE STATUS_ID IS NOT NULL AND STATUS_ID NOT IN (SELECT ID FROM STATUS);
+UPDATE TECHNICAL SET IS_WORKING = @pendingId WHERE IS_WORKING IS NOT NULL AND IS_WORKING NOT IN (SELECT ID FROM STATUS);
+
+app.Run();

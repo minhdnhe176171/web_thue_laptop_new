@@ -1,0 +1,30 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.TechnicalTicket>
+@{
+    ViewData["Title"] = "Báo cáo";
+}
+
+<h2>Báo cáo</h2>
+<p>Tổng thu nhập từ các laptop của bạn: <strong>@(ViewBag.Income ?? 0m)</strong></p>
+
+<h4>Lỗi máy / phiếu kỹ thuật</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Ngày tạo</th>
+            <th>Laptop</th>
+            <th>Mô tả</th>
+            <th>Trạng thái</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach(var t in Model)
+{
+    <tr>
+        <td>@t.CreatedDate</td>
+        <td>@t.Laptop?.Name</td>
+        <td>@t.Description</td>
+        <td>@t.StatusId</td>
+    </tr>
+}
+    </tbody>
+</table>

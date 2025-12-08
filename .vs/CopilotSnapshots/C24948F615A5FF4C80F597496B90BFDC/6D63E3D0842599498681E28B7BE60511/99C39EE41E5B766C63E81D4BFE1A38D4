@@ -1,0 +1,56 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = "Laptop của tôi";
+}
+
+@functions {
+    private static string TranslateStatus(string? name) => name?.ToLower() switch
+    {
+        "pending" => "Đang chờ xử lý",
+        "đang chờ xử lý" => "Đang chờ xử lý",
+        "approved" => "Đã phê duyệt",
+        "rejected" => "Bị từ chối",
+        _ => name ?? string.Empty
+    };
+}
+
+<h2>Laptop của tôi</h2>
+<p>
+    <a class="btn btn-primary" href="/student/create">Tạo laptop cho thuê</a>
+    <a class="btn btn-secondary" href="/student/report">Báo cáo</a>
+</p>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Tên</th>
+            <th>Hãng</th>
+            <th>Giá</th>
+            <th>Trạng thái</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach(var l in Model)
+{
+    <tr>
+        <td class="align-middle">@l.Name</td>
+        <td class="align-middle">@l.Brand?.BrandName</td>
+        <td class="align-middle">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
+        <td class="align-middle">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>@TranslateStatus(l.Status?.StatusName)</span>
+                <span>
+                    <a class="btn btn-sm btn-info me-1" href="/student/edit/@l.Id">Sửa</a>
+                    <form asp-action="Delete" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-sm btn-danger" type="submit">Xóa</button>
+                    </form>
+                </span>
+            </div>
+        </td>
+    </tr>
+}
+    </tbody>
+</table>

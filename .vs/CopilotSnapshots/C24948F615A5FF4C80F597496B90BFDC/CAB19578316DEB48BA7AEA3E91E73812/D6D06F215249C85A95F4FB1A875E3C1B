@@ -1,0 +1,42 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace web_chothue_laptop.Models
+{
+    public class CreateLaptopViewModel
+    {
+        public long Id { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng ch?n hãng")]
+        [Range(1, long.MaxValue, ErrorMessage = "Vui lòng ch?n hãng h?p l?")]
+        public long? BrandId { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng ch?n m?c giá")]
+        [Range(1, double.MaxValue, ErrorMessage = "Giá ph?i l?n h?n 0")]
+        public decimal Price { get; set; }
+
+        public long? StatusId { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nh?p CPU")]
+        [StringLength(255)]
+        public string? Cpu { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng ch?n RAM")]
+        [RegularExpression("^(8GB|16GB|32GB|64GB)$", ErrorMessage = "RAM ph?i là 8GB, 16GB, 32GB ho?c 64GB")]
+        public string? RamSize { get; set; }
+
+        public string? RamType { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nh?p dung l??ng l?u tr?")]
+        [StringLength(100)]
+        public string? Storage { get; set; }
+
+        public string? Gpu { get; set; }
+        public string? Os { get; set; }
+        public string? ScreenSize { get; set; }
+
+        // Not persisted in this simple demo
+        public string? RejectionReason { get; set; }
+    }
+}

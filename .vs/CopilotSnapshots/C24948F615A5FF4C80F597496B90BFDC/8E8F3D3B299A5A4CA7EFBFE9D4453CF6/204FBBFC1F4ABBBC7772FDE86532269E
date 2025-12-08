@@ -1,0 +1,44 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace web_chothue_laptop.Models
+{
+    public class CreateLaptopViewModel
+    {
+        public long Id { get; set; }
+        [Required(ErrorMessage = "Vui lòng nhập tên máy")]
+        [StringLength(100, MinimumLength = 3, ErrorMessage = "Tên phải từ {2} đến {1} ký tự")]
+        [RegularExpression(@"^[\p{L}\p{N}\s\-\.,]+$", ErrorMessage = "Tên chỉ được chứa chữ, số, dấu cách, '-', '.' hoặc ','")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng đúng hãng")]
+        [Range(1, long.MaxValue, ErrorMessage = "Vui lòng đúng hãng hợp lệ")]
+        public long? BrandId { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng đúng mức giá")]
+        [Range(1, double.MaxValue, ErrorMessage = "Giá phải lớn hơn 0")]
+        public decimal Price { get; set; }
+
+        public long? StatusId { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập CPU")]
+        [StringLength(255)]
+        public string? Cpu { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng đúng RAM")]
+        [RegularExpression("^(8GB|16GB|32GB|64GB)$", ErrorMessage = "RAM phải là 8GB, 16GB, 32GB hoặc 64GB")]
+        public string? RamSize { get; set; }
+
+        public string? RamType { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập dung lượng lưu trữ")]
+        [StringLength(100)]
+        public string? Storage { get; set; }
+
+        public string? Gpu { get; set; }
+        public string? Os { get; set; }
+        public string? ScreenSize { get; set; }
+
+        // Not persisted in this simple demo
+        public string? RejectionReason { get; set; }
+    }
+}

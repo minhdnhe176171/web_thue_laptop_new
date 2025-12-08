@@ -1,0 +1,75 @@
+﻿@model web_chothue_laptop.Models.CreateLaptopViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa laptop";
+}
+
+@functions {
+    private static string TranslateStatus(string? name) => name?.ToLower() switch
+    {
+        "pending" => "Đang chờ xử lý",
+        "đang chờ xử lý" => "Đang chờ xử lý",
+        "approved" => "Đã phê duyệt",
+        "rejected" => "Bị từ chối",
+        _ => name ?? string.Empty
+    };
+}
+
+<h2>Chỉnh sửa laptop</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Hãng</label>
+        <select asp-for="BrandId" class="form-control">
+            <option value="">-- Chọn hãng --</option>
+@foreach(var b in (IEnumerable<web_chothue_laptop.Models.Brand>)ViewBag.Brands)
+{
+    <option value="@b.Id" selected="@(Model.BrandId == b.Id ? "selected" : null)">@b.BrandName</option>
+}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Giá</label>
+        <input asp-for="Price" class="form-control" />
+    </div>
+
+    <h4>Thông số kỹ thuật</h4>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label>CPU</label>
+            <input asp-for="Cpu" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>RAM</label>
+            <div>
+                <label class="mr-2"><input type="checkbox" name="RamSize" value="8GB" @(Model?.RamSize == "8GB" ? "checked" : "") /> 8GB</label>
+                <label class="mr-2"><input type="checkbox" name="RamSize" value="16GB" @(Model?.RamSize == "16GB" ? "checked" : "") /> 16GB</label>
+                <label class="mr-2"><input type="checkbox" name="RamSize" value="32GB" @(Model?.RamSize == "32GB" ? "checked" : "") /> 32GB</label>
+                <label class="mr-2"><input type="checkbox" name="RamSize" value="64GB" @(Model?.RamSize == "64GB" ? "checked" : "") /> 64GB</label>
+            </div>
+        </div>
+        <div class="form-group col-md-6">
+            <label>Lưu trữ</label>
+            <input asp-for="Storage" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>GPU</label>
+            <input asp-for="Gpu" class="form-control" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Lưu</button>
+    <a class="btn btn-secondary" href="/Student/Index">Hủy</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

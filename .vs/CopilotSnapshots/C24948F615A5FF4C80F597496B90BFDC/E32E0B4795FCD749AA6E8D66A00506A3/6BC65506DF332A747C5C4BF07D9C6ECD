@@ -1,0 +1,80 @@
+﻿@model web_chothue_laptop.Models.CreateLaptopViewModel
+@{
+    ViewData["Title"] = "Tạo laptop";
+}
+
+<h2>Tạo laptop</h2>
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Hãng</label>
+        <select asp-for="BrandId" class="form-control">
+            <option value="">-- Chọn hãng --</option>
+@foreach(var b in (IEnumerable<web_chothue_laptop.Models.Brand>)ViewBag.Brands)
+{
+    <option value="@b.Id">@b.BrandName</option>
+}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Giá</label>
+        <div>
+            <label><input type="radio" name="Price" value="100000" /> 100,000</label>
+            <label><input type="radio" name="Price" value="200000" /> 200,000</label>
+            <label><input type="radio" name="Price" value="300000" /> 300,000</label>
+            <label><input type="radio" name="Price" value="400000" /> 400,000</label>
+            <label><input type="radio" name="Price" value="500000" /> 500,000</label>
+        </div>
+    </div>
+
+    <h4>Thông số kỹ thuật</h4>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label>CPU</label>
+            <input asp-for="Cpu" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>RAM</label>
+            <input asp-for="RamSize" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>Lưu trữ</label>
+            <input asp-for="Storage" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>GPU</label>
+            <input asp-for="Gpu" class="form-control" />
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Trạng thái</label>
+        <select asp-for="StatusId" class="form-control">
+            <option value="">-- Chọn trạng thái --</option>
+@foreach(var s in (IEnumerable<web_chothue_laptop.Models.Status>)ViewBag.Statuses)
+{
+    <option value="@s.Id">@s.StatusName</option>
+}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Tải ảnh lên</label>
+        <input type="file" class="form-control" />
+        <small class="form-text text-muted">Tệp tải lên không được lưu trong bản demo.</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Gửi để duyệt</button>
+    <a class="btn btn-secondary" href="/Student/Index">Hủy</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

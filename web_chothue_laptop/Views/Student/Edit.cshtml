@@ -1,0 +1,88 @@
+﻿@model web_chothue_laptop.Models.CreateLaptopViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa laptop";
+}
+
+@functions {
+    private static string TranslateStatus(string? name) => name?.ToLower() switch
+    {
+        "pending" => "Đang chờ xử lý",
+        "đang chờ xử lý" => "Đang chờ xử lý",
+        "approved" => "Đã phê duyệt",
+        "rejected" => "Bị từ chối",
+        _ => name ?? string.Empty
+    };
+}
+
+<h2>Chỉnh sửa laptop</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    @Html.AntiForgeryToken()
+
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Hãng</label>
+        <select asp-for="BrandId" class="form-control">
+            <option value="">-- Chọn hãng --</option>
+@foreach(var b in (IEnumerable<web_chothue_laptop.Models.Brand>)ViewBag.Brands)
+{
+    <option value="@b.Id" selected="@(Model.BrandId == b.Id ? "selected" : null)">@b.BrandName</option>
+}
+        </select>
+        <span asp-validation-for="BrandId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Giá</label>
+        <div>
+            <label><input asp-for="Price" type="radio" value="100000" /> 100,000</label>
+            <label><input asp-for="Price" type="radio" value="200000" /> 200,000</label>
+            <label><input asp-for="Price" type="radio" value="300000" /> 300,000</label>
+            <label><input asp-for="Price" type="radio" value="400000" /> 400,000</label>
+            <label><input asp-for="Price" type="radio" value="500000" /> 500,000</label>
+            <span asp-validation-for="Price" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h4>Thông số kỹ thuật</h4>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label>CPU</label>
+            <input asp-for="Cpu" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>RAM</label>
+            <div>
+                <label class="mr-2"><input asp-for="RamSize" type="radio" value="8GB" /> 8GB</label>
+                <label class="mr-2"><input asp-for="RamSize" type="radio" value="16GB" /> 16GB</label>
+                <label class="mr-2"><input asp-for="RamSize" type="radio" value="32GB" /> 32GB</label>
+                <label class="mr-2"><input asp-for="RamSize" type="radio" value="64GB" /> 64GB</label>
+                <span asp-validation-for="RamSize" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="form-group col-md-6">
+            <label>Lưu trữ</label>
+            <input asp-for="Storage" class="form-control" />
+        </div>
+        <div class="form-group col-md-6">
+            <label>GPU</label>
+            <input asp-for="Gpu" class="form-control" />
+        </div>
+    </div>
+
+
+    <button type="submit" class="btn btn-primary">Lưu</button>
+    <a class="btn btn-secondary" href="/Student/Index">Hủy</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

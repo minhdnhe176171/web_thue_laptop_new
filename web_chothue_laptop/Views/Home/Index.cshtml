@@ -1,8 +1,35 @@
-﻿@{
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<h1>Danh sách laptop</h1>
+
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input type="search" name="search" value="@(ViewBag.Search ?? "")" class="form-control" placeholder="Tìm tên hoặc hãng" />
+        <button class="btn btn-outline-secondary" type="submit">Tìm</button>
+    </div>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Tên</th>
+            <th>Hãng</th>
+            <th>Giá (VNĐ)</th>
+            <th>Trạng thái</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach(var l in Model)
+{
+    <tr>
+        <td>@l.Name</td>
+        <td>@l.Brand?.BrandName</td>
+        <td>@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
+        <td>@l.Status?.StatusName</td>
+    </tr>
+}
+    </tbody>
+</table>

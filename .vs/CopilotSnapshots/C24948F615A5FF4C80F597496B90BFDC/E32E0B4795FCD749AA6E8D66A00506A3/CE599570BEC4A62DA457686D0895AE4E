@@ -1,0 +1,41 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = "Laptop của tôi";
+}
+
+<h2>Laptop của tôi</h2>
+<p>
+    <a class="btn btn-primary" href="/Student/Create">Tạo laptop mới</a>
+    <a class="btn btn-secondary" href="/Student/Report">Báo cáo</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Tên</th>
+            <th>Hãng</th>
+            <th>Giá</th>
+            <th>Trạng thái</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach(var l in Model)
+{
+    <tr>
+        <td>@l.Name</td>
+        <td>@l.Brand?.BrandName</td>
+        <td>@(l.Price?.ToString("C") ?? "-")</td>
+        <td>@l.Status?.StatusName</td>
+        <td>
+            <a class="btn btn-sm btn-info" href="/Student/Edit/@l.Id">Sửa</a>
+            <form method="post" action="/Student/Delete/@l.Id" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
+                <input name="__RequestVerificationToken" type="hidden" value="@(Antiforgery.GetAndStoreTokens(Context).RequestToken)" />
+                <button class="btn btn-sm btn-danger" type="submit">Xóa</button>
+            </form>
+        </td>
+    </tr>
+}
+    </tbody>
+</table>

@@ -1,0 +1,30 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace web_chothue_laptop.Models
+{
+    public class CreateLaptopViewModel
+    {
+        public long Id { get; set; }
+
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        public long? BrandId { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal Price { get; set; }
+
+        public long? StatusId { get; set; }
+
+        public string? Cpu { get; set; }
+        public string? RamSize { get; set; }
+        public string? RamType { get; set; }
+        public string? Storage { get; set; }
+        public string? Gpu { get; set; }
+        public string? Os { get; set; }
+        public string? ScreenSize { get; set; }
+
+        // Not persisted in this simple demo
+        public string? RejectionReason { get; set; }
+    }
+}
