@@ -1,0 +1,87 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+
+<h2>Danh sách Laptop chờ phê duyệt</h2>
+
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Product Name</th>
+            <th>Brand</th>
+            <th>Status</th>
+            <th>Student</th>
+            <th>Created Date</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    <a href="@Url.Action("LaptopDetail", "Manager", new { id = item.Id })">
+                        @item.Name
+                    </a>
+                </td>
+                <td>@item.Brand?.BrandName</td>
+                <td>@item.Price?.ToString("N0") VND</td>
+                <td>@item.Status?.StatusName</td>
+                <td>
+                    @(item.Student != null ? $"{item.Student.FirstName} {item.Student.LastName}" : "No Student")
+                </td>
+                <td>@item.CreatedDate?.ToString("yyyy-MM-dd")</td>
+                <td>
+                    @if (item.StatusId == 1)
+                    {
+                        <form method="post" asp-action="Approve" asp-controller="Manager" style="display:inline">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="btn btn-success btn-sm">Approve</button>
+                        </form>
+
+                        <form method="post" asp-action="Reject" asp-controller="Manager" style="display:inline">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="btn btn-danger btn-sm">Reject</button>
+                        </form>
+                    }
+                    else if (item.StatusId == 2)
+                    {
+                        <form method="post" asp-action="Approve" asp-controller="Manager" style="display:inline">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="btn btn-warning btn-sm">Unapprove</button>
+                        </form>
+                    }
+                    else if (item.StatusId == 3)
+                    {
+                        <form method="post" asp-action="Reject" asp-controller="Manager" style="display:inline">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="btn btn-warning btn-sm">Unreject</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<nav>
+    <ul class="pagination">
+        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+            <a class="page-link" href="@Url.Action("LaptopRequests", new { page = ViewBag.CurrentPage - 1 })">
+                Previous
+            </a>
+        </li>
+
+        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                <a class="page-link" href="@Url.Action("LaptopRequests", new { page = i })">@i</a>
+            </li>
+        }
+
+        <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+            <a class="page-link" href="@Url.Action("LaptopRequests", new { page = ViewBag.CurrentPage + 1 })">
+                Next
+            </a>
+        </li>
+    </ul>
+</nav>
