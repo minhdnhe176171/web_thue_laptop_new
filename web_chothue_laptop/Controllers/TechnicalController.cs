@@ -17,22 +17,31 @@ namespace web_chothue_laptop.Controllers
         }
 
         // 1.Dashboard
-        public async Task<IActionResult> Index(int? pageNumber)
+        public async Task<IActionResult> Index(int? pageNumber, string searchString)
         {
-            // Truy vấn dữ liệu kèm Laptop và Status
+            // Lưu lại từ khóa tìm kiếm để hiển thị lại trên View khi chuyển trang
+            ViewData["CurrentFilter"] = searchString;
+
+            // 1. Truy vấn cơ bản
             var tickets = _context.TechnicalTickets
                 .Include(t => t.Laptop)
                 .Include(t => t.Status)
                 .Include(t => t.Technical)
                 .AsQueryable();
 
-            // Sắp xếp: Mới nhất lên đầu
+            // 2. Logic Tìm kiếm (Search)
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                // Tìm theo Mã Ticket (Id là số nên cần chuyển sang string hoặc so sánh trực tiếp)
+                // Dùng ToString() để cho phép tìm kiếm dạng text "1", "2"...
+                tickets = tickets.Where(t => t.Id.ToString().Contains(searchString));
+            }
+
+            // 3. Sắp xếp: Mới nhất lên đầu
             tickets = tickets.OrderByDescending(t => t.CreatedDate);
 
-          
             int pageSize = 4;
 
-          // PaginatedList<TechnicalTicket>
             return View(await PaginatedList<TechnicalTicket>.CreateAsync(tickets.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
