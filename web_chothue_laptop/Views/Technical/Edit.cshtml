@@ -2,67 +2,180 @@
 
 @{
     ViewData["Title"] = "Xử lý sự cố";
+    // Lấy danh sách logs giả lập từ Controller (nếu có)
+    var logs = ViewBag.Logs as List<string>;
 }
 
 <div class="container mt-4">
-    <div class="card shadow-lg">
-        <div class="card-header bg-primary text-white">
-            <h4><i class="fas fa-screwdriver"></i> Cập nhật phiếu sửa chữa #@Model.Id</h4>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div class="card-body">
-            <form asp-action="Edit" method="post">
-                <input type="hidden" asp-for="Id" />
-                <input type="hidden" asp-for="LaptopId" />
-                <input type="hidden" asp-for="StaffId" />
-                <input type="hidden" asp-for="CreatedDate" />
+    }
 
-                <div class="row">
-                    <div class="col-md-5 border-end">
-                        <h5 class="text-secondary">Thông tin thiết bị</h5>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Tên Laptop:</label>
-                            <input type="text" class="form-control" value="@Model.Laptop?.Name" readonly disabled />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Mô tả lỗi ban đầu:</label>
-                            <textarea class="form-control bg-light text-danger" rows="4" readonly disabled>@Model.Description</textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Người tạo ticket:</label>
-                            <input type="text" class="form-control" value="Staff ID: @Model.StaffId" readonly disabled />
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-bold text-uppercase">
+                    <i class="fas fa-laptop"></i> Thông tin thiết bị
+                </div>
+                <div class="card-body text-center">
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-laptop fa-2x"></i>
+                    </div>
+                    <h5 class="card-title text-primary fw-bold">@Model.Laptop?.Name</h5>
+                    <p class="text-muted small">ID Thiết bị: @Model.LaptopId</p>
+                    <hr />
+                    <div class="text-start">
+                        <label class="fw-bold small text-muted">MÔ TẢ LỖI BAN ĐẦU:</label>
+                        <div class="alert alert-danger p-2 mt-1">
+                            <i class="fas fa-exclamation-circle"></i> @Model.Description
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="col-md-7">
-                        <h5 class="text-success">Khu vực kỹ thuật</h5>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold text-uppercase d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-history"></i> Nhật ký sửa chữa</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#quickLogModal">
+                        <i class="fas fa-plus"></i> Ghi nhanh
+                    </button>
+                </div>
+                <div class="card-body bg-light" style="max-height: 400px; overflow-y: auto;">
+                    @if (!string.IsNullOrEmpty(Model.TechnicalResponse))
+                    {
+                        // Tách các dòng log để hiển thị đẹp hơn
+                        var logLines = Model.TechnicalResponse.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var line in logLines)
+                        {
+                            <div class="d-flex mb-2 border-bottom pb-2">
+                                <div class="me-2 text-primary"><i class="fas fa-caret-right"></i></div>
+                                <div class="small text-dark">@line</div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted small fst-italic">Chưa có nhật ký nào...</span>
+                    }
+                </div>
+            </div>
+        </div>
 
-                        <div class="mb-3">
-                            <label asp-for="StatusId" class="form-label fw-bold">Trạng thái xử lý:</label>
-                            <select asp-for="StatusId" class="form-select" id="statusSelect">
-                                <option value="3">Hư hỏng - Chờ sửa</option>
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-top border-4 border-primary">
+                <div class="card-header bg-white py-3">
+                    <h4 class="m-0 text-primary"><i class="fas fa-screwdriver-wrench"></i> Cập nhật phiếu #@Model.Id</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post" id="repairForm">
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="LaptopId" />
+
+                        <div class="mb-4">
+                            <label asp-for="StatusId" class="form-label fw-bold text-uppercase text-secondary">Trạng thái xử lý</label>
+                            <select asp-for="StatusId" class="form-select form-select-lg" id="statusSelect">
+                                <option value="3">Hư hỏng - Chờ kiểm tra</option>
                                 <option value="4">Đang sửa chữa</option>
-                                <option value="5">Đã sửa xong - Có thể thuê</option>
+                                <option value="6">Chờ linh kiện</option>
+                                <option value="5">Đã sửa xong</option>
                             </select>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="TechnicalResponse" class="form-label fw-bold">Ghi chú kỹ thuật:</label>
-                            <textarea asp-for="TechnicalResponse" class="form-control" rows="5" placeholder="Ví dụ: Đã thay màn hình mới, đang cài lại Driver..."></textarea>
+                        <div id="qcSection" class="card mb-4 border-success d-none">
+                            <div class="card-header bg-success text-white fw-bold">
+                                <i class="fas fa-clipboard-check"></i> QUY TRÌNH KIỂM TRA CHẤT LƯỢNG (QC)
+                            </div>
+                            <div class="card-body bg-success bg-opacity-10">
+                                <p class="small text-success mb-2">Bắt buộc: Kỹ thuật viên phải kiểm tra các mục sau trước khi hoàn tất.</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="qcWifi" value="true" id="qcWifi">
+                                            <label class="form-check-label fw-bold" for="qcWifi">Wifi & Mạng ổn định</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="qcKeyboard" value="true" id="qcKeyboard">
+                                            <label class="form-check-label fw-bold" for="qcKeyboard">Bàn phím & Touchpad</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="qcScreen" value="true" id="qcScreen">
+                                            <label class="form-check-label fw-bold" for="qcScreen">Màn hình & Loa</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="qcClean" value="true" id="qcClean">
+                                            <label class="form-check-label fw-bold" for="qcClean">Đã vệ sinh máy</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="partSection" class="card mb-4 border-warning d-none">
+                            <div class="card-header bg-warning text-dark fw-bold">
+                                <i class="fas fa-box-open"></i> YÊU CẦU VẬT TƯ / LINH KIỆN
+                            </div>
+                            <div class="card-body bg-warning bg-opacity-10">
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-bold small">Tên linh kiện</label>
+                                        <input type="text" name="partName" class="form-control" placeholder="VD: Màn hình Dell XPS 13...">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small">Giá dự kiến (VNĐ)</label>
+                                        <input type="number" name="partPrice" class="form-control" placeholder="0">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold small">Ghi chú thêm</label>
+                                        <input type="text" name="partNote" class="form-control" placeholder="Link mua hàng hoặc mã sản phẩm...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary">Cập nhật tiến độ / Ghi chú mới:</label>
+                            <textarea asp-for="TechnicalResponse" class="form-control" rows="4" placeholder="Nhập nội dung công việc đã làm... (Nội dung này sẽ được lưu vào lịch sử)"></textarea>
+                            <div class="form-text text-muted">Lưu ý: Không xóa nội dung cũ, hãy viết tiếp xuống dòng dưới.</div>
                             <span asp-validation-for="TechnicalResponse" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Kỹ thuật viên phụ trách:</label>
-                            <input type="text" class="form-control" value="Nhật Minh" readonly disabled />
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2">
-                            <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i> Cập nhật tiến độ
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a asp-action="Index" class="btn btn-secondary px-4">Quay lại</a>
+                            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                                <i class="fas fa-save"></i> Lưu cập nhật
                             </button>
                         </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickLogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="AddQuickLog" method="post">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-pen"></i> Ghi chú nhanh</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="ticketId" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label class="form-label">Nội dung công việc:</label>
+                        <textarea name="logMessage" class="form-control" rows="3" required placeholder="VD: Đã tháo máy, đang kiểm tra mainboard..."></textarea>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu ghi chú</button>
                 </div>
             </form>
         </div>
@@ -75,17 +188,28 @@
     }
 
     <script>
-        // Script nhỏ để đổi màu select box dựa trên value (Optional)
         $(document).ready(function() {
-            function updateColor() {
-                var val = $('#statusSelect').val();
-                $('#statusSelect').removeClass('text-danger text-warning text-success');
-                if (val == '3') $('#statusSelect').addClass('text-danger fw-bold');
-                if (val == '4') $('#statusSelect').addClass('text-warning fw-bold');
-                if (val == '5') $('#statusSelect').addClass('text-success fw-bold');
+            // Hàm xử lý ẩn/hiện các section dựa trên trạng thái
+            function toggleSections() {
+                var status = $('#statusSelect').val();
+
+                // Reset ẩn hết
+                $('#qcSection').addClass('d-none');
+                $('#partSection').addClass('d-none');
+
+                if (status == '5') { // Đã sửa xong -> Hiện QC
+                    $('#qcSection').removeClass('d-none').addClass('animate__animated animate__fadeIn');
+                }
+                else if (status == '6') { // Chờ linh kiện -> Hiện Part
+                    $('#partSection').removeClass('d-none').addClass('animate__animated animate__fadeIn');
+                }
             }
-            $('#statusSelect').change(updateColor);
-            updateColor(); // Run on load
+
+            // Gọi hàm khi thay đổi select
+            $('#statusSelect').change(toggleSections);
+
+            // Gọi hàm ngay khi load trang (trong trường hợp edit lại)
+            toggleSections();
         });
     </script>
 }
