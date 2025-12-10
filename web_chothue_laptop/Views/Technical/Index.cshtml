@@ -7,19 +7,31 @@
 
 <div class="container-fluid px-4">
     <h1 class="mt-4">Technical Dashboard</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item active">Tổng quan tình trạng thiết bị</li>
-    </ol>
+    <div class="mb-4 text-muted">Danh sách thiết bị cần xử lý</div>
 
     <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase small opacity-75 fw-bold">Tổng số phiếu</div>
+                        <span class="fs-1 fw-bold">@ViewData["TotalCount"]</span>
+                        <span class="fs-6 opacity-75">ticket</span>
+                    </div>
+                    <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card bg-danger text-white h-100 shadow-sm">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="fw-bold text-uppercase small opacity-75">Tình trạng</div>
-                        <span class="fs-5 fw-bold">Máy hư hỏng</span>
+                        <div class="text-uppercase small opacity-75 fw-bold">Máy hư hỏng</div>
+                        <span class="fs-1 fw-bold">@ViewData["BrokenCount"]</span>
+                        <span class="fs-6 opacity-75">thiết bị</span>
                     </div>
-                    <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
@@ -28,22 +40,11 @@
             <div class="card bg-warning text-dark h-100 shadow-sm">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="fw-bold text-uppercase small opacity-75">Mức độ</div>
-                        <span class="fs-5 fw-bold">Cần xử lý gấp</span>
+                        <div class="text-uppercase small opacity-75 fw-bold">Đang sửa chữa</div>
+                        <span class="fs-1 fw-bold">@ViewData["ProcessingCount"]</span>
+                        <span class="fs-6 opacity-75">thiết bị</span>
                     </div>
-                    <i class="fas fa-bolt fa-2x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white h-100 shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="fw-bold text-uppercase small opacity-75">Tiến độ</div>
-                        <span class="fs-5 fw-bold">Đang sửa chữa</span>
-                    </div>
-                    <i class="fas fa-tools fa-2x opacity-50"></i>
+                    <i class="fas fa-tools fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
@@ -52,10 +53,11 @@
             <div class="card bg-success text-white h-100 shadow-sm">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="fw-bold text-uppercase small opacity-75">Trạng thái</div>
-                        <span class="fs-5 fw-bold">Đang thực hiện</span>
+                        <div class="text-uppercase small opacity-75 fw-bold">Đã sửa xong</div>
+                        <span class="fs-1 fw-bold">@ViewData["FixedCount"]</span>
+                        <span class="fs-6 opacity-75">thiết bị</span>
                     </div>
-                    <i class="fas fa-tasks fa-2x opacity-50"></i>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
@@ -65,7 +67,6 @@
         <div class="card-header bg-white py-3">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <i class="fas fa-table me-1 text-primary"></i>
                     <span class="fw-bold text-primary">Danh sách thiết bị cần sửa</span>
                 </div>
                 <div class="col-md-6">
@@ -73,15 +74,8 @@
                         <div class="input-group" style="max-width: 300px;">
                             <input type="text" name="searchString" value="@ViewData["CurrentFilter"]"
                                    class="form-control" placeholder="Nhập mã Ticket (VD: 3)..." aria-label="Search">
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-search"></i> Tìm
-                            </button>
-                            @if (ViewData["CurrentFilter"] != null)
-                            {
-                                <a asp-action="Index" class="btn btn-outline-secondary" title="Xóa tìm kiếm">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                            }
+                            <button class="btn btn-primary" type="submit">Tìm</button>
+                            
                         </div>
                     </form>
                 </div>
@@ -132,6 +126,10 @@
                                         {
                                             <span class="badge bg-success">Đã sửa xong</span>
                                         }
+                                        else if (item.StatusId == 6) // Waiting Parts
+                                        {
+                                            <span class="badge bg-warning text-dark" style="background-color: #fd7e14 !important; color: white !important;">Chờ linh kiện</span>
+                                        }
                                         else
                                         {
                                             <span class="badge bg-secondary">Khác (@item.StatusId)</span>
@@ -159,15 +157,10 @@
             </div>
 
             @{
-                // SỬA LỖI: Dùng dấu ? và ?? để kiểm tra null an toàn
-                // Nếu Model null (chưa có dữ liệu) thì mặc định là false hoặc trang 1
                 var hasPrevious = Model?.HasPreviousPage ?? false;
                 var hasNext = Model?.HasNextPage ?? false;
-
                 var prevDisabled = !hasPrevious ? "disabled" : "";
                 var nextDisabled = !hasNext ? "disabled" : "";
-
-                // Lấy số trang an toàn (nếu null thì về 1)
                 var pageIndex = Model?.PageIndex ?? 1;
                 var totalPages = Model?.TotalPages ?? 1;
             }
