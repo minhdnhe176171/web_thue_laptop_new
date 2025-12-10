@@ -1,0 +1,202 @@
+@model web_chothue_laptop.Controllers.CreateAccountViewModel
+@{
+    ViewData["Title"] = "Tạo tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            @await Html.PartialAsync("~/Views/Admin/_AdminSidebar.cshtml")
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="mb-4">Tạo tài khoản mới</h2>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Thông tin tài khoản</h5>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Create" method="post" id="createAccountForm">
+                        @Html.AntiForgeryToken()
+                        
+                        @if (ViewData.ModelState.ErrorCount > 0)
+                        {
+                            <div asp-validation-summary="All" class="alert alert-danger mb-3" role="alert">
+                                <strong>Vui lòng sửa các lỗi sau:</strong>
+                            </div>
+                        }
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Chọn loại tài khoản: <span class="text-danger">*</span></label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" asp-for="AccountType" id="staffType" value="staff" checked>
+                                    <label class="btn btn-outline-primary" for="staffType">Staff</label>
+
+                                    <input type="radio" class="btn-check" asp-for="AccountType" id="technicalType" value="technical">
+                                    <label class="btn btn-outline-primary" for="technicalType">Technical</label>
+
+                                    <input type="radio" class="btn-check" asp-for="AccountType" id="managerType" value="manager">
+                                    <label class="btn btn-outline-primary" for="managerType">Manager</label>
+                                </div>
+                                <span asp-validation-for="AccountType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label">Họ <span class="text-danger">*</span></label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label">Tên <span class="text-danger">*</span></label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input asp-for="Email" class="form-control" type="email" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Phone" class="form-label">Số điện thoại</label>
+                                <input asp-for="Phone" class="form-control" type="tel" />
+                                <span asp-validation-for="Phone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="IdNo" class="form-label">Số CMND/CCCD</label>
+                                <input asp-for="IdNo" class="form-control" />
+                                <span asp-validation-for="IdNo" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Dob" class="form-label">Ngày sinh</label>
+                                <input asp-for="Dob" class="form-control" type="date" />
+                                <span asp-validation-for="Dob" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                                <input asp-for="Password" class="form-control" type="password" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                                <input asp-for="ConfirmPassword" class="form-control" type="password" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    ➕ Tạo tài khoản
+                                </button>
+                                <button type="reset" class="btn btn-secondary">Làm mới</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            // Password confirmation validation
+            $('#ConfirmPassword').on('keyup', function() {
+                const password = $('#Password').val();
+                const confirmPassword = $(this).val();
+                
+                if (password !== confirmPassword && confirmPassword.length > 0) {
+                    $(this).addClass('is-invalid');
+                    if ($(this).next('.text-danger').length === 0) {
+                        $(this).after('<span class="text-danger">Mật khẩu không khớp</span>');
+                    }
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $(this).next('.text-danger').remove();
+                }
+            });
+
+            // Real-time validation
+            $('input[required]').on('blur', function() {
+                if ($(this).val().trim() === '') {
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+        });
+    </script>
+}
+
+<style>
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .card-header {
+        border-bottom: 2px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .btn-group .btn-check:checked + .btn {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+
+    .is-invalid:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+</style>
+

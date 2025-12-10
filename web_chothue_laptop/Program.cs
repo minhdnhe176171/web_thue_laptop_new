@@ -26,4 +26,20 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.MapControllerRoute(
+    name: "createAccount",
+    pattern: "CreateAccount/{action=Index}/{id?}",
+    defaults: new { controller = "CreateAccount" });
+
+// ManageAccount routes
+app.MapControllerRoute(
+    name: "manageAccount",
+    pattern: "ManageAccount/{action=Index}/{id?}",
+    defaults: new { controller = "ManageAccount" });
+
+// Default route
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
 app.Run();
