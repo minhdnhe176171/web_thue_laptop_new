@@ -28,23 +28,24 @@
 </div>
 
 
-<table class="table">
+<div class="table-responsive">
+    <table class="table table-bordered table-sm" style="border-collapse:collapse;">
     <thead>
         <tr>
-            <th>Tên</th>
-            <th>Hãng</th>
-            <th>Giá</th>
-            <th>Trạng thái</th>
+            <th class="px-3 py-2">Tên</th>
+            <th class="px-3 py-2">Hãng</th>
+            <th class="px-3 py-2">Giá</th>
+            <th class="px-3 py-2">Trạng thái</th>
         </tr>
     </thead>
     <tbody>
 @foreach(var l in Model)
 {
     <tr>
-        <td class="align-middle">@l.Name</td>
-        <td class="align-middle">@l.Brand?.BrandName</td>
-        <td class="align-middle">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
-        <td class="align-middle">
+        <td class="align-middle px-3 py-2">@l.Name</td>
+        <td class="align-middle px-3 py-2">@l.Brand?.BrandName</td>
+        <td class="align-middle px-3 py-2">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
+        <td class="align-middle px-3 py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <span>@TranslateStatus(l.Status?.StatusName)</span>
                 <span>

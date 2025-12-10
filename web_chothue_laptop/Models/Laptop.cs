@@ -38,4 +38,6 @@ public partial class Laptop
     public virtual ICollection<TechnicalTicket> TechnicalTickets { get; set; } = new List<TechnicalTicket>();
 
     public virtual ICollection<TicketList> TicketLists { get; set; } = new List<TicketList>();
+
+   
 }
