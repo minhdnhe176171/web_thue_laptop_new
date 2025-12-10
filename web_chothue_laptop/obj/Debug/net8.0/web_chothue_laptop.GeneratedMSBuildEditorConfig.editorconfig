@@ -11,57 +11,57 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = web_chothue_laptop
 build_property.RootNamespace = web_chothue_laptop
-build_property.ProjectDir = D:\DOWLOAD\SWP\web_thue_laptop_new\web_chothue_laptop\
+build_property.ProjectDir = d:\DOWLOAD\SWP\web_thue_laptop_new\web_chothue_laptop\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = D:\DOWLOAD\SWP\web_thue_laptop_new\web_chothue_laptop
+build_property.MSBuildProjectDirectory = d:\DOWLOAD\SWP\web_thue_laptop_new\web_chothue_laptop
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Home/Index.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Home/Privacy.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Shared/Error.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Shared/_ValidationScriptsPartial.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Create.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3R1ZGVudFxDcmVhdGUuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Edit.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Edit.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3R1ZGVudFxFZGl0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Index.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3R1ZGVudFxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Report.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Student/Report.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3R1ZGVudFxSZXBvcnQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/_ViewImports.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/_ViewStart.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Shared/_Layout.cshtml]
+[d:/DOWLOAD/SWP/web_thue_laptop_new/web_chothue_laptop/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-d1ngaausbv
