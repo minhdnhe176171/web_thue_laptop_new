@@ -1,0 +1,169 @@
+﻿@model web_chothue_laptop.Models.Laptop
+@{
+    ViewData["Title"] = "Chi tiết laptop";
+    var startTime = ViewBag.StartTime as DateTime?;
+    var endTime = ViewBag.EndTime as DateTime?;
+    var timeRemaining = ViewBag.TimeRemaining as TimeSpan?;
+}
+
+@functions {
+private static string TranslateStatus(string? name) => name?.ToLower() switch
+{
+    "pending" => "Đang chờ xử lý",
+    "active" => "Hoạt động",
+    "approved" => "Đã phê duyệt",
+    "available" => "Có sẵn",
+    "rejected" => "Bị từ chối",
+    "broken" => "Hỏng",
+    "close" => "Đóng",
+    "fixed" => "Đã sửa",
+    "fixing" => "Đang sửa",
+    "inactive" => "Không hoạt động",
+    "rented" => "Đã thuê",
+    _ => name ?? string.Empty
+};
+
+private static string FormatTimeRemaining(TimeSpan? timeSpan)
+    {
+        if (timeSpan == null || timeSpan.Value.TotalSeconds <= 0)
+            return "Đã hết hạn";
+
+        if (timeSpan.Value.TotalDays >= 1)
+            return $"{(int)timeSpan.Value.TotalDays} ngày {timeSpan.Value.Hours} giờ {timeSpan.Value.Minutes} phút";
+
+        if (timeSpan.Value.TotalHours >= 1)
+            return $"{(int)timeSpan.Value.TotalHours} giờ {timeSpan.Value.Minutes} phút";
+
+        return $"{(int)timeSpan.Value.TotalMinutes} phút";
+    }
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Chi tiết laptop: @Model.Name</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Thông tin chung</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="40%">Tên laptop</th>
+                                    <td>@Model.Name</td>
+                                </tr>
+                                <tr>
+                                    <th>Hãng</th>
+                                    <td>@Model.Brand?.BrandName</td>
+                                </tr>
+                                <tr>
+                                    <th>Giá thuê</th>
+                                    <td>@(Model.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
+                                </tr>
+                                <tr>
+                                    <th>Trạng thái</th>
+                                    <td>
+                                        <span class="badge @(Model.Status?.StatusName == "Đã phê duyệt" ? "bg-success" : Model.Status?.StatusName == "Đang chờ xử lý" ? "bg-warning" : "bg-danger")">
+                                            @TranslateStatus(Model.Status?.StatusName)
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Ngày tạo</th>
+                                    <td>@Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Thời gian thuê</h5>
+                            @if (startTime.HasValue && endTime.HasValue)
+                            {
+                                var totalDays = (endTime.Value - startTime.Value).TotalDays;
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th width="40%">Thời hạn thuê</th>
+                                        <td>@(string.Format("{0:F1} ngày", totalDays))</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Ngày bắt đầu</th>
+                                        <td>@startTime.Value.ToString("dd/MM/yyyy HH:mm")</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Ngày đến hạn</th>
+                                        <td>@endTime.Value.ToString("dd/MM/yyyy HH:mm")</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Thời gian còn lại</th>
+                                        <td class="@(timeRemaining?.TotalSeconds <= 0 ? "text-danger" : "text-success") fw-bold">
+                                            <span id="timeRemaining">@FormatTimeRemaining(timeRemaining)</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i> Chưa có thông tin thời gian thuê cho laptop này.
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <h5 class="text-primary">Cấu hình kỹ thuật</h5>
+                    @{
+                        var detail = Model.LaptopDetails.FirstOrDefault();
+                    }
+                    @if (detail != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th width="40%">CPU</th>
+                                        <td>@detail.Cpu</td>
+                                    </tr>
+                                    <tr>
+                                        <th>RAM</th>
+                                        <td>@detail.RamSize @(!string.IsNullOrEmpty(detail.RamType) ? $"({detail.RamType})" : "")</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Lưu trữ</th>
+                                        <td>@detail.Storage</td>
+                                    </tr>
+                                    <tr>
+                                        <th>GPU</th>
+                                        <td>@detail.Gpu</td>
+                                    </tr>
+                                </table>
+                            </div>
+               
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Chưa có thông tin cấu hình chi tiết.</p>
+                    }
+
+                    <div class="mt-4">
+                    
+                        <a class="btn btn-secondary" href="/student/home">Quay lại</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Cập nhật thời gian còn lại mỗi phút
+        setInterval(function() {
+            location.reload();
+        }, 60000); // 60 giây
+    </script>
+}

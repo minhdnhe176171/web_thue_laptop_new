@@ -7,8 +7,9 @@
     private static string TranslateStatus(string? name) => name?.ToLower() switch
     {
         "pending" => "Đang chờ xử lý",
-        "đang chờ xử lý" => "Đang chờ xử lý",
+        "active" => "Hoạt động",
         "approved" => "Đã phê duyệt",
+        "available" => "Có sẵn",
         "rejected" => "Bị từ chối",
         _ => name ?? string.Empty
     };

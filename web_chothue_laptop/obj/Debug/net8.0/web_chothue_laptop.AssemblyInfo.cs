@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("web_chothue_laptop")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fd60f12a8dbda3e80791916903bd827580a7c665")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6a0248ee4cb3812354e026e8216cfbd96d4f730a")]
 [assembly: System.Reflection.AssemblyProductAttribute("web_chothue_laptop")]
 [assembly: System.Reflection.AssemblyTitleAttribute("web_chothue_laptop")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

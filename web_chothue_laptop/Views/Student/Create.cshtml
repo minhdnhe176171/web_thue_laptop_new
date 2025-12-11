@@ -1,33 +1,37 @@
-﻿@model web_chothue_laptop.Models.CreateLaptopViewModel
+﻿@model web_chothue_laptop.Models.Laptop
 @{
-    ViewData["Title"] = "Tạo laptop";
+    ViewData["Title"] = "Tạo laptop cho thuê";
 }
 
 @functions {
     private static string TranslateStatus(string? name) => name?.ToLower() switch
     {
         "pending" => "Đang chờ xử lý",
-        "đang chờ xử lý" => "Đang chờ xử lý",
+        "active" => "Hoạt động",
         "approved" => "Đã phê duyệt",
+        "available" => "Có sẵn",
         "rejected" => "Bị từ chối",
         _ => name ?? string.Empty
     };
 }
 
-<h2>Tạo laptop</h2>
+<h2>Tạo laptop cho thuê</h2>
+
+
 
 <form asp-action="Create" method="post">
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
+        <label>Tên máy</label>
+        <input asp-for="Name" class="form-control" placeholder="VD: Dell XPS 13, Macbook Pro 2024..." required minlength="3" maxlength="100" />
         <span asp-validation-for="Name" class="text-danger"></span>
+        <small class="form-text text-muted">Tên máy phải từ 3-100 ký tự</small>
     </div>
 
     <div class="form-group">
         <label>Hãng</label>
-        <select asp-for="BrandId" class="form-control">
+        <select asp-for="BrandId" class="form-control" required>
             <option value="">-- Chọn hãng --</option>
 @foreach(var b in (IEnumerable<web_chothue_laptop.Models.Brand>)ViewBag.Brands)
 {
@@ -35,51 +39,55 @@
 }
         </select>
         <span asp-validation-for="BrandId" class="text-danger"></span>
+        <small class="form-text text-muted">Vui lòng chọn hãng laptop</small>
     </div>
 
     <div class="form-group">
-        <label>Giá</label>
+        <label>Giá thuê (VNĐ/ngày) <span class="text-danger">*</span></label>
         <div>
-            <label><input asp-for="Price" type="radio" value="100000" /> 100,000</label>
-            <label><input asp-for="Price" type="radio" value="200000" /> 200,000</label>
-            <label><input asp-for="Price" type="radio" value="300000" /> 300,000</label>
-            <label><input asp-for="Price" type="radio" value="400000" /> 400,000</label>
-            <label><input asp-for="Price" type="radio" value="500000" /> 500,000</label>
+            <label class="me-3"><input asp-for="Price" type="radio" value="100000" required /> 100,000</label>
+            <label class="me-3"><input asp-for="Price" type="radio" value="200000" /> 200,000</label>
+            <label class="me-3"><input asp-for="Price" type="radio" value="300000" /> 300,000</label>
+            <label class="me-3"><input asp-for="Price" type="radio" value="400000" /> 400,000</label>
+            <label class="me-3"><input asp-for="Price" type="radio" value="500000" /> 500,000</label>
             <span asp-validation-for="Price" class="text-danger"></span>
         </div>
+        <small class="form-text text-muted">Chọn mức giá thuê phù hợp</small>
     </div>
 
     <div class="form-group">
-    <label>Thời gian thuê</label>
-    <input type="date" id="rentalTime" name="RentalTime" class="form-control" />
-</div>
+        <label>Thời gian đến hạn thuê <span class="text-danger">*</span></label>
+        <input type="datetime-local" name="EndTime" id="endTime" class="form-control" required />
+        <small class="form-text text-muted">Chọn ngày và giờ kết thúc thời gian thuê (phải sau thời điểm hiện tại)</small>
+        <div id="endTimeError" class="text-danger" style="display:none;"></div>
+    </div>
 
-    <h4>Thông số kỹ thuật</h4>
+    <h4>Thông số kỹ thuật <span class="text-danger">*</span></h4>
     <div class="form-row">
         <div class="form-group col-md-6">
-            <label>CPU</label>
-            <input asp-for="Cpu" class="form-control" />
-            <span asp-validation-for="Cpu" class="text-danger"></span>
+            <label>CPU <span class="text-danger">*</span></label>
+            <input name="Cpu" class="form-control" placeholder="VD: Intel Core i7-12700H" required minlength="3" />
+            <small class="form-text text-muted">Tên CPU của laptop</small>
         </div>
         <div class="form-group col-md-6">
-            <label>RAM</label>
+            <label>RAM <span class="text-danger">*</span></label>
             <div>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="8GB" /> 8GB</label>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="16GB" /> 16GB</label>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="32GB" /> 32GB</label>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="64GB" /> 64GB</label>
-                <span asp-validation-for="RamSize" class="text-danger"></span>
+                <label class="mr-2"><input name="RamSize" type="radio" value="8GB" required /> 8GB</label>
+                <label class="mr-2"><input name="RamSize" type="radio" value="16GB" /> 16GB</label>
+                <label class="mr-2"><input name="RamSize" type="radio" value="32GB" /> 32GB</label>
+                <label class="mr-2"><input name="RamSize" type="radio" value="64GB" /> 64GB</label>
             </div>
+            <small class="form-text text-muted">Chọn dung lượng RAM</small>
         </div>
         <div class="form-group col-md-6">
-            <label>Lưu trữ</label>
-            <input asp-for="Storage" class="form-control" />
-            <span asp-validation-for="Storage" class="text-danger"></span>
+            <label>Lưu trữ <span class="text-danger">*</span></label>
+            <input name="Storage" class="form-control" placeholder="VD: 512GB SSD" required minlength="3" />
+            <small class="form-text text-muted">Dung lượng ổ cứng</small>
         </div>
         <div class="form-group col-md-6">
             <label>GPU</label>
-            <input asp-for="Gpu" class="form-control" />
-            <span asp-validation-for="Gpu" class="text-danger"></span>
+            <input name="Gpu" class="form-control" placeholder="VD: NVIDIA RTX 3050" />
+            <small class="form-text text-muted">Card đồ họa (không bắt buộc)</small>
         </div>
     </div>
 
@@ -91,6 +99,58 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // client-side validation enabled by _ValidationScriptsPartial
+        // Set minimum datetime to now + 1 hour
+        $(document).ready(function() {
+            var now = new Date();
+            now.setHours(now.getHours() + 1); // Tối thiểu 1 giờ sau
+            var minDateTime = now.toISOString().slice(0, 16);
+            $('#endTime').attr('min', minDateTime);
+
+            // Validate khi submit
+            $('form').on('submit', function(e) {
+                var endTime = new Date($('#endTime').val());
+                var currentTime = new Date();
+
+                if (endTime <= currentTime) {
+                    e.preventDefault();
+                    $('#endTimeError').text('Thời gian đến hạn phải sau thời điểm hiện tại ít nhất 1 giờ').show();
+                    $('#endTime').focus();
+                    return false;
+                }
+
+                // Kiểm tra không quá 1 năm
+                var oneYearLater = new Date();
+                oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+                if (endTime > oneYearLater) {
+                    e.preventDefault();
+                    $('#endTimeError').text('Thời gian đến hạn không được quá 1 năm').show();
+                    $('#endTime').focus();
+                    return false;
+                }
+
+                $('#endTimeError').hide();
+            });
+
+            // Validate realtime
+            $('#endTime').on('change', function() {
+                var endTime = new Date($(this).val());
+                var currentTime = new Date();
+
+                if (endTime <= currentTime) {
+                    $('#endTimeError').text('Thời gian đến hạn phải sau thời điểm hiện tại').show();
+                } else {
+                    $('#endTimeError').hide();
+                }
+            });
+
+            // Validate các trường required
+            $('input[required], select[required]').on('invalid', function() {
+                this.setCustomValidity('Vui lòng điền thông tin này');
+            });
+
+            $('input[required], select[required]').on('input change', function() {
+                this.setCustomValidity('');
+            });
+        });
     </script>
 }
