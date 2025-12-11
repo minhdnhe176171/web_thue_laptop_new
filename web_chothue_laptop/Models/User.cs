@@ -21,6 +21,8 @@ public partial class User
 
     public DateTime? OtpExpiry { get; set; }
 
+    public string? AvatarUrl { get; set; }
+
     public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
 
     public virtual ICollection<Manager> Managers { get; set; } = new List<Manager>();
