@@ -17,7 +17,7 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
 
 // Register Services
 builder.Services.AddScoped<CloudinaryService>();
