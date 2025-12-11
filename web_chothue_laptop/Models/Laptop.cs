@@ -23,6 +23,8 @@ public partial class Laptop
 
     public long? StudentId { get; set; }
 
+    public string? ImageUrl { get; set; }
+
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public virtual Brand? Brand { get; set; }

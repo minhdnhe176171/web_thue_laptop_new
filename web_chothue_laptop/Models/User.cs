@@ -17,6 +17,10 @@ public partial class User
 
     public DateTime? CreatedDate { get; set; }
 
+    public string? OtpCode { get; set; }
+
+    public DateTime? OtpExpiry { get; set; }
+
     public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
 
     public virtual ICollection<Manager> Managers { get; set; } = new List<Manager>();

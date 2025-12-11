@@ -1,4 +1,4 @@
-﻿namespace web_chothue_laptop.Helpers
+namespace web_chothue_laptop.Helpers
 {
     public static class StatusHelper
     {
@@ -21,6 +21,7 @@
                 "active" => "Đang hoạt động",
                 "inactive" => "Không hoạt động",
                 "approved" => "Đã Duyệt",
+                "closed" => "Đã đóng",
                 _ => statusName // Giữ nguyên nếu không tìm thấy mapping
             };
         }
@@ -41,8 +42,10 @@
                 "pending" or "đang chờ" => "bg-warning",
                 "cancelled" or "canceled" or "đã hủy" => "bg-secondary",
                 "approved" or "đã duyệt" => "bg-success",
+                "closed" or "đã đóng" => "bg-secondary",
                 _ => "bg-secondary"
             };
         }
     }
 }
+
