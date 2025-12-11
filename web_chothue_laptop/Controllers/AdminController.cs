@@ -23,7 +23,8 @@ namespace web_chothue_laptop.Controllers
         {
             var laptops = await _context.Laptops
                 .Include(l => l.Brand)
-                .OrderBy(l => l.Name)
+                .OrderByDescending(l => l.CreatedDate) // Sắp xếp theo ngày tạo mới nhất
+                .ThenBy(l => l.Name)
                 .ToListAsync();
 
             return View(laptops);

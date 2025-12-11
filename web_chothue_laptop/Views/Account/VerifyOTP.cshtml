@@ -1,0 +1,74 @@
+@model web_chothue_laptop.ViewModels.VerifyOTPViewModel
+@{
+    ViewData["Title"] = "Xác Thực OTP";
+    var type = ViewBag.Type as string ?? "";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">Xác Thực Mã OTP</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (type == "register")
+                    {
+                        <p class="text-muted mb-4">Chúng tôi đã gửi mã OTP đến email <strong>@Model.Email</strong>. Vui lòng kiểm tra và nhập mã OTP để hoàn tất đăng ký.</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-4">Chúng tôi đã gửi mã OTP đến email <strong>@Model.Email</strong>. Vui lòng kiểm tra và nhập mã OTP để đổi mật khẩu.</p>
+                    }
+
+                    @if (TempData["InfoMessage"] != null)
+                    {
+                        <div class="alert alert-info">@TempData["InfoMessage"]</div>
+                    }
+
+                    <form asp-action="VerifyOTP" method="post">
+                        <input type="hidden" asp-for="Email" />
+                        <input type="hidden" name="type" value="@type" />
+
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="OTP" class="form-label"></label>
+                            <input asp-for="OTP" class="form-control text-center" placeholder="Nhập 6 chữ số" maxlength="6" style="font-size: 24px; letter-spacing: 8px;" />
+                            <span asp-validation-for="OTP" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary">Xác Thực</button>
+                        </div>
+                    </form>
+
+                    <div class="text-center">
+                        <small class="text-muted">Mã OTP có hiệu lực trong 10 phút</small>
+                    </div>
+                </div>
+                <div class="card-footer text-center bg-light">
+                    @if (type == "register")
+                    {
+                        <a asp-action="Register" class="text-decoration-none">← Quay lại đăng ký</a>
+                    }
+                    else
+                    {
+                        <a asp-action="ForgotPassword" class="text-decoration-none">← Quay lại</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Auto focus và format OTP input
+        document.querySelector('input[name="OTP"]').addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+    </script>
+}
+
