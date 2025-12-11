@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
 
@@ -8,6 +8,7 @@ namespace web_chothue_laptop.Controllers
     {
         private readonly Swp391LaptopContext _context;
         private readonly ILogger<HomeController> _logger;
+        private const int PageSize = 6;
 
         public HomeController(Swp391LaptopContext context, ILogger<HomeController> logger)
         {
@@ -15,14 +16,17 @@ namespace web_chothue_laptop.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? page)
         {
-            // Lấy danh sách các hãng laptop và laptop theo từng hãng
-            var brandsWithLaptops = await _context.Brands
-                .Include(b => b.Laptops)
-                    .ThenInclude(l => l.Status)
-                .Where(b => b.Laptops.Any())
-                .ToListAsync();
+            int pageIndex = page ?? 1;
+            
+            // Lấy tất cả laptop để phân trang
+            var allLaptopsQuery = _context.Laptops
+                .Include(l => l.Brand)
+                .Include(l => l.Status)
+                .OrderBy(l => l.Id);
+
+            var paginatedLaptops = await PaginatedList<Laptop>.CreateAsync(allLaptopsQuery, pageIndex, PageSize);
 
             // Lấy danh sách booking hiện tại (đang thuê) để hiển thị người thuê
             var currentBookings = await _context.Bookings
@@ -35,8 +39,12 @@ namespace web_chothue_laptop.Controllers
                 .ToListAsync();
 
             ViewBag.CurrentBookings = currentBookings;
+            ViewBag.PageIndex = paginatedLaptops.PageIndex;
+            ViewBag.TotalPages = paginatedLaptops.TotalPages;
+            ViewBag.HasPreviousPage = paginatedLaptops.HasPreviousPage;
+            ViewBag.HasNextPage = paginatedLaptops.HasNextPage;
 
-            return View(brandsWithLaptops);
+            return View(paginatedLaptops);
         }
 
         public IActionResult Privacy()
@@ -51,3 +59,4 @@ namespace web_chothue_laptop.Controllers
         }
     }
 }
+

@@ -1,131 +1,104 @@
-﻿﻿@using web_chothue_laptop.Helpers
-@model List<web_chothue_laptop.Models.Brand>
+﻿@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Models
+@model PaginatedList<Laptop>
 @{
     ViewData["Title"] = "Trang Chủ - Dịch Vụ Thuê Laptop";
-    var currentBookings = ViewBag.CurrentBookings as List<web_chothue_laptop.Models.Booking>;
+    var currentBookings = ViewBag.CurrentBookings as List<Booking>;
+    var pageIndex = (int)ViewBag.PageIndex;
+    var totalPages = (int)ViewBag.TotalPages;
+    var hasPreviousPage = (bool)ViewBag.HasPreviousPage;
+    var hasNextPage = (bool)ViewBag.HasNextPage;
 }
 
 <div class="container py-4">
     <!-- Phần giới thiệu -->
-    <div class="text-center mb-4 p-4 rounded bg-primary text-white">
-        <h2 class="mb-3 fw-bold">Dịch Vụ Thuê Laptop Cho Sinh Viên ĐH -FPT Đi Thi</h2>
-        <p class="mb-0">Cung cấp laptop chất lượng cao phục vụ nhu cầu đi thi của sinh viên DH-FPT</p>
+    <div class="text-center mb-4 p-4 rounded bg-primary text-white" style="box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
+        <h2 class="mb-3 fw-bold">Dịch Vụ Thuê Laptop Cho Sinh Viên Đi Thi</h2>
+        <p class="mb-0">Cung cấp laptop chất lượng cao phục vụ nhu cầu đi thi của sinh viên </p>
     </div>
 
-    <!-- Danh mục laptop theo hãng - 3 hãng trên 1 hàng -->
+    <!-- Danh mục laptop -->
     <h3 class="mb-3">Laptop Theo Hãng</h3>
     @if (Model != null && Model.Any())
     {
-        <div class="row mb-5">
-            @foreach (var brand in Model)
+        <div class="row mb-4">
+            @foreach (var laptop in Model)
             {
                 <div class="col-md-4 mb-4">
-                    <div class="card h-100">
+                    <div class="card h-100" style="box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+                        <img src="@ImageHelper.GetLaptopImageUrl(laptop.ImageUrl, laptop.Name, laptop.Brand?.BrandName)" 
+                             class="card-img-top" 
+                             alt="@laptop.Name"
+                             style="height: 250px; object-fit: cover; background-color: #f8f9fa;">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-1">@brand.BrandName</h5>
-                            <small>@brand.Laptops.Count() sản phẩm</small>
+                            <h5 class="mb-1">@laptop.Brand?.BrandName</h5>
+                            <small>@laptop.Name</small>
                         </div>
                         <div class="card-body">
-                            @foreach (var laptop in brand.Laptops)
-                            {
-                                <div class="border-bottom pb-3 mb-3">
-                                    <h6 class="mb-2">@laptop.Name</h6>
+                            <p class="mb-2">
+                                <strong>Giá:</strong>
+                                @if (laptop.Price.HasValue)
+                                {
+                                    <span class="text-primary fw-bold">@laptop.Price.Value.ToString("N0") VNĐ</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có giá</span>
+                                }
+                            </p>
 
-                                    <p class="mb-1">
-                                        <strong>Giá:</strong>
-                                        @if (laptop.Price.HasValue)
-                                        {
-                                            <span class="text-primary">@laptop.Price.Value.ToString("N0") VNĐ</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Chưa có giá</span>
-                                        }
-                                    </p>
-
-                                    <p class="mb-2">
-                                        <strong>Trạng thái:</strong>
-                                        @if (laptop.Status != null)
-                                        {
-                                            var statusVi = StatusHelper.GetVietnameseStatus(laptop.Status.StatusName);
-                                            var badgeClass = StatusHelper.GetStatusBadgeClass(laptop.Status.StatusName);
-                                            <span class="badge @badgeClass">@statusVi</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Chưa xác định</span>
-                                        }
-                                    </p>
-
-                                    <a href="@Url.Action("Details", "Laptop", new { id = laptop.Id })" class="btn btn-primary btn-sm w-100">
-                                        Xem chi tiết
-                                    </a>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-info text-center mb-5">
-            <p class="mb-0">Hiện tại chưa có laptop nào trong hệ thống.</p>
-        </div>
-    }
-
-    <!-- Phần hiển thị người thuê -->
-    <h3 class="mb-3">Người Đang Thuê Laptop</h3>
-    @if (currentBookings != null && currentBookings.Any())
-    {
-        <div class="row">
-            @foreach (var booking in currentBookings)
-            {
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-title text-primary">@booking.Laptop?.Name</h6>
-                            <p class="mb-1">
-                                <strong>Hãng:</strong> @(booking.Laptop?.Brand?.BrandName ?? "N/A")
-                            </p>
-                            <p class="mb-1">
-                                <strong>Người thuê:</strong>
-                                <span class="text-success fw-bold">
-                                    @booking.Customer?.FirstName @booking.Customer?.LastName
-                                </span>
-                            </p>
-                            <p class="mb-1">
-                                <strong>Email:</strong> @(booking.Customer?.Email ?? "N/A")
-                            </p>
-                            <p class="mb-1">
-                                <strong>SĐT:</strong> @(booking.Customer?.Phone ?? "N/A")
-                            </p>
-                            <p class="mb-1">
-                                <strong>Bắt đầu:</strong> @booking.StartTime.ToString("dd/MM/yyyy")
-                            </p>
-                            <p class="mb-1">
-                                <strong>Kết thúc:</strong> @booking.EndTime.ToString("dd/MM/yyyy")
-                            </p>
-                            @if (booking.Status != null)
-                            {
-                                var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
-                                var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
-                                <p class="mb-0">
-                                    <strong>Trạng thái:</strong>
+                            <p class="mb-3">
+                                <strong>Trạng thái:</strong>
+                                @if (laptop.Status != null)
+                                {
+                                    var statusVi = StatusHelper.GetVietnameseStatus(laptop.Status.StatusName);
+                                    var badgeClass = StatusHelper.GetStatusBadgeClass(laptop.Status.StatusName);
                                     <span class="badge @badgeClass">@statusVi</span>
-                                </p>
-                            }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Chưa xác định</span>
+                                }
+                            </p>
+
+                            <a href="@Url.Action("Details", "Laptop", new { id = laptop.Id })" class="btn btn-primary btn-sm w-100">
+                                Xem chi tiết
+                            </a>
                         </div>
                     </div>
                 </div>
             }
         </div>
+
+        <!-- Phân trang -->
+        @if (totalPages > 1)
+        {
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(!hasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex - 1 })" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == pageIndex ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(!hasNextPage ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex + 1 })" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
     }
     else
     {
-        <div class="alert alert-warning text-center">
-            <p class="mb-0">Hiện tại không có ai đang thuê laptop.</p>
+        <div class="alert alert-info text-center mb-5" style="box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            <p class="mb-0">Hiện tại chưa có laptop nào trong hệ thống.</p>
         </div>
     }
 </div>
@@ -137,5 +110,10 @@
 
     .card-header {
         border-bottom: 1px solid #dee2e6;
+    }
+
+    .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
     }
 </style>

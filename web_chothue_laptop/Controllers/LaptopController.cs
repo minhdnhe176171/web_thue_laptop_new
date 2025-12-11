@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
 
@@ -42,3 +42,4 @@ namespace web_chothue_laptop.Controllers
         }
     }
 }
+
