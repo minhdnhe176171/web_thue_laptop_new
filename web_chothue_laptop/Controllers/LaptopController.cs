@@ -38,8 +38,48 @@ namespace web_chothue_laptop.Controllers
                 return NotFound();
             }
 
+            // Kiểm tra booking của user hiện tại (nếu đã đăng nhập)
+            var userId = HttpContext.Session.GetString("UserId");
+            bool hasPendingBooking = false;
+            bool hasActiveBooking = false;
+            Booking? activeBooking = null;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var userIdLong = long.Parse(userId);
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+                if (customer != null)
+                {
+                    // Kiểm tra booking pending
+                    hasPendingBooking = await _context.Bookings
+                        .Include(b => b.Status)
+                        .AnyAsync(b => b.CustomerId == customer.Id 
+                            && b.LaptopId == laptop.Id 
+                            && b.Status.StatusName.ToLower() == "pending");
+
+                    // Kiểm tra booking active
+                    activeBooking = await _context.Bookings
+                        .Include(b => b.Status)
+                        .Where(b => b.CustomerId == customer.Id 
+                            && b.LaptopId == laptop.Id 
+                            && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                            && b.EndTime >= DateTime.Today)
+                        .FirstOrDefaultAsync();
+
+                    hasActiveBooking = activeBooking != null;
+                }
+            }
+
+            ViewBag.HasPendingBooking = hasPendingBooking;
+            ViewBag.HasActiveBooking = hasActiveBooking;
+            ViewBag.ActiveBooking = activeBooking;
+            ViewBag.CurrentUserId = userId;
+
             return View(laptop);
         }
     }
 }
+
 

@@ -20,11 +20,12 @@ namespace web_chothue_laptop.Controllers
         {
             int pageIndex = page ?? 1;
             
-            // Lấy tất cả laptop để phân trang
+            // Lấy tất cả laptop để phân trang (bao gồm 8 sản phẩm mới)
             var allLaptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
-                .OrderBy(l => l.Id);
+                .OrderByDescending(l => l.CreatedDate) // Sắp xếp theo ngày tạo mới nhất
+                .ThenBy(l => l.Id);
 
             var paginatedLaptops = await PaginatedList<Laptop>.CreateAsync(allLaptopsQuery, pageIndex, PageSize);
 

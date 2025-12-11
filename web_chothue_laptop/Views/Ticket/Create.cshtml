@@ -1,0 +1,129 @@
+@model web_chothue_laptop.ViewModels.TicketViewModel
+@{
+    ViewData["Title"] = "Báo Lỗi Thiết Bị";
+    var laptop = ViewBag.Laptop as web_chothue_laptop.Models.Laptop;
+    var booking = ViewBag.Booking as web_chothue_laptop.Models.Booking;
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-controller="Laptop" asp-action="Details" asp-route-id="@Model.LaptopId" class="text-decoration-none text-primary">
+            ← Quay lại chi tiết laptop
+        </a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Báo Lỗi Thiết Bị</h4>
+                </div>
+                <div class="card-body">
+                    @if (laptop != null)
+                    {
+                        <div class="mb-4">
+                            <h5>@laptop.Name</h5>
+                            <p class="text-muted mb-2">
+                                <strong>Hãng:</strong> @(laptop.Brand?.BrandName ?? "N/A")
+                            </p>
+                            @if (booking != null)
+                            {
+                                <p class="text-muted mb-0">
+                                    <strong>Đơn thuê:</strong> Từ @booking.StartTime.ToString("dd/MM/yyyy") đến @booking.EndTime.ToString("dd/MM/yyyy")
+                                </p>
+                            }
+                        </div>
+                    }
+
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                        <input type="hidden" asp-for="LaptopId" />
+                        @if (Model.BookingId.HasValue)
+                        {
+                            <input type="hidden" asp-for="BookingId" />
+                        }
+
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="5" placeholder="Mô tả chi tiết lỗi gặp phải (tối thiểu 10 ký tự)"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                            <small class="form-text text-muted">Vui lòng mô tả chi tiết lỗi bạn gặp phải để chúng tôi có thể xử lý nhanh chóng.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ErrorImage" class="form-label"></label>
+                            <input asp-for="ErrorImage" type="file" class="form-control" accept="image/*" id="errorImageInput" />
+                            <span asp-validation-for="ErrorImage" class="text-danger"></span>
+                            <small class="form-text text-muted">Upload hình ảnh lỗi (nếu có) để hỗ trợ xử lý tốt hơn.</small>
+                            
+                            <div id="imagePreview" class="mt-3" style="display: none;">
+                                <img id="previewImg" src="" alt="Preview" class="img-fluid rounded" style="max-height: 300px; border: 1px solid #dee2e6;" />
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Lưu ý:</strong>
+                            <ul class="mb-0">
+                                <li>Vui lòng mô tả chi tiết lỗi để chúng tôi có thể xử lý nhanh chóng</li>
+                                <li>Hình ảnh lỗi sẽ giúp chúng tôi đánh giá và xử lý chính xác hơn</li>
+                                <li>Chúng tôi sẽ phản hồi yêu cầu của bạn trong thời gian sớm nhất</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="bi bi-exclamation-triangle"></i> Gửi Báo Lỗi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            @if (laptop != null)
+            {
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0">Thông Tin Thiết Bị</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Tên:</strong> @laptop.Name</p>
+                        <p class="mb-2"><strong>Hãng:</strong> @(laptop.Brand?.BrandName ?? "N/A")</p>
+                        @if (booking != null)
+                        {
+                            <p class="mb-0"><strong>Đơn thuê:</strong> #@booking.Id</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Preview ảnh trước khi upload
+        document.getElementById('errorImageInput')?.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewImg').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('imagePreview').style.display = 'none';
+            }
+        });
+    </script>
+}
+

@@ -22,7 +22,31 @@
                         <li class="nav-item">
                             <a class="nav-link text-white fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Trang Chủ</a>
                         </li>
-                        
+                        <li class="nav-item">
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav">
+                        @if (Context.Session.GetString("UserId") != null)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link text-white fw-semibold dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @Context.Session.GetString("UserEmail")
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">Đăng xuất</a></li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-white fw-semibold" asp-controller="Account" asp-action="Login">Đăng Nhập</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white fw-semibold" asp-controller="Account" asp-action="Register">Đăng Ký</a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>
