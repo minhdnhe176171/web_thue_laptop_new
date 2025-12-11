@@ -1,0 +1,42 @@
+@{
+    var fullName = ViewBag.FullName as string ?? "User";
+    var avatarUrl = ViewBag.AvatarUrl as string;
+    var userEmail = ViewBag.UserEmail as string ?? "";
+}
+
+<li class="nav-item dropdown">
+    <a class="nav-link text-white fw-semibold dropdown-toggle d-flex align-items-center" 
+       href="#" 
+       id="navbarDropdown" 
+       role="button" 
+       data-bs-toggle="dropdown" 
+       aria-expanded="false"
+       style="line-height: 1.5;">
+        @if (!string.IsNullOrEmpty(avatarUrl))
+        {
+            <img src="@avatarUrl" 
+                 alt="Avatar" 
+                 class="rounded-circle me-2" 
+                 style="width: 32px; height: 32px; object-fit: cover;" />
+        }
+        else
+        {
+            <i class="bi bi-person-circle me-2" style="font-size: 24px;"></i>
+        }
+        <span>@fullName</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+        <li>
+            <a class="dropdown-item" asp-controller="Profile" asp-action="Index">
+                <i class="bi bi-person"></i> Hồ sơ cá nhân
+            </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item" asp-controller="Account" asp-action="Logout">
+                <i class="bi bi-box-arrow-right"></i> Đăng xuất
+            </a>
+        </li>
+    </ul>
+</li>
+

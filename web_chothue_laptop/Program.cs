@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
+using web_chothue_laptop.Hubs;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.Services;
 
@@ -19,9 +21,38 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Add Redis
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    try
+    {
+        var configurationOptions = new ConfigurationOptions
+        {
+            EndPoints = { redisConnectionString },
+            AbortOnConnectFail = false,
+            ConnectRetry = 3,
+            ConnectTimeout = 5000
+        };
+        return ConnectionMultiplexer.Connect(configurationOptions);
+    }
+    catch (Exception ex)
+    {
+        var logger = sp.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Failed to connect to Redis. Chat history will not be persisted. Error: {Message}", ex.Message);
+        // Return a dummy connection multiplexer that won't crash the app
+        // In production, you might want to handle this differently
+        return ConnectionMultiplexer.Connect("localhost:6379,abortConnect=false");
+    }
+});
+
 // Register Services
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddSingleton<RedisService>();
 
 var app = builder.Build();
 
@@ -37,6 +68,9 @@ app.UseRouting();
 app.UseSession();
 
 app.UseAuthorization();
+
+// Map SignalR Hub
+app.MapHub<ChatHub>("/chathub");
 
 app.MapControllerRoute(
     name: "default",

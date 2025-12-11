@@ -1,0 +1,157 @@
+@{
+    ViewData["Title"] = "Hỗ trợ khách hàng";
+    var customerId = ViewBag.CustomerId;
+    var customerName = ViewBag.CustomerName;
+    var messages = ViewBag.Messages as List<web_chothue_laptop.Services.ChatMessage> ?? new List<web_chothue_laptop.Services.ChatMessage>();
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-chat-dots"></i> Hỗ trợ khách hàng
+                    </h4>
+                </div>
+                <div class="card-body p-0">
+                    <div id="chatContainer" style="height: 500px; overflow-y: auto; padding: 20px; background-color: #f8f9fa;">
+                        <div id="messagesList">
+                            @foreach (var msg in messages)
+                            {
+                                <div class="mb-3 @(msg.SenderType == "customer" ? "text-end" : "text-start")">
+                                    <div class="d-inline-block p-3 rounded @(msg.SenderType == "customer" ? "bg-primary text-white" : "bg-white border")" style="max-width: 70%;">
+                                        <div class="fw-bold small">@msg.SenderName</div>
+                                        <div>@msg.Message</div>
+                                        <div class="small mt-1 opacity-75">@msg.Timestamp.ToString("HH:mm dd/MM/yyyy")</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="input-group">
+                            <input type="text" id="messageInput" class="form-control" placeholder="Nhập tin nhắn của bạn..." />
+                            <button class="btn btn-primary" id="sendButton">
+                                <i class="bi bi-send"></i> Gửi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chathub")
+            .build();
+
+        const customerId = @customerId;
+        const customerName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(customerName));
+
+        connection.start().then(function () {
+            console.log("SignalR Connected");
+            connection.invoke("JoinCustomerGroup", customerId).then(function () {
+                console.log("Joined customer group:", customerId);
+            }).catch(function (err) {
+                console.error("Error joining customer group:", err.toString());
+            });
+        }).catch(function (err) {
+            console.error("SignalR connection error:", err.toString());
+            alert("Không thể kết nối đến server chat. Vui lòng refresh trang.");
+        });
+
+        connection.on("ReceiveMessage", function (data) {
+            const messagesList = document.getElementById("messagesList");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "mb-3 " + (data.senderType === "customer" ? "text-end" : "text-start");
+            
+            const messageContent = document.createElement("div");
+            messageContent.className = "d-inline-block p-3 rounded " + 
+                (data.senderType === "customer" ? "bg-primary text-white" : "bg-white border");
+            messageContent.style.maxWidth = "70%";
+            
+            const senderName = document.createElement("div");
+            senderName.className = "fw-bold small";
+            senderName.textContent = data.senderType === "customer" ? data.customerName : data.staffName;
+            
+            const messageText = document.createElement("div");
+            messageText.textContent = data.message;
+            
+            const timestamp = document.createElement("div");
+            timestamp.className = "small mt-1 opacity-75";
+            const date = new Date(data.timestamp);
+            timestamp.textContent = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + 
+                " " + date.toLocaleDateString('vi-VN');
+            
+            messageContent.appendChild(senderName);
+            messageContent.appendChild(messageText);
+            messageContent.appendChild(timestamp);
+            messageDiv.appendChild(messageContent);
+            messagesList.appendChild(messageDiv);
+            
+            const chatContainer = document.getElementById("chatContainer");
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        });
+
+        connection.on("MessageSent", function (data) {
+            // Message sent confirmation
+        });
+
+        document.getElementById("sendButton").addEventListener("click", function (event) {
+            const message = document.getElementById("messageInput").value;
+            if (message.trim() === "") return;
+            
+            // Hiển thị tin nhắn ngay lập tức (optimistic update)
+            const messagesList = document.getElementById("messagesList");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "mb-3 text-end";
+            
+            const messageContent = document.createElement("div");
+            messageContent.className = "d-inline-block p-3 rounded bg-primary text-white";
+            messageContent.style.maxWidth = "70%";
+            
+            const senderName = document.createElement("div");
+            senderName.className = "fw-bold small";
+            senderName.textContent = customerName;
+            
+            const messageText = document.createElement("div");
+            messageText.textContent = message;
+            
+            const timestamp = document.createElement("div");
+            timestamp.className = "small mt-1 opacity-75";
+            const now = new Date();
+            timestamp.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + 
+                " " + now.toLocaleDateString('vi-VN');
+            
+            messageContent.appendChild(senderName);
+            messageContent.appendChild(messageText);
+            messageContent.appendChild(timestamp);
+            messageDiv.appendChild(messageContent);
+            messagesList.appendChild(messageDiv);
+            
+            const chatContainer = document.getElementById("chatContainer");
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Xóa input
+            document.getElementById("messageInput").value = "";
+            
+            // Gửi lên server
+            connection.invoke("SendMessageToSupport", customerId, customerName, message).catch(function (err) {
+                console.error("Error sending message:", err.toString());
+                alert("Không thể gửi tin nhắn. Vui lòng thử lại.");
+            });
+        });
+
+        document.getElementById("messageInput").addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                document.getElementById("sendButton").click();
+            }
+        });
+    </script>
+}
+

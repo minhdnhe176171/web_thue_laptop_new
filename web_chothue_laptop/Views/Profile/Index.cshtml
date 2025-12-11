@@ -1,0 +1,316 @@
+@model web_chothue_laptop.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-person-circle"></i> Hồ sơ cá nhân</h4>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Avatar Section -->
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block">
+                            <img id="avatarPreview" 
+                                 src="@(Model.AvatarUrl ?? "https://via.placeholder.com/200")" 
+                                 alt="Avatar" 
+                                 class="rounded-circle border border-3 border-primary"
+                                 style="width: 200px; height: 200px; object-fit: cover; cursor: pointer;"
+                                 onclick="document.getElementById('avatarInput').click()" />
+                            <div class="position-absolute bottom-0 end-0">
+                                <button type="button" class="btn btn-primary btn-sm rounded-circle" 
+                                        onclick="document.getElementById('avatarInput').click()"
+                                        title="Đổi avatar">
+                                    <i class="bi bi-camera-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <form id="avatarForm" enctype="multipart/form-data" style="display: none;">
+                            <input type="file" id="avatarInput" name="avatarFile" accept="image/*" />
+                        </form>
+                        <div id="avatarUploadStatus" class="mt-2"></div>
+                    </div>
+
+                    <!-- Profile Information -->
+                    <form asp-action="UpdateProfile" method="post" id="profileForm">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" readonly />
+                            
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" placeholder="Nhập 10 chữ số" maxlength="10" />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                            <!-- <small class="text-muted">Số điện thoại phải có đúng 10 chữ số</small> -->
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Dob" class="form-label"></label>
+                            <input asp-for="Dob" type="date" class="form-control" id="dobInput" max="@DateTime.Today.AddYears(-16).ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="Dob" class="text-danger"></span>
+                            <!-- <small class="text-muted">Bạn phải trên 16 tuổi để sử dụng dịch vụ này</small> -->
+                        </div>
+
+                        <!-- <div class="mb-3">
+                            <label class="form-label">Role ID</label>
+                            <input type="text" value="@Model.RoleId" class="form-control" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tên Role</label>
+                            <input type="text" value="@Model.RoleName" class="form-control" readonly />
+                        </div> -->
+
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="Email" />
+                        <input type="hidden" asp-for="RoleId" />
+                        <input type="hidden" asp-for="AvatarUrl" />
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Lưu thông tin
+                            </button>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Quay lại
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Validate phone number and date of birth on input
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.querySelector('input[name="Phone"]');
+            const dobInput = document.getElementById('dobInput');
+            
+            // Phone validation
+            if (phoneInput) {
+                // Chỉ cho phép nhập số
+                phoneInput.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/\D/g, '');
+                });
+
+                // Validate khi submit form
+                const profileForm = document.getElementById('profileForm');
+                if (profileForm) {
+                    profileForm.addEventListener('submit', function(e) {
+                        const phone = phoneInput.value;
+                        if (phone && phone.length !== 10) {
+                            e.preventDefault();
+                            alert('Số điện thoại phải có đúng 10 chữ số');
+                            phoneInput.focus();
+                            return false;
+                        }
+                    });
+
+                    // Check phone uniqueness on blur
+                    phoneInput.addEventListener('blur', async function() {
+                        const phone = this.value.trim();
+                        if (phone && phone.length === 10) {
+                            const userId = document.querySelector('input[name="UserId"]').value;
+                            
+                            // Show loading
+                            const existingErrorSpan = phoneInput.parentNode.querySelector('.text-danger.phone-error');
+                            if (existingErrorSpan) {
+                                existingErrorSpan.remove();
+                            }
+                            
+                            try {
+                                const response = await fetch(`/Profile/CheckPhoneExists?phone=${encodeURIComponent(phone)}&userId=${userId}`);
+                                const result = await response.json();
+                                
+                                // Find the validation span (next sibling after input)
+                                let errorSpan = phoneInput.parentNode.querySelector('span[data-valmsg-for="Phone"]');
+                                if (!errorSpan) {
+                                    errorSpan = phoneInput.nextElementSibling;
+                                }
+                                
+                                if (result !== true) {
+                                    // Phone exists
+                                    const errorMessage = typeof result === 'string' ? result : 'Số điện thoại này đã được sử dụng bởi tài khoản khác';
+                                    
+                                    // Remove existing error spans
+                                    const existingErrors = phoneInput.parentNode.querySelectorAll('.text-danger.phone-error');
+                                    existingErrors.forEach(span => span.remove());
+                                    
+                                    // Create or update error message
+                                    const newErrorSpan = document.createElement('span');
+                                    newErrorSpan.className = 'text-danger phone-error d-block mt-1';
+                                    newErrorSpan.textContent = errorMessage;
+                                    phoneInput.parentNode.appendChild(newErrorSpan);
+                                    
+                                    // Also update validation span if exists
+                                    if (errorSpan && errorSpan.classList.contains('field-validation-error')) {
+                                        errorSpan.textContent = errorMessage;
+                                        errorSpan.classList.remove('field-validation-valid');
+                                        errorSpan.classList.add('field-validation-error');
+                                    }
+                                } else {
+                                    // Phone is available, remove error
+                                    const existingErrors = phoneInput.parentNode.querySelectorAll('.text-danger.phone-error');
+                                    existingErrors.forEach(span => span.remove());
+                                    
+                                    if (errorSpan && errorSpan.classList.contains('field-validation-error')) {
+                                        errorSpan.textContent = '';
+                                        errorSpan.classList.remove('field-validation-error');
+                                        errorSpan.classList.add('field-validation-valid');
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error checking phone:', error);
+                            }
+                        } else if (phone && phone.length !== 10) {
+                            // Remove phone exists error if phone is not 10 digits
+                            const existingErrors = phoneInput.parentNode.querySelectorAll('.text-danger.phone-error');
+                            existingErrors.forEach(span => span.remove());
+                        }
+                    });
+                }
+            }
+
+            // Date of birth validation
+            if (dobInput) {
+                // Set max date to 16 years ago
+                const maxDate = new Date();
+                maxDate.setFullYear(maxDate.getFullYear() - 16);
+                dobInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+
+                // Validate when date changes
+                dobInput.addEventListener('change', function() {
+                    const selectedDate = new Date(this.value);
+                    const today = new Date();
+                    let age = today.getFullYear() - selectedDate.getFullYear();
+                    const monthDiff = today.getMonth() - selectedDate.getMonth();
+                    
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate())) {
+                        age--;
+                    }
+                    
+                    if (age < 16) {
+                        alert('Bạn phải trên 16 tuổi để sử dụng dịch vụ này');
+                        this.value = '';
+                        this.focus();
+                    }
+                });
+
+                // Validate khi submit form
+                const profileForm = document.getElementById('profileForm');
+                if (profileForm) {
+                    profileForm.addEventListener('submit', function(e) {
+                        if (dobInput.value) {
+                            const selectedDate = new Date(dobInput.value);
+                            const today = new Date();
+                            let age = today.getFullYear() - selectedDate.getFullYear();
+                            const monthDiff = today.getMonth() - selectedDate.getMonth();
+                            
+                            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate())) {
+                                age--;
+                            }
+                            
+                            if (age < 16) {
+                                e.preventDefault();
+                                alert('Bạn phải trên 16 tuổi để sử dụng dịch vụ này');
+                                dobInput.focus();
+                                return false;
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        document.getElementById('avatarInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)');
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Kích thước file không được vượt quá 5MB');
+                return;
+            }
+
+            // Preview image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('avatarPreview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // Upload to server
+            const formData = new FormData();
+            formData.append('avatarFile', file);
+
+            const statusDiv = document.getElementById('avatarUploadStatus');
+            statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Đang tải lên...';
+
+            fetch('@Url.Action("UpdateAvatar", "Profile")', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                        data.message + 
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+                    // Update hidden field
+                    document.querySelector('input[name="AvatarUrl"]').value = data.avatarUrl;
+                    // Reload page after 1 second
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    statusDiv.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusDiv.innerHTML = '<div class="alert alert-danger">Có lỗi xảy ra khi tải lên</div>';
+            });
+        });
+    </script>
+}
+

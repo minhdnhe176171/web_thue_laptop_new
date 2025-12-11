@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - web_chothue_laptop</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/web_chothue_laptop.styles.css" asp-append-version="true" />
 </head>
@@ -19,23 +20,44 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-white fw-semibold" asp-area="" asp-controller="Home" asp-action="Index">Trang Chủ</a>
-                        </li>
-                        <li class="nav-item">
-                        </li>
                     </ul>
                     <ul class="navbar-nav">
                         @if (Context.Session.GetString("UserId") != null)
                         {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link text-white fw-semibold dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    @Context.Session.GetString("UserEmail")
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">Đăng xuất</a></li>
-                                </ul>
-                            </li>
+                            var userRoleIdStr = Context.Session.GetString("UserRoleId");
+                            var userRoleId = 0L;
+                            if (!string.IsNullOrEmpty(userRoleIdStr))
+                            {
+                                long.TryParse(userRoleIdStr, out userRoleId);
+                            }
+                            var userRole = Context.Session.GetString("UserRole")?.ToLower() ?? "";
+                            var isCustomer = userRoleId == 2 || userRole.Contains("customer") || userRole.Contains("student");
+                            var isStaff = userRoleId == 4 || userRole.Contains("staff");
+                            
+                            @* Hiển thị nút chat - controller sẽ tự động redirect nếu không đúng quyền *@
+                            @if (!isStaff)
+                            {
+                                <li class="nav-item d-flex align-items-center">
+                                    <a class="nav-link text-white fw-semibold d-flex align-items-center" 
+                                       asp-controller="Chat" 
+                                       asp-action="CustomerChat"
+                                       style="line-height: 1.5;">
+                                        <i class="bi bi-chat-dots me-1"></i> Hỗ trợ khách hàng
+                                    </a>
+                                </li>
+                            }
+                            @if (isStaff)
+                            {
+                                <li class="nav-item d-flex align-items-center">
+                                    <a class="nav-link text-white fw-semibold d-flex align-items-center" 
+                                       asp-controller="Chat" 
+                                       asp-action="StaffChat"
+                                       style="line-height: 1.5;">
+                                        <i class="bi bi-headset me-1"></i> Hỗ trợ khách hàng
+                                    </a>
+                                </li>
+                            }
+                            @await Component.InvokeAsync("UserInfo")
                         }
                         else
                         {
@@ -62,6 +84,36 @@
             &copy; 2025 - Dịch Vụ Thuê Laptop Cho Sinh Viên - Tất cả quyền được bảo lưu
         </div>
     </footer>
+
+    <!-- Floating Chat Button - Hiển thị cho tất cả user đã đăng nhập -->
+    @if (Context.Session.GetString("UserId") != null)
+    {
+        var userRoleIdStr = Context.Session.GetString("UserRoleId");
+        var userRoleId = 0L;
+        if (!string.IsNullOrEmpty(userRoleIdStr))
+        {
+            long.TryParse(userRoleIdStr, out userRoleId);
+        }
+        var userRole = Context.Session.GetString("UserRole")?.ToLower() ?? "";
+        var isStaff = userRoleId == 4 || userRole.Contains("staff");
+        
+        @* Hiển thị nút chat cho tất cả user - controller sẽ tự động redirect nếu không đúng quyền *@
+        @if (!isStaff)
+        {
+            <a href="@Url.Action("CustomerChat", "Chat")" class="btn btn-primary floating-chat-button" 
+               title="Hỗ trợ khách hàng">
+                <i class="bi bi-chat-dots-fill"></i>
+            </a>
+        }
+        else
+        {
+            <a href="@Url.Action("StaffChat", "Chat")" class="btn btn-success floating-chat-button" 
+               title="Hỗ trợ khách hàng - Staff">
+                <i class="bi bi-headset"></i>
+            </a>
+        }
+    }
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

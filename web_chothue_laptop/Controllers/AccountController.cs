@@ -76,6 +76,12 @@ namespace web_chothue_laptop.Controllers
             // Lấy tên quyền (RoleName) từ bảng Role
             string roleName = user.Role?.RoleName ?? "";
             HttpContext.Session.SetString("UserRole", roleName);
+            
+            // Lưu RoleId vào session để dễ kiểm tra
+            if (user.RoleId.HasValue)
+            {
+                HttpContext.Session.SetString("UserRoleId", user.RoleId.Value.ToString());
+            }
 
             // ============================================================
             // 6. LOGIC ĐIỀU HƯỚNG (ROUTING) - PHẦN QUAN TRỌNG NHẤT
