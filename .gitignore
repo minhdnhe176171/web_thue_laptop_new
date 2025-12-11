@@ -1,0 +1,25 @@
+# Build folders
+bin/
+obj/
+
+# Visual Studio settings
+.vs/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+
+# Logs
+*.log
+
+# Cache
+*.cache
+*.config
+
+# ASP.NET temporary files
+*~ 
+*.tmp
+
+# Publish output
+publish/
