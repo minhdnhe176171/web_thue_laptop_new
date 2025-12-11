@@ -32,36 +32,31 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            // Trim email
-            if (model != null)
-            {
-                model.Email = model.Email?.Trim() ?? string.Empty;
-            }
+            // 1. Trim dữ liệu đầu vào
+            if (model != null) model.Email = model.Email?.Trim() ?? string.Empty;
 
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
+            if (!ModelState.IsValid) return View(model);
 
-            // Kiểm tra email và password không rỗng sau khi trim
+            // 2. Validate cơ bản
             if (string.IsNullOrWhiteSpace(model.Email))
             {
                 ModelState.AddModelError("Email", "Email là bắt buộc");
                 return View(model);
             }
-
             if (string.IsNullOrWhiteSpace(model.Password))
             {
                 ModelState.AddModelError("Password", "Mật khẩu là bắt buộc");
                 return View(model);
             }
 
+            // 3. Tìm User trong Database (Include Role để check quyền)
             var emailLower = model.Email.ToLower();
             var user = await _context.Users
-                .Include(u => u.Role)
+                .Include(u => u.Role)   // <--- QUAN TRỌNG: Phải lấy thông tin Role
                 .Include(u => u.Status)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == emailLower);
 
+            // 4. Kiểm tra mật khẩu và tài khoản
             if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
             {
                 ModelState.AddModelError("", "Email hoặc mật khẩu không đúng");
@@ -74,12 +69,40 @@ namespace web_chothue_laptop.Controllers
                 return View(model);
             }
 
-            // Lưu thông tin đăng nhập vào session
+            // 5. Lưu Session
             HttpContext.Session.SetString("UserId", user.Id.ToString());
             HttpContext.Session.SetString("UserEmail", user.Email);
-            HttpContext.Session.SetString("UserRole", user.Role?.RoleName ?? "");
 
-            return RedirectToAction("Index", "Home");
+            // Lấy tên quyền (RoleName) từ bảng Role
+            string roleName = user.Role?.RoleName ?? "";
+            HttpContext.Session.SetString("UserRole", roleName);
+
+            // ============================================================
+            // 6. LOGIC ĐIỀU HƯỚNG (ROUTING) - PHẦN QUAN TRỌNG NHẤT
+            // ============================================================
+
+            // Chuyển role về chữ thường để so sánh cho chính xác
+            switch (roleName.ToLower())
+            {
+                case "staff":
+                    // Nếu là Staff -> Chuyển sang Staff Dashboard
+                    return RedirectToAction("Index", "Staff");
+
+                case "technical":
+                    // Nếu là Technical -> Chuyển sang Technical Dashboard
+                    return RedirectToAction("Index", "Technical");
+
+                case "admin":
+                case "manager":
+                    // Nếu là Admin/Manager -> Chuyển sang Admin Dashboard (nếu có)
+                    return RedirectToAction("Index", "Admin");
+
+                case "customer":
+                case "student":
+                default:
+                    // Các trường hợp còn lại -> Về trang chủ
+                    return RedirectToAction("Index", "Home");
+            }
         }
 
         // GET: Account/Register

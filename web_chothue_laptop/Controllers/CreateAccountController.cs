@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using web_chothue_laptop.Models;
-using BCrypt.Net;
 
 namespace web_chothue_laptop.Controllers
 {
@@ -101,11 +102,17 @@ namespace web_chothue_laptop.Controllers
                     return View("~/Views/Admin/CreateAccount.cshtml", model);
                 }
 
-                // Get default active status ID (status ID 6 is Active/Đang hoạt động)
-                long statusId = 6; // Active status
+                // Get active status ID dynamically (same as AccountController)
+                long? statusIdNullable = await GetStatusIdAsync("active");
+                if (statusIdNullable == null || statusIdNullable.Value == 0)
+                {
+                    ModelState.AddModelError("", "Không tìm thấy trạng thái 'active' trong hệ thống. Vui lòng liên hệ quản trị viên.");
+                    return View("~/Views/Admin/CreateAccount.cshtml", model);
+                }
+                long statusId = statusIdNullable.Value;
 
-                // Hash password
-                string passwordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+                // Hash password using SHA256 (same as AccountController)
+                string passwordHash = HashPassword(model.Password);
 
                 // Create User
                 var user = new User
@@ -261,6 +268,21 @@ namespace web_chothue_laptop.Controllers
                     accountType, ex.Message);
                 return 0;
             }
+        }
+
+        // Helper method to hash password (same as AccountController)
+        private string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
+        }
+
+        // Helper method to get status ID by name (same as AccountController)
+        private async Task<long?> GetStatusIdAsync(string statusName)
+        {
+            var status = await _context.Statuses.FirstOrDefaultAsync(s => s.StatusName.ToLower() == statusName.ToLower());
+            return status?.Id;
         }
     }
 
