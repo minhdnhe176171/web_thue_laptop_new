@@ -15,8 +15,15 @@
 }
 
 <div class="container-fluid px-4 py-3">
-    <h2 class="text-primary fw-bold mb-4">Technical</h2>
-    <p class="text-muted">Danh sách thiết bị cần xử lý</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary fw-bold mb-1">Technical</h2>
+            <p class="text-muted mb-0">Danh sách thiết bị cần xử lý</p>
+        </div>
+        <a asp-action="Report" class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-text"></i> Báo Cáo Sửa Chữa
+        </a>
+    </div>
 
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">

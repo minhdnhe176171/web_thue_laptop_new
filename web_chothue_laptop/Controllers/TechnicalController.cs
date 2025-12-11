@@ -191,5 +191,65 @@ namespace web_chothue_laptop.Controllers
 
             return RedirectToAction(nameof(Index), new { activeTab = "repair" });
         }
+
+        // ============================================================
+        // 4. BÁO CÁO - LỊCH SỬ SỬA CHỮA
+        // ============================================================
+        public async Task<IActionResult> Report(int? pageNumber, string? searchString, DateTime? startDate, DateTime? endDate)
+        {
+            // Lấy tất cả các ticket đã hoàn thành (Approved - ID 2 hoặc Closed - ID 8)
+            var completedTickets = _context.TechnicalTickets
+                .Include(t => t.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(t => t.Laptop)
+                    .ThenInclude(l => l.Student)
+                .Include(t => t.Status)
+                .Include(t => t.Technical)
+                .Include(t => t.Staff)
+                .Where(t => t.StatusId == 2 || t.StatusId == 8) // Chỉ lấy các ticket đã hoàn thành
+                .AsQueryable();
+
+            // Lọc theo ngày bắt đầu
+            if (startDate.HasValue)
+            {
+                completedTickets = completedTickets.Where(t => t.CreatedDate >= startDate.Value);
+            }
+
+            // Lọc theo ngày kết thúc
+            if (endDate.HasValue)
+            {
+                var endDateEndOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                completedTickets = completedTickets.Where(t => t.CreatedDate <= endDateEndOfDay);
+            }
+
+            // Tìm kiếm theo mã ticket
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                searchString = searchString.Trim();
+                if (long.TryParse(searchString, out long searchId))
+                {
+                    completedTickets = completedTickets.Where(t => t.Id == searchId);
+                }
+            }
+
+            // Sắp xếp theo ngày cập nhật mới nhất
+            completedTickets = completedTickets.OrderByDescending(t => t.UpdatedDate ?? t.CreatedDate);
+
+            // Thống kê
+            var totalCompleted = await completedTickets.CountAsync();
+            var approvedCount = await completedTickets.CountAsync(t => t.StatusId == 2);
+            var closedCount = await completedTickets.CountAsync(t => t.StatusId == 8);
+
+            ViewData["TotalCompleted"] = totalCompleted;
+            ViewData["ApprovedCount"] = approvedCount;
+            ViewData["ClosedCount"] = closedCount;
+            ViewData["CurrentFilter"] = searchString;
+            ViewData["StartDate"] = startDate?.ToString("yyyy-MM-dd");
+            ViewData["EndDate"] = endDate?.ToString("yyyy-MM-dd");
+
+            // Phân trang
+            int pageSize = 10;
+            return View(await PaginatedList<TechnicalTicket>.CreateAsync(completedTickets.AsNoTracking(), pageNumber ?? 1, pageSize));
+        }
     }
 }
