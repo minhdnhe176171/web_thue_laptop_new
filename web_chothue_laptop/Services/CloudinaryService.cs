@@ -24,15 +24,26 @@ namespace web_chothue_laptop.Services
                 throw new ArgumentException("File is empty");
 
             using var stream = file.OpenReadStream();
+            
+            // Nếu là avatar, resize thành hình tròn
+            var transformation = folder == "avatars" 
+                ? new Transformation()
+                    .Width(200)
+                    .Height(200)
+                    .Crop("fill")
+                    .Gravity("face")
+                    .Quality("auto")
+                : new Transformation()
+                    .Width(800)
+                    .Height(600)
+                    .Crop("fill")
+                    .Quality("auto");
+
             var uploadParams = new ImageUploadParams()
             {
                 File = new FileDescription(file.FileName, stream),
                 Folder = folder,
-                Transformation = new Transformation()
-                    .Width(800)
-                    .Height(600)
-                    .Crop("fill")
-                    .Quality("auto")
+                Transformation = transformation
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);

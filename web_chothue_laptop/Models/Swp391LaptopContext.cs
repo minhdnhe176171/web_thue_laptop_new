@@ -47,20 +47,15 @@ public partial class Swp391LaptopContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-{
-    if (!optionsBuilder.IsConfigured)
-    {
-
-        optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
-    }
-}
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("server=DESKTOP-0NF6T35;database=swp391_laptop;uid=sa;pwd=123;TrustServerCertificate=true");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Booking>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__BOOKING__3214EC275D19D412");
+            entity.HasKey(e => e.Id).HasName("PK__BOOKING__3214EC2713A1D559");
 
             entity.ToTable("BOOKING");
 
@@ -108,7 +103,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<BookingReceipt>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__BOOKING___3214EC2712A0AB23");
+            entity.HasKey(e => e.Id).HasName("PK__BOOKING___3214EC27DBB77950");
 
             entity.ToTable("BOOKING_RECEIPT");
 
@@ -155,11 +150,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Brand>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__BRAND__3214EC27C3AE4F7C");
+            entity.HasKey(e => e.Id).HasName("PK__BRAND__3214EC27B8554681");
 
             entity.ToTable("BRAND");
 
-            entity.HasIndex(e => e.BrandName, "UQ__BRAND__FBF4813685EAEB89").IsUnique();
+            entity.HasIndex(e => e.BrandName, "UQ__BRAND__FBF481360C3F20AF").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.BrandName)
@@ -169,11 +164,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Customer>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__CUSTOMER__3214EC27DA0E6190");
+            entity.HasKey(e => e.Id).HasName("PK__CUSTOMER__3214EC2743E57B4A");
 
             entity.ToTable("CUSTOMER");
 
-            entity.HasIndex(e => e.Email, "UQ__CUSTOMER__161CF72465772F8F").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__CUSTOMER__161CF724875096EC").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -207,7 +202,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Laptop>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LAPTOP__3214EC27AA362BA4");
+            entity.HasKey(e => e.Id).HasName("PK__LAPTOP__3214EC276CDD9EB2");
 
             entity.ToTable("LAPTOP");
 
@@ -250,7 +245,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<LaptopDetail>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LAPTOP_D__3214EC27977D8B22");
+            entity.HasKey(e => e.Id).HasName("PK__LAPTOP_D__3214EC2743149ABB");
 
             entity.ToTable("LAPTOP_DETAIL");
 
@@ -285,11 +280,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Manager>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MANAGER__3214EC27B2D74430");
+            entity.HasKey(e => e.Id).HasName("PK__MANAGER__3214EC27DE366A17");
 
             entity.ToTable("MANAGER");
 
-            entity.HasIndex(e => e.Email, "UQ__MANAGER__161CF724952E4047").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__MANAGER__161CF72488A75336").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -323,11 +318,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ROLE__3214EC27367E6C9F");
+            entity.HasKey(e => e.Id).HasName("PK__ROLE__3214EC2704B24386");
 
             entity.ToTable("ROLE");
 
-            entity.HasIndex(e => e.RoleName, "UQ__ROLE__2B9B877EDFE61C0F").IsUnique();
+            entity.HasIndex(e => e.RoleName, "UQ__ROLE__2B9B877E941DEF77").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.RoleName)
@@ -337,11 +332,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Staff>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STAFF__3214EC274C563AA1");
+            entity.HasKey(e => e.Id).HasName("PK__STAFF__3214EC27FF368ED7");
 
             entity.ToTable("STAFF");
 
-            entity.HasIndex(e => e.Email, "UQ__STAFF__161CF7246254ACB9").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__STAFF__161CF724943EA263").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -375,11 +370,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Status>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STATUS__3214EC279CA1D331");
+            entity.HasKey(e => e.Id).HasName("PK__STATUS__3214EC271D599864");
 
             entity.ToTable("STATUS");
 
-            entity.HasIndex(e => e.StatusName, "UQ__STATUS__064B2D2D22983721").IsUnique();
+            entity.HasIndex(e => e.StatusName, "UQ__STATUS__064B2D2D7FCEC1EC").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.StatusName)
@@ -389,11 +384,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Student>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STUDENT__3214EC27658F3E18");
+            entity.HasKey(e => e.Id).HasName("PK__STUDENT__3214EC277517CA24");
 
             entity.ToTable("STUDENT");
 
-            entity.HasIndex(e => e.Email, "UQ__STUDENT__161CF724B0DFA8D3").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__STUDENT__161CF7249D3C7F7F").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -427,7 +422,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<StudentRentNotification>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STUDENT___3214EC27AA9F8216");
+            entity.HasKey(e => e.Id).HasName("PK__STUDENT___3214EC27C4EC3D81");
 
             entity.ToTable("STUDENT_RENT_NOTIFICATION");
 
@@ -462,11 +457,11 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<Technical>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC27F9334865");
+            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC27981BC704");
 
             entity.ToTable("TECHNICAL");
 
-            entity.HasIndex(e => e.Email, "UQ__TECHNICA__161CF724B6923E1A").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__TECHNICA__161CF72447B4CFD8").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -505,7 +500,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<TechnicalTicket>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC27887CB471");
+            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC277438CFD2");
 
             entity.ToTable("TECHNICAL_TICKET");
 
@@ -551,7 +546,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<TicketList>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__TICKET_L__3214EC275F5E9A5A");
+            entity.HasKey(e => e.Id).HasName("PK__TICKET_L__3214EC2761172DD7");
 
             entity.ToTable("TICKET_LIST");
 
@@ -605,13 +600,16 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__USER__3214EC2709715138");
+            entity.HasKey(e => e.Id).HasName("PK__USER__3214EC27088875ED");
 
             entity.ToTable("USER");
 
-            entity.HasIndex(e => e.Email, "UQ__USER__161CF724C30A992C").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__USER__161CF724CA8B7E17").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.AvatarUrl)
+                .HasMaxLength(500)
+                .HasColumnName("AVATAR_URL");
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
