@@ -20,18 +20,25 @@ namespace web_chothue_laptop.Controllers
         // ============================================================
         // 1. DASHBOARD & DANH SÁCH (Có thống kê số liệu)
         // ============================================================
-        // Trong method Index của TechnicalController.cs
+        // ============================================================
+        // 1. DASHBOARD & DANH SÁCH (Có thống kê số liệu)
+        // ============================================================
         public async Task<IActionResult> Index(int? pageNumber, string? searchString)
         {
             // --- THỐNG KÊ DASHBOARD ---
-            ViewData["BrokenCount"] = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 3);
-            ViewData["ProcessingCount"] = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 4);
-            ViewData["FixedCount"] = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 5);
 
-            // MỚI: Tính tổng số lượng ticket
-            ViewData["TotalCount"] = await _context.TechnicalTickets.CountAsync();
+            // BƯỚC 1: Lấy số liệu các trạng thái đã biết rõ
+            var countProcessing = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 4); // Đang sửa
+            var countFixed = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 5);      // Đã xong
+            var totalCount = await _context.TechnicalTickets.CountAsync();                          // Tổng
 
-            // ... (Các phần code truy vấn và search giữ nguyên) ...
+            // BƯỚC 2: Tính số lượng "Hư hỏng" bằng phương pháp loại trừ (Total - Đang sửa - Đã xong)
+            // Cách này đảm bảo số liệu trên Dashboard luôn khớp tổng 100%, bất kể ID hư hỏng là 1, 11 hay null.
+            ViewData["BrokenCount"] = totalCount - countProcessing - countFixed;
+
+            ViewData["ProcessingCount"] = countProcessing;
+            ViewData["FixedCount"] = countFixed;
+            ViewData["TotalCount"] = totalCount;
 
             // Lưu từ khóa tìm kiếm
             ViewData["CurrentFilter"] = searchString;
@@ -48,13 +55,15 @@ namespace web_chothue_laptop.Controllers
                 tickets = tickets.Where(t => t.Id.ToString().Contains(searchString!));
             }
 
-            tickets = tickets.OrderByDescending(t => t.StatusId == 3)
+            // --- SỬA LẠI LOGIC SẮP XẾP ---
+            // Ưu tiên đưa các đơn KHÔNG PHẢI là "Đang sửa" (4) và "Đã xong" (5) lên đầu
+            // Nghĩa là các đơn Hư hỏng/Mới (ID 1, 11...) sẽ luôn nằm trên cùng.
+            tickets = tickets.OrderByDescending(t => t.StatusId != 4 && t.StatusId != 5)
                              .ThenByDescending(t => t.CreatedDate);
 
             int pageSize = 4;
             return View(await PaginatedList<TechnicalTicket>.CreateAsync(tickets.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
-
         // ============================================================
         // 2. MÀN HÌNH XỬ LÝ (GET) - Load thông tin & Lịch sử
         // ============================================================
@@ -70,18 +79,15 @@ namespace web_chothue_laptop.Controllers
 
             if (ticket == null) return NotFound();
 
-            // Gửi danh sách Log (Nhật ký) sang View (Nếu chưa có bảng Log thì dùng tạm List rỗng)
-            // Khi nào có bảng TicketLogs thì bỏ comment dòng dưới:
-            // ViewBag.Logs = await _context.TicketLogs.Where(l => l.TicketId == id).OrderByDescending(l => l.CreatedAt).ToListAsync();
-            ViewBag.Logs = new List<string>(); // Placeholder để tránh lỗi View
+            // Placeholder logs
+            ViewBag.Logs = new List<string>();
 
             return View(ticket);
         }
 
         // ============================================================
-        // 3. XỬ LÝ CẬP NHẬT (POST) - Logic nghiệp vụ phức tạp
-        // ============================================================
         // 3. XỬ LÝ CẬP NHẬT (POST)
+        // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
@@ -102,22 +108,19 @@ namespace web_chothue_laptop.Controllers
 
             try
             {
-                // --- LOGIC 1: KIỂM TRA QUY TRÌNH QC (Khi chọn Đã sửa xong) ---
+                // --- LOGIC 1: KIỂM TRA QUY TRÌNH QC (Khi chọn Đã sửa xong - ID 5) ---
                 if (statusId == 5)
                 {
                     if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean)
                     {
                         ModelState.AddModelError("", "LỖI QC: Bạn chưa hoàn thành quy trình kiểm tra chất lượng.");
-                        // Trả về View để tick lại
-                        // (Quan trọng: Cần load lại ViewBag.Logs nếu dùng logic logs riêng)
                         ViewBag.Logs = new List<string>();
                         return View(originalTicket);
                     }
                     technicalResponse += " \n[SYSTEM]: Đã thông qua kiểm tra QC (Wifi: OK, Key: OK, Screen: OK).";
                 }
 
-                // --- LOGIC 2: XỬ LÝ YÊU CẦU LINH KIỆN (Khi chọn Chờ linh kiện - ID 6) ---
-                // SỬA ĐỔI TẠI ĐÂY THEO YÊU CẦU CỦA BẠN
+                // --- LOGIC 2: XỬ LÝ YÊU CẦU LINH KIỆN (Khi chọn Chờ linh kiện - ID 6 từ View) ---
                 if (statusId == 6)
                 {
                     // 2.1. Validate dữ liệu đầu vào
@@ -133,31 +136,31 @@ namespace web_chothue_laptop.Controllers
                     string price = partPrice.HasValue ? $"{partPrice:N0} VNĐ" : "Chưa báo giá";
 
                     technicalResponse += $" \n[REQUEST]: Yêu cầu linh kiện: {partName} - Giá: {price}{note}";
-                    technicalResponse += " \n[SYSTEM]: Đã ghi nhận yêu cầu vật tư. Trạng thái tự động chuyển về 'Đang sửa chữa'.";
+                    technicalResponse += " \n[SYSTEM]: Đã ghi nhận yêu cầu vật tư. Trạng thái tự động chuyển về 'Fixing' (Đang sửa chữa).";
 
-                    // 2.3. QUAN TRỌNG: Ép trạng thái quay về "Đang sửa chữa" (ID 4)
+                    // 2.3. QUAN TRỌNG: Ép trạng thái quay về "Fixing" (ID 4)
                     statusId = 4;
                 }
 
                 // --- CẬP NHẬT DỮ LIỆU ---
-                originalTicket.StatusId = statusId; // Nếu là linh kiện (6) thì ở dòng trên đã bị đổi thành (4)
+                originalTicket.StatusId = statusId;
                 originalTicket.TechnicalResponse = technicalResponse;
                 originalTicket.UpdatedDate = DateTime.Now;
 
-                // --- ĐỒNG BỘ TRẠNG THÁI LAPTOP ---
+                // --- ĐỒNG BỘ TRẠNG THÁI LAPTOP (CẬP NHẬT ID MỚI) ---
                 var relatedLaptop = await _context.Laptops.FindAsync(originalTicket.LaptopId);
                 if (relatedLaptop != null)
                 {
                     switch (statusId)
                     {
-                        case 4: // Đang sửa (Bao gồm cả trường hợp vừa order linh kiện xong)
-                            relatedLaptop.StatusId = 4; // Laptop màu Vàng
+                        case 4: // Fixing (Đang sửa)
+                            relatedLaptop.StatusId = 4;
                             break;
-                        case 5: // Đã sửa xong
-                            relatedLaptop.StatusId = 1; // Laptop màu Xanh (Sẵn sàng)
+                        case 5: // Fixed (Đã sửa xong) -> Laptop chuyển trạng thái Available (ID 9)
+                            relatedLaptop.StatusId = 9; // <--- SỬA THÀNH 9
                             break;
-                        case 3: // Hư hỏng
-                            relatedLaptop.StatusId = 3; // Laptop màu Đỏ
+                        case 11: // Broken (Hư hỏng) -> Laptop chuyển trạng thái Broken (ID 11)
+                            relatedLaptop.StatusId = 11; // <--- SỬA THÀNH 11
                             break;
                     }
                     _context.Update(relatedLaptop);
@@ -178,9 +181,8 @@ namespace web_chothue_laptop.Controllers
         }
 
         // ============================================================
-        // 4. CHỨC NĂNG PHỤ: THÊM NHẬT KÝ (QUICK LOG) - Method 1
+        // 4. CHỨC NĂNG PHỤ: THÊM NHẬT KÝ (QUICK LOG)
         // ============================================================
-        // Action này dùng để KTV ghi chú nhanh mà không cần đổi trạng thái
         [HttpPost]
         public async Task<IActionResult> AddQuickLog(long ticketId, string logMessage)
         {
@@ -192,8 +194,6 @@ namespace web_chothue_laptop.Controllers
             var ticket = await _context.TechnicalTickets.FindAsync(ticketId);
             if (ticket != null)
             {
-                // Vì chưa có bảng Log riêng, ta sẽ nối vào TechnicalResponse hiện tại
-                // Format: [Thời gian] Nội dung
                 string timeStamp = DateTime.Now.ToString("dd/MM HH:mm");
                 string newLog = $"\n[{timeStamp}] Log: {logMessage}";
 
