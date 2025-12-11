@@ -47,14 +47,14 @@ public partial class Swp391LaptopContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-{
-    if (!optionsBuilder.IsConfigured)
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        if (!optionsBuilder.IsConfigured)
+        {
 
-        optionsBuilder.UseSqlServer("Server=DESKTOP-FHDMQHT;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+            optionsBuilder.UseSqlServer("Server=HA-DONG-GIANG\\MSSQLSERVER01;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+        }
     }
-}
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
