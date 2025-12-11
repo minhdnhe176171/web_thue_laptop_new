@@ -1,0 +1,170 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+@{
+    ViewData["Title"] = "Staff Dashboard";
+    // Ép kiểu ViewBag để lấy danh sách Laptop
+    var listLaptops = ViewBag.PendingLaptops as IEnumerable<web_chothue_laptop.Models.Laptop>;
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary fw-bold">Staff Dashboard</h2>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]</div>
+    }
+
+    <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="booking-tab" data-bs-toggle="tab" data-bs-target="#booking-content" type="button">
+                Duyệt Đơn Thuê (@Model.Count())
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="laptop-tab" data-bs-toggle="tab" data-bs-target="#laptop-content" type="button">
+                Máy Chờ Kiểm Tra (@(listLaptops?.Count() ?? 0))
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="booking-content" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Mã Đơn</th>
+                                <th>Khách Hàng</th>
+                                <th>Laptop</th>
+                                <th>Thời Gian</th>
+                                <th>Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Any())
+                            {
+                                foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-bold">#@item.Id</td>
+                                        <td>@(item.Customer?.LastName + " " + item.Customer?.FirstName)</td>
+                                        <td>@item.Laptop?.Name</td>
+                                        <td>@item.StartTime.ToString("dd/MM") - @item.EndTime.ToString("dd/MM")</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <form asp-action="ApproveBooking" method="post">
+                                                    <input type="hidden" name="bookingId" value="@item.Id" />
+                                                    <button class="btn btn-success btn-sm">Duyệt</button>
+                                                </form>
+                                                <form asp-action="RejectBooking" method="post">
+                                                    <input type="hidden" name="bookingId" value="@item.Id" />
+                                                    <button class="btn btn-outline-danger btn-sm">Hủy</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Không có đơn thuê nào cần duyệt.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="laptop-content" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">Danh sách máy mới cần xử lý</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Tên Laptop</th>
+                                <th>Chủ Máy (Student)</th>
+                                <th>Trạng Thái</th>
+                                <th>Giá Thuê</th>
+                                <th class="text-end pe-4">Xử Lý</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (listLaptops != null && listLaptops.Any())
+                            {
+                                foreach (var laptop in listLaptops)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="fw-bold">@laptop.Name</span>
+                                            <br />
+                                            <small class="text-muted">ID: @laptop.Id</small>
+                                        </td>
+
+                                        <td>
+                                            @(laptop.Student?.LastName + " " + laptop.Student?.FirstName)
+                                        </td>
+
+                                        <td>
+                                            @if (laptop.StatusId == 1)
+                                            {
+                                                <span class="text-warning fw-bold">Chờ gửi Technical</span>
+                                            }
+                                            else if (laptop.StatusId == 2)
+                                            {
+                                                <span class="text-success fw-bold">Technical đã duyệt</span>
+                                            }
+                                        </td>
+
+                                        <td class="text-success fw-bold">
+                                            @(laptop.Price.HasValue? laptop.Price.Value.ToString("#,##0") : "0") VNĐ
+                                        </td>
+
+                                        <td class="text-end pe-4">
+                                            @if (laptop.StatusId == 1)
+                                            {
+                                                // MÁY MỚI -> Hiện nút Gửi Technical
+                                                <form asp-action="SendToTechnical" method="post">
+                                                    <input type="hidden" name="laptopId" value="@laptop.Id" />
+                                                    <button class="btn btn-primary btn-sm">
+                                                        Gửi Technical
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (laptop.StatusId == 2)
+                                            {
+                                                // MÁY ĐÃ CHECK OK -> Hiện nút Cho Thuê
+                                                <form asp-action="PublishLaptop" method="post">
+                                                    <input type="hidden" name="laptopId" value="@laptop.Id" />
+                                                    <button class="btn btn-success btn-sm" onclick="return confirm('Xác nhận cho thuê máy này?')">
+                                                        Cho Thuê
+                                                    </button>
+                                                </form>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        Không có máy mới nào đang chờ.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

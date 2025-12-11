@@ -27,6 +27,8 @@ public partial class TicketList
 
     public DateTime? UpdatedDate { get; set; }
 
+    public string? ErrorImageUrl { get; set; }
+
     public virtual Customer Customer { get; set; } = null!;
 
     public virtual Laptop Laptop { get; set; } = null!;

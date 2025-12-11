@@ -1,0 +1,185 @@
+@model List<web_chothue_laptop.Models.Laptop>
+@{
+    ViewData["Title"] = "Upload Ảnh Laptop";
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary">
+            ← Quay lại trang chủ
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Upload Ảnh Laptop Lên Cloudinary</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong>Hướng dẫn:</strong> Chọn laptop và file ảnh tương ứng, sau đó click "Upload Ảnh". 
+                Ảnh sẽ được upload lên Cloudinary và URL tự động cập nhật vào database.
+            </div>
+
+            <form id="uploadForm">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;">Chọn</th>
+                                <th>Laptop</th>
+                                <th>Hãng</th>
+                                <th>Ảnh hiện tại</th>
+                                <th>Chọn ảnh mới</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Count; i++)
+                            {
+                                var laptop = Model[i];
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input laptop-checkbox" 
+                                               value="@laptop.Id" data-index="@i">
+                                    </td>
+                                    <td>
+                                        <strong>@laptop.Name</strong>
+                                        <input type="hidden" name="laptopIds[@i]" value="@laptop.Id">
+                                    </td>
+                                    <td>@(laptop.Brand?.BrandName ?? "N/A")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(laptop.ImageUrl))
+                                        {
+                                            <img src="@laptop.ImageUrl" 
+                                                 style="max-width: 100px; max-height: 60px; object-fit: cover; border: 1px solid #dee2e6; border-radius: 3px;" 
+                                                 alt="@laptop.Name">
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Chưa có ảnh</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <input type="file" class="form-control form-control-sm image-file" 
+                                               name="imageFiles[@i]" accept="image/*" data-index="@i">
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-secondary" id="selectAllBtn">Chọn tất cả</button>
+                    <button type="button" class="btn btn-secondary" id="deselectAllBtn">Bỏ chọn tất cả</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload Ảnh Đã Chọn
+                    </button>
+                </div>
+            </form>
+
+            <div id="uploadResult" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Select/Deselect all
+        document.getElementById('selectAllBtn').addEventListener('click', function() {
+            document.querySelectorAll('.laptop-checkbox').forEach(cb => cb.checked = true);
+        });
+
+        document.getElementById('deselectAllBtn').addEventListener('click', function() {
+            document.querySelectorAll('.laptop-checkbox').forEach(cb => cb.checked = false);
+        });
+
+        // Upload form
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const checkedBoxes = document.querySelectorAll('.laptop-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Vui lòng chọn ít nhất một laptop');
+                return;
+            }
+
+            const formData = new FormData();
+            const laptopIds = [];
+            const imageFiles = [];
+
+            checkedBoxes.forEach(checkbox => {
+                const index = checkbox.getAttribute('data-index');
+                const laptopId = checkbox.value;
+                const fileInput = document.querySelector(`input.image-file[data-index="${index}"]`);
+                
+                if (fileInput && fileInput.files[0]) {
+                    laptopIds.push(laptopId);
+                    imageFiles.push(fileInput.files[0]);
+                }
+            });
+
+            if (laptopIds.length === 0) {
+                alert('Vui lòng chọn ảnh cho laptop đã chọn');
+                return;
+            }
+
+            // Add laptop IDs and files to FormData
+            laptopIds.forEach((id, index) => {
+                formData.append('laptopIds', id);
+                formData.append('imageFiles', imageFiles[index]);
+            });
+
+            const resultDiv = document.getElementById('uploadResult');
+            resultDiv.innerHTML = '<div class="alert alert-info">Đang upload...</div>';
+
+            try {
+                const response = await fetch('@Url.Action("UploadMultipleImages", "Admin")', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let html = `<div class="alert alert-success"><strong>${result.message}</strong></div>`;
+                    
+                    if (result.results) {
+                        html += '<div class="mt-3"><h6>Chi tiết:</h6><ul class="list-group">';
+                        result.results.forEach(r => {
+                            if (r.success) {
+                                html += `<li class="list-group-item list-group-item-success">
+                                    <strong>${r.laptopName}</strong> - Upload thành công
+                                    <br><small class="text-muted">${r.imageUrl}</small>
+                                </li>`;
+                            } else {
+                                html += `<li class="list-group-item list-group-item-danger">
+                                    Laptop ID ${r.laptopId} - ${r.message || 'Lỗi'}
+                                </li>`;
+                            }
+                        });
+                        html += '</ul></div>';
+                    }
+
+                    resultDiv.innerHTML = html;
+                    
+                    // Reload page after 3 seconds
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">Lỗi: ${error.message}</div>`;
+            }
+        });
+    </script>
+}
+
+<style>
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+</style>
+

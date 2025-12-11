@@ -1,0 +1,282 @@
+@using web_chothue_laptop.Helpers
+@model web_chothue_laptop.Models.Laptop
+@{
+    ViewData["Title"] = "Chi Tiết Laptop";
+}
+
+<div class="container py-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <div class="mb-3">
+        <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary">
+            ← Quay lại trang chủ
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Thông tin cơ bản -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">@Model.Name</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <strong>Hãng:</strong> @(Model.Brand?.BrandName ?? "Chưa xác định")
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Tình trạng:</strong> 
+                            @if (Model.Status != null)
+                            {
+                                var statusVi = StatusHelper.GetVietnameseStatus(Model.Status.StatusName);
+                                var badgeClass = StatusHelper.GetStatusBadgeClass(Model.Status.StatusName);
+                                <span class="badge @badgeClass">@statusVi</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Chưa xác định</span>
+                            }
+                        </div>
+                        <div class="col-12 mb-2">
+                            <strong>Giá thuê:</strong> 
+                            @if (Model.Price.HasValue)
+                            {
+                                <span class="text-primary fw-bold">@Model.Price.Value.ToString("N0") VNĐ</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa có giá</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        @{
+                            var isLoggedIn = Context.Session.GetString("UserId") != null;
+                            var isAvailable = Model.Status?.StatusName?.ToLower() == "available";
+                            var hasPendingBooking = ViewBag.HasPendingBooking as bool? ?? false;
+                            var hasActiveBooking = ViewBag.HasActiveBooking as bool? ?? false;
+                            var activeBooking = ViewBag.ActiveBooking as web_chothue_laptop.Models.Booking;
+                        }
+                        @if (isAvailable)
+                        {
+                            @if (isLoggedIn)
+                            {
+                                @if (hasPendingBooking)
+                                {
+                                    <button class="btn btn-warning btn-lg w-100" disabled>
+                                        <i class="bi bi-clock-history"></i> Đang Chờ Duyệt
+                                    </button>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Bạn đã có một đơn đặt thuê laptop này đang chờ duyệt</small>
+                                    </p>
+                                }
+                                else if (hasActiveBooking && activeBooking != null)
+                                {
+                                    <button class="btn btn-info btn-lg w-100" disabled>
+                                        <i class="bi bi-check-circle"></i> Đang Thuê
+                                    </button>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Bạn đang thuê laptop này từ @activeBooking.StartTime.ToString("dd/MM/yyyy") đến @activeBooking.EndTime.ToString("dd/MM/yyyy")</small>
+                                    </p>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Booking" asp-action="Create" asp-route-id="@Model.Id" class="btn btn-primary btn-lg w-100">
+                                        <i class="bi bi-calendar-check"></i> Đặt Thuê Ngay
+                                    </a>
+                                }
+                            }
+                            else
+                            {
+                                <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
+                                    <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập Để Đặt Thuê
+                                </a>
+                                <p class="text-muted text-center mt-2 mb-0">
+                                    <small>Vui lòng đăng nhập để đặt thuê laptop này</small>
+                                </p>
+                            }
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary btn-lg w-100" disabled>
+                                <i class="bi bi-x-circle"></i> Không Có Sẵn
+                            </button>
+                        }
+                    </div>
+                    
+                    <!-- Nút Báo Lỗi -->
+                    <div class="mt-3">
+                        @if (isLoggedIn)
+                        {
+                            @if (hasActiveBooking && activeBooking != null)
+                            {
+                                <a asp-controller="Ticket" asp-action="Create" asp-route-id="@Model.Id" asp-route-bookingId="@activeBooking.Id" class="btn btn-danger btn-lg w-100">
+                                    <i class="bi bi-exclamation-triangle"></i> Báo Lỗi Thiết Bị
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-controller="Ticket" asp-action="Create" asp-route-id="@Model.Id" class="btn btn-danger btn-lg w-100">
+                                    <i class="bi bi-exclamation-triangle"></i> Báo Lỗi Thiết Bị
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-danger btn-lg w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập Để Báo Lỗi
+                            </a>
+                            <p class="text-muted text-center mt-2 mb-0">
+                                <small>Vui lòng đăng nhập để báo lỗi thiết bị</small>
+                            </p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thông số kỹ thuật -->
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Thông Số Kỹ Thuật</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.LaptopDetails != null && Model.LaptopDetails.Any())
+                    {
+                        var detail = Model.LaptopDetails.First();
+                        <div class="row">
+                            <div class="col-md-6 mb-2"><strong>CPU:</strong> @(detail.Cpu ?? "Chưa có")</div>
+                            <div class="col-md-6 mb-2"><strong>GPU:</strong> @(detail.Gpu ?? "Chưa có")</div>
+                            <div class="col-md-6 mb-2"><strong>RAM:</strong> @(detail.RamSize ?? "Chưa có") @(detail.RamType != null ? $"({detail.RamType})" : "")</div>
+                            <div class="col-md-6 mb-2"><strong>Ổ cứng:</strong> @(detail.Storage ?? "Chưa có")</div>
+                            <div class="col-md-6 mb-2"><strong>Màn hình:</strong> @(detail.ScreenSize ?? "Chưa có")</div>
+                            <div class="col-md-6 mb-2"><strong>Hệ điều hành:</strong> @(detail.Os ?? "Chưa có")</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Chưa có thông tin kỹ thuật.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Lịch sử sử dụng -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Lịch Sử Sử Dụng</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Bookings != null && Model.Bookings.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Người thuê</th>
+                                        <th>Bắt đầu</th>
+                                        <th>Kết thúc</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var booking in Model.Bookings.OrderByDescending(b => b.StartTime))
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (booking.Customer != null)
+                                                {
+                                                    @($"{booking.Customer.FirstName} {booking.Customer.LastName}")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">N/A</span>
+                                                }
+                                            </td>
+                                            <td>@booking.StartTime.ToString("dd/MM/yyyy")</td>
+                                            <td>@booking.EndTime.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                @if (booking.TotalPrice.HasValue)
+                                                {
+                                                    @booking.TotalPrice.Value.ToString("N0") <span>VNĐ</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">N/A</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (booking.Status != null)
+                                                {
+                                                    var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
+                                                    var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
+                                                    <span class="badge @badgeClass">@statusVi</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">N/A</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Chưa có lịch sử thuê.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">Thông Tin</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Mã:</strong> #@Model.Id</p>
+                    <p class="mb-2"><strong>Ngày tạo:</strong> @(Model.CreatedDate?.ToString("dd/MM/yyyy") ?? "N/A")</p>
+                    <p class="mb-0"><strong>Cập nhật:</strong> @(Model.UpdatedDate?.ToString("dd/MM/yyyy") ?? "N/A")</p>
+                </div>
+            </div>
+
+            <!-- Ảnh laptop -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Hình Ảnh</h6>
+                </div>
+                <div class="card-body p-0" style="background-color: #f8f9fa; min-height: 500px; display: flex; align-items: center; justify-content: center;">
+                    <img src="@ImageHelper.GetLaptopImageUrl(Model.ImageUrl, Model.Name, Model.Brand?.BrandName)" 
+                         class="img-fluid" 
+                         alt="@Model.Name"
+                         style="max-width: 100%; max-height: 500px; width: auto; height: auto; object-fit: contain; padding: 15px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: 1px solid #dee2e6;
+    }
+    .card-header {
+        border-bottom: 1px solid #dee2e6;
+    }
+</style>
+

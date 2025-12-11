@@ -1,0 +1,195 @@
+@model web_chothue_laptop.ViewModels.BookingViewModel
+@{
+    ViewData["Title"] = "Đặt Thuê Laptop";
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-controller="Laptop" asp-action="Details" asp-route-id="@Model.LaptopId" class="text-decoration-none text-primary">
+            ← Quay lại chi tiết laptop
+        </a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Đặt Thuê Laptop</h4>
+                </div>
+                <div class="card-body">
+                    @if (Model.Laptop != null)
+                    {
+                        <div class="mb-4">
+                            <h5>@Model.Laptop.Name</h5>
+                            <p class="text-muted mb-2">
+                                <strong>Hãng:</strong> @(Model.Laptop.Brand?.BrandName ?? "N/A")
+                            </p>
+                            <p class="text-muted mb-0">
+                                <strong>Giá thuê/ngày:</strong> 
+                                @if (Model.Laptop.Price.HasValue)
+                                {
+                                    <span class="text-primary fw-bold">@Model.Laptop.Price.Value.ToString("N0") VNĐ</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Chưa có giá</span>
+                                }
+                            </p>
+                        </div>
+                    }
+
+                    <form asp-action="Create" method="post" id="bookingForm">
+                        <input type="hidden" asp-for="LaptopId" />
+                        <input type="hidden" asp-for="PricePerDay" />
+
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="StartDate" class="form-label"></label>
+                                <input asp-for="StartDate" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" id="startDate" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="EndDate" class="form-label"></label>
+                                <input asp-for="EndDate" type="date" class="form-control" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" id="endDate" />
+                                <span asp-validation-for="EndDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Thông tin phí thuê</label>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Số ngày thuê:</small>
+                                            <p class="mb-0 fw-bold" id="daysDisplay">-</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Giá/ngày:</small>
+                                            <p class="mb-0 fw-bold" id="pricePerDayDisplay">
+                                                @if (Model.PricePerDay.HasValue)
+                                                {
+                                                    @Model.PricePerDay.Value.ToString("N0") <span>VNĐ</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-danger">Chưa có giá</span>
+                                                }
+                                            </p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Tổng phí thuê:</small>
+                                            <p class="mb-0 fw-bold text-primary fs-5" id="totalPriceDisplay">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">Điều Khoản Thuê</h6>
+                                </div>
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    <ol>
+                                        <li>Khách hàng phải trả laptop đúng hạn như đã cam kết.</li>
+                                        <li>Nếu trả muộn, khách hàng sẽ bị phạt theo quy định của hệ thống.</li>
+                                        <li>Khách hàng chịu trách nhiệm bảo quản laptop trong thời gian thuê.</li>
+                                        <li>Nếu laptop bị hư hỏng do lỗi của khách hàng, khách hàng phải bồi thường.</li>
+                                        <li>Khách hàng không được phép cài đặt phần mềm không được phép hoặc thay đổi cấu hình laptop.</li>
+                                        <li>Hệ thống sẽ xử lý yêu cầu đặt thuê trong vòng 24 giờ.</li>
+                                        <li>Khách hàng có thể hủy đặt thuê trước khi được xác nhận.</li>
+                                        <li>Thanh toán sẽ được thực hiện khi nhận laptop hoặc theo thỏa thuận.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="AgreeToTerms" class="form-check-input" type="checkbox" id="agreeToTerms" />
+                            <label class="form-check-label" for="agreeToTerms">
+                                Tôi đã đọc và đồng ý với các điều khoản thuê ở trên
+                            </label>
+                            <span asp-validation-for="AgreeToTerms" class="text-danger d-block"></span>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Xác Nhận Đặt Thuê</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            @if (Model.Laptop != null)
+            {
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">Thông Tin Laptop</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Tên:</strong> @Model.Laptop.Name</p>
+                        <p class="mb-2"><strong>Hãng:</strong> @(Model.Laptop.Brand?.BrandName ?? "N/A")</p>
+                        @if (Model.Laptop.Price.HasValue)
+                        {
+                            <p class="mb-0"><strong>Giá thuê/ngày:</strong> <span class="text-primary fw-bold">@Model.Laptop.Price.Value.ToString("N0") VNĐ</span></p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            var laptopId = @Model.LaptopId;
+            var pricePerDay = @(Model.PricePerDay?.ToString("0") ?? "0");
+
+            function calculatePrice() {
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+
+                if (!startDate || !endDate) {
+                    $('#daysDisplay').text('-');
+                    $('#totalPriceDisplay').text('-');
+                    return;
+                }
+
+                var start = new Date(startDate);
+                var end = new Date(endDate);
+                
+                if (end <= start) {
+                    $('#daysDisplay').text('-');
+                    $('#totalPriceDisplay').text('-');
+                    return;
+                }
+
+                var days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                var totalPrice = days * pricePerDay;
+
+                $('#daysDisplay').text(days + ' ngày');
+                $('#totalPriceDisplay').text(totalPrice.toLocaleString('vi-VN') + ' VNĐ');
+            }
+
+            $('#startDate, #endDate').on('change', function() {
+                calculatePrice();
+            });
+
+            // Tính toán ban đầu
+            calculatePrice();
+        });
+    </script>
+}
+

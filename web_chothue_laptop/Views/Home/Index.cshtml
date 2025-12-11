@@ -1,8 +1,119 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Models
+@model PaginatedList<Laptop>
+@{
+    ViewData["Title"] = "Trang Chủ - Dịch Vụ Thuê Laptop";
+    var currentBookings = ViewBag.CurrentBookings as List<Booking>;
+    var pageIndex = (int)ViewBag.PageIndex;
+    var totalPages = (int)ViewBag.TotalPages;
+    var hasPreviousPage = (bool)ViewBag.HasPreviousPage;
+    var hasNextPage = (bool)ViewBag.HasNextPage;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container py-4">
+    <!-- Phần giới thiệu -->
+    <div class="text-center mb-4 p-4 rounded bg-primary text-white" style="box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
+        <h2 class="mb-3 fw-bold">Dịch Vụ Thuê Laptop Cho Sinh Viên Đi Thi</h2>
+        <p class="mb-0">Cung cấp laptop chất lượng cao phục vụ nhu cầu đi thi của sinh viên </p>
+    </div>
+
+    <!-- Danh mục laptop -->
+    <h3 class="mb-3">Laptop Cho Thuê </h3>
+    @if (Model != null && Model.Any())
+    {
+        <div class="row mb-4">
+            @foreach (var laptop in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100" style="box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+                        <img src="@ImageHelper.GetLaptopImageUrl(laptop.ImageUrl, laptop.Name, laptop.Brand?.BrandName)" 
+                             class="card-img-top" 
+                             alt="@laptop.Name"
+                             style="height: 250px; object-fit: cover; background-color: #f8f9fa;">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-1">@laptop.Brand?.BrandName</h5>
+                            <small>@laptop.Name</small>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                <strong>Giá:</strong>
+                                @if (laptop.Price.HasValue)
+                                {
+                                    <span class="text-primary fw-bold">@laptop.Price.Value.ToString("N0") VNĐ</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có giá</span>
+                                }
+                            </p>
+
+                            <p class="mb-3">
+                                <strong>Trạng thái:</strong>
+                                @if (laptop.Status != null)
+                                {
+                                    var statusVi = StatusHelper.GetVietnameseStatus(laptop.Status.StatusName);
+                                    var badgeClass = StatusHelper.GetStatusBadgeClass(laptop.Status.StatusName);
+                                    <span class="badge @badgeClass">@statusVi</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Chưa xác định</span>
+                                }
+                            </p>
+
+                            <a href="@Url.Action("Details", "Laptop", new { id = laptop.Id })" class="btn btn-primary btn-sm w-100">
+                                Xem chi tiết
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Phân trang -->
+        @if (totalPages > 1)
+        {
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(!hasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex - 1 })" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == pageIndex ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(!hasNextPage ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex + 1 })" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info text-center mb-5" style="box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            <p class="mb-0">Hiện tại chưa có laptop nào trong hệ thống.</p>
+        </div>
+    }
 </div>
+
+<style>
+    .card {
+        border: 1px solid #dee2e6;
+    }
+
+    .card-header {
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+</style>
