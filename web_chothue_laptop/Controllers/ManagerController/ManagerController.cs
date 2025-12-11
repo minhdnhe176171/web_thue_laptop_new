@@ -17,6 +17,7 @@ public class ManagerController : Controller
         var query = _context.Laptops
             .Include(l => l.Brand)
             .Include(l => l.Status)
+            .Include(l => l.Student)
             .OrderByDescending(l => l.CreatedDate)
             .AsQueryable();
 
