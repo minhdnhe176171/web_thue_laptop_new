@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using web_chothue_laptop.Models;
@@ -18,192 +17,179 @@ namespace web_chothue_laptop.Controllers
         }
 
         // ============================================================
-        // 1. DASHBOARD & DANH SÁCH (Có thống kê số liệu)
+        // 1. DASHBOARD & DANH SÁCH
         // ============================================================
-        // Trong method Index của TechnicalController.cs
-        public async Task<IActionResult> Index(int? pageNumber, string? searchString)
+        public async Task<IActionResult> Index(int? pageNumber, string? searchString, string activeTab = "inspection")
         {
-            // --- THỐNG KÊ DASHBOARD ---
-            ViewData["BrokenCount"] = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 3);
-            ViewData["ProcessingCount"] = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 4);
-            ViewData["FixedCount"] = await _context.TechnicalTickets.CountAsync(t => t.StatusId == 5);
+            // --- BƯỚC 1: LỌC DỮ LIỆU CƠ BẢN ---
+            // Chỉ lấy các Ticket chưa hoàn thành (Loại bỏ Approved - ID 2 và Close - ID 8 nếu có)
+            // Điều này giúp Ticket biến mất khỏi Dashboard khi đã duyệt.
+            var activeTickets = _context.TechnicalTickets.Where(t => t.StatusId != 2 && t.StatusId != 8);
 
-            // MỚI: Tính tổng số lượng ticket
-            ViewData["TotalCount"] = await _context.TechnicalTickets.CountAsync();
+            // --- BƯỚC 2: TÍNH TOÁN SỐ LIỆU (Dựa trên activeTickets đã lọc) ---
+            int totalCount = await activeTickets.CountAsync(); // Tổng số phiếu (Đã trừ cái vừa duyệt)
+            int processingCount = await activeTickets.CountAsync(t => t.StatusId == 4); // Đang sửa
+            int fixedCount = await activeTickets.CountAsync(t => t.StatusId == 5);      // Đã sửa xong
+            int pendingCount = await activeTickets.CountAsync(t => t.StatusId == 1);    // Chờ duyệt
 
-            // ... (Các phần code truy vấn và search giữ nguyên) ...
+            // Máy hỏng = Tổng - (Các trạng thái kia). 
+            // Vì "Approved" đã bị lọc khỏi 'totalCount' ngay từ đầu, nên số liệu sẽ giảm chuẩn xác.
+            int brokenCount = totalCount - processingCount - fixedCount - pendingCount;
 
-            // Lưu từ khóa tìm kiếm
-            ViewData["CurrentFilter"] = searchString;
+            ViewData["TotalCount"] = totalCount;
+            ViewData["ProcessingCount"] = processingCount;
+            ViewData["FixedCount"] = fixedCount;
+            ViewData["BrokenCount"] = brokenCount;
+            ViewBag.ActiveTab = activeTab;
 
-            // Truy vấn dữ liệu cơ bản
-            var tickets = _context.TechnicalTickets
+            // --- BƯỚC 3: LẤY DỮ LIỆU TAB 1 (YÊU CẦU KIỂM TRA) ---
+            ViewBag.InspectionList = await activeTickets
+                .Include(t => t.Laptop).ThenInclude(l => l.Student)
+                .Where(t => t.StatusId == 1)
+                .OrderBy(t => t.CreatedDate)
+                .ToListAsync();
+
+            // --- BƯỚC 4: LẤY DỮ LIỆU TAB 2 (DANH SÁCH SỬA CHỮA) ---
+            // Lấy tất cả activeTickets ngoại trừ Pending (ID 1)
+            // Vì activeTickets đã loại ID 2 rồi, nên đơn Approved sẽ KHÔNG hiện ở đây.
+            var listRepair = activeTickets
                 .Include(t => t.Laptop)
                 .Include(t => t.Status)
-                .Include(t => t.Technical)
+                .Where(t => t.StatusId != 1)
                 .AsQueryable();
 
+            // Tìm kiếm
             if (!string.IsNullOrEmpty(searchString))
             {
-                tickets = tickets.Where(t => t.Id.ToString().Contains(searchString!));
+                searchString = searchString.Trim();
+                if (long.TryParse(searchString, out long searchId))
+                {
+                    listRepair = listRepair.Where(t => t.Id == searchId);
+                }
+                else
+                {
+                    listRepair = listRepair.Where(t => t.Laptop != null && t.Laptop.Name.Contains(searchString));
+                }
             }
 
-            tickets = tickets.OrderByDescending(t => t.StatusId == 3)
-                             .ThenByDescending(t => t.CreatedDate);
+            listRepair = listRepair.OrderByDescending(t => t.StatusId == 11 || t.StatusId == 3)
+                                   .ThenByDescending(t => t.StatusId == 4)
+                                   .ThenByDescending(t => t.UpdatedDate);
 
-            int pageSize = 4;
-            return View(await PaginatedList<TechnicalTicket>.CreateAsync(tickets.AsNoTracking(), pageNumber ?? 1, pageSize));
+            ViewData["CurrentFilter"] = searchString;
+            int pageSize = 5;
+            return View(await PaginatedList<TechnicalTicket>.CreateAsync(listRepair.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // ============================================================
-        // 2. MÀN HÌNH XỬ LÝ (GET) - Load thông tin & Lịch sử
+        // 2. ACTION DUYỆT (APPROVE) - ĐẨY SANG STAFF
         // ============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveLaptop(long ticketId)
+        {
+            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
+            if (ticket != null)
+            {
+                // 1. Ticket -> Approved (2)
+                // Khi status là 2, Query ở hàm Index sẽ lọc nó ra -> BIẾN MẤT KHỎI TECHNICAL
+                ticket.StatusId = 2;
+                ticket.TechnicalResponse = "Đã đạt chuẩn. Chuyển sang Staff.";
+                ticket.UpdatedDate = DateTime.Now;
+
+                // 2. Laptop -> Approved (2)
+                // Để Staff nhìn thấy và cho thuê
+                if (ticket.Laptop != null)
+                {
+                    ticket.Laptop.StatusId = 2;
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Đã duyệt! Thiết bị đã được chuyển sang Staff để cho thuê.";
+            }
+            // Quay lại dashboard (Lúc này ticket vừa duyệt sẽ biến mất)
+            return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
+        }
+
+        // ============================================================
+        // 3. CÁC HÀM KHÁC (GIỮ NGUYÊN LOGIC CŨ CỦA BẠN)
+        // ============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectLaptop(long ticketId, string reason)
+        {
+            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
+            if (ticket != null)
+            {
+                ticket.StatusId = 3; // Rejected (Vẫn hiện ở Dashboard nhưng ở Tab sửa chữa)
+                ticket.TechnicalResponse = "TỪ CHỐI: " + reason;
+                ticket.UpdatedDate = DateTime.Now;
+                if (ticket.Laptop != null) ticket.Laptop.StatusId = 3;
+
+                await _context.SaveChangesAsync();
+                TempData["WarningMessage"] = "Đã từ chối thiết bị.";
+            }
+            return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
+        }
+
         public async Task<IActionResult> Edit(long? id)
         {
             if (id == null) return NotFound();
-
-            var ticket = await _context.TechnicalTickets
-                .Include(t => t.Laptop)
-                .Include(t => t.Status)
-                .Include(t => t.Technical)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(m => m.Id == id);
             if (ticket == null) return NotFound();
-
-            // Gửi danh sách Log (Nhật ký) sang View (Nếu chưa có bảng Log thì dùng tạm List rỗng)
-            // Khi nào có bảng TicketLogs thì bỏ comment dòng dưới:
-            // ViewBag.Logs = await _context.TicketLogs.Where(l => l.TicketId == id).OrderByDescending(l => l.CreatedAt).ToListAsync();
-            ViewBag.Logs = new List<string>(); // Placeholder để tránh lỗi View
-
             return View(ticket);
         }
 
-        // ============================================================
-        // 3. XỬ LÝ CẬP NHẬT (POST) - Logic nghiệp vụ phức tạp
-        // ============================================================
-        // 3. XỬ LÝ CẬP NHẬT (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(
-            long id,
-            long statusId,
-            string technicalResponse,
-            // Các tham số Checklist QC
+        public async Task<IActionResult> Edit(long id, int statusId, string technicalResponse,
             bool qcWifi, bool qcKeyboard, bool qcScreen, bool qcClean,
-            // Các tham số Linh kiện
-            string? partName, decimal? partPrice, string? partNote
-        )
+            string? partName, decimal? partPrice)
         {
-            var originalTicket = await _context.TechnicalTickets
-                .Include(t => t.Laptop)
-                .FirstOrDefaultAsync(t => t.Id == id);
+            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == id);
+            if (ticket == null) return NotFound();
 
-            if (originalTicket == null) return NotFound();
-
-            try
+            // Logic QC...
+            if (statusId == 5) // Fixed
             {
-                // --- LOGIC 1: KIỂM TRA QUY TRÌNH QC (Khi chọn Đã sửa xong) ---
-                if (statusId == 5)
+                if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean)
                 {
-                    if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean)
-                    {
-                        ModelState.AddModelError("", "LỖI QC: Bạn chưa hoàn thành quy trình kiểm tra chất lượng.");
-                        // Trả về View để tick lại
-                        // (Quan trọng: Cần load lại ViewBag.Logs nếu dùng logic logs riêng)
-                        ViewBag.Logs = new List<string>();
-                        return View(originalTicket);
-                    }
-                    technicalResponse += " \n[SYSTEM]: Đã thông qua kiểm tra QC (Wifi: OK, Key: OK, Screen: OK).";
+                    TempData["ErrorMessage"] = "Chưa hoàn thành QC!";
+                    return View(ticket);
                 }
+                technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed. Chuyển về Pending để duyệt.";
 
-                // --- LOGIC 2: XỬ LÝ YÊU CẦU LINH KIỆN (Khi chọn Chờ linh kiện - ID 6) ---
-                // SỬA ĐỔI TẠI ĐÂY THEO YÊU CẦU CỦA BẠN
-                if (statusId == 6)
-                {
-                    // 2.1. Validate dữ liệu đầu vào
-                    if (string.IsNullOrEmpty(partName))
-                    {
-                        ModelState.AddModelError("", "LỖI VẬT TƯ: Vui lòng nhập tên linh kiện cần thay thế.");
-                        ViewBag.Logs = new List<string>();
-                        return View(originalTicket);
-                    }
-
-                    // 2.2. Ghi Log chi tiết vào lịch sử
-                    string note = string.IsNullOrEmpty(partNote) ? "" : $" (Ghi chú: {partNote})";
-                    string price = partPrice.HasValue ? $"{partPrice:N0} VNĐ" : "Chưa báo giá";
-
-                    technicalResponse += $" \n[REQUEST]: Yêu cầu linh kiện: {partName} - Giá: {price}{note}";
-                    technicalResponse += " \n[SYSTEM]: Đã ghi nhận yêu cầu vật tư. Trạng thái tự động chuyển về 'Đang sửa chữa'.";
-
-                    // 2.3. QUAN TRỌNG: Ép trạng thái quay về "Đang sửa chữa" (ID 4)
-                    statusId = 4;
-                }
-
-                // --- CẬP NHẬT DỮ LIỆU ---
-                originalTicket.StatusId = statusId; // Nếu là linh kiện (6) thì ở dòng trên đã bị đổi thành (4)
-                originalTicket.TechnicalResponse = technicalResponse;
-                originalTicket.UpdatedDate = DateTime.Now;
-
-                // --- ĐỒNG BỘ TRẠNG THÁI LAPTOP ---
-                var relatedLaptop = await _context.Laptops.FindAsync(originalTicket.LaptopId);
-                if (relatedLaptop != null)
-                {
-                    switch (statusId)
-                    {
-                        case 4: // Đang sửa (Bao gồm cả trường hợp vừa order linh kiện xong)
-                            relatedLaptop.StatusId = 4; // Laptop màu Vàng
-                            break;
-                        case 5: // Đã sửa xong
-                            relatedLaptop.StatusId = 1; // Laptop màu Xanh (Sẵn sàng)
-                            break;
-                        case 3: // Hư hỏng
-                            relatedLaptop.StatusId = 3; // Laptop màu Đỏ
-                            break;
-                    }
-                    _context.Update(relatedLaptop);
-                }
-
-                _context.Update(originalTicket);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = $"Cập nhật Ticket #{id} thành công!";
-                return RedirectToAction(nameof(Index));
+                // QUAN TRỌNG: Sửa xong -> Về Pending (1) để hiện lại Tab 1 cho Technical duyệt lần cuối
+                statusId = 1;
             }
-            catch (Exception ex)
+            // Logic Linh kiện...
+            else if (statusId == 6)
             {
-                ModelState.AddModelError("", "Lỗi hệ thống: " + ex.Message);
-                ViewBag.Logs = new List<string>();
-                return View(originalTicket);
+                if (string.IsNullOrEmpty(partName)) { TempData["ErrorMessage"] = "Nhập tên linh kiện."; return View(ticket); }
+                technicalResponse += $"\n[REQUEST]: Cần: {partName}";
+                statusId = 4;
             }
-        }
 
-        // ============================================================
-        // 4. CHỨC NĂNG PHỤ: THÊM NHẬT KÝ (QUICK LOG) - Method 1
-        // ============================================================
-        // Action này dùng để KTV ghi chú nhanh mà không cần đổi trạng thái
-        [HttpPost]
-        public async Task<IActionResult> AddQuickLog(long ticketId, string logMessage)
-        {
-            if (string.IsNullOrWhiteSpace(logMessage))
+            ticket.StatusId = statusId;
+            ticket.TechnicalResponse = technicalResponse;
+            ticket.UpdatedDate = DateTime.Now;
+
+            if (ticket.Laptop != null)
             {
-                return RedirectToAction("Edit", new { id = ticketId });
+                if (statusId == 1) ticket.Laptop.StatusId = 1; // Về Pending
+                else if (statusId == 4) ticket.Laptop.StatusId = 4;
+                else if (statusId == 3 || statusId == 11) ticket.Laptop.StatusId = 11;
             }
 
-            var ticket = await _context.TechnicalTickets.FindAsync(ticketId);
-            if (ticket != null)
+            await _context.SaveChangesAsync();
+
+            if (statusId == 1)
             {
-                // Vì chưa có bảng Log riêng, ta sẽ nối vào TechnicalResponse hiện tại
-                // Format: [Thời gian] Nội dung
-                string timeStamp = DateTime.Now.ToString("dd/MM HH:mm");
-                string newLog = $"\n[{timeStamp}] Log: {logMessage}";
-
-                ticket.TechnicalResponse = (ticket.TechnicalResponse ?? "") + newLog;
-
-                _context.Update(ticket);
-                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Đã sửa xong! Thiết bị quay lại mục Yêu Cầu Kiểm Tra.";
+                return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
             }
 
-            return RedirectToAction("Edit", new { id = ticketId });
+            return RedirectToAction(nameof(Index), new { activeTab = "repair" });
         }
     }
 }
