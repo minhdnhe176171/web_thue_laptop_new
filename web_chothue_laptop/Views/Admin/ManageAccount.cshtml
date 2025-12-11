@@ -1,0 +1,219 @@
+@model List<web_chothue_laptop.Controllers.AccountViewModel>
+@{
+    ViewData["Title"] = "Quản lý tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            @await Html.PartialAsync("~/Views/Admin/_AdminSidebar.cshtml")
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="mb-4">Quản lý tài khoản</h2>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Danh sách tài khoản</h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.ErrorMessage != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong>Lỗi:</strong> @ViewBag.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    <!-- Filter -->
+                    <form method="get" asp-controller="ManageAccount" asp-action="Index" id="filterForm">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="filterRole" class="form-label">Lọc theo vai trò:</label>
+                                <select class="form-select" id="filterRole" name="filterRole">
+                                    <option value="">Tất cả</option>
+                                    <option value="staff" selected="@(ViewBag.FilterRole == "staff")">Staff</option>
+                                    <option value="technical" selected="@(ViewBag.FilterRole == "technical")">Technical</option>
+                                    <option value="manager" selected="@(ViewBag.FilterRole == "manager")">Manager</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="filterStatus" class="form-label">Lọc theo trạng thái:</label>
+                                <select class="form-select" id="filterStatus" name="filterStatus">
+                                    <option value="">Tất cả</option>
+                                    <option value="active" selected="@(ViewBag.FilterStatus == "active")">Đang hoạt động</option>
+                                    <option value="locked" selected="@(ViewBag.FilterStatus == "locked")">Đã khóa</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="searchAccount" class="form-label">Tìm kiếm:</label>
+                                <input type="text" class="form-control" id="searchAccount" name="searchAccount" 
+                                       placeholder="Email, tên..." value="@ViewBag.SearchAccount">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <a asp-controller="ManageAccount" asp-action="Index" class="btn btn-secondary">Làm mới</a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Accounts Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Email</th>
+                                    <th>Họ tên</th>
+                                    <th>Vai trò</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    int stt = ((ViewBag.CurrentPage - 1) * 10) + 1;
+                                    @foreach (var account in Model)
+                                    {
+                                        <tr>
+                                            <td>@stt</td>
+                                            <td>@account.Email</td>
+                                            <td>@account.FullName</td>
+                                            <td>@account.RoleName</td>
+                                            <td>
+                                                @if (account.StatusId == 6)
+                                                {
+                                                    <span class="badge bg-success">Đang hoạt động</span>
+                                                }
+                                                else if (account.StatusId == 7)
+                                                {
+                                                    <span class="badge bg-danger">Đã khóa</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@account.StatusName</span>
+                                                }
+                                            </td>
+                                            <td>@account.CreatedDate.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm @(account.StatusId == 6 ? "btn-warning" : "btn-success")" 
+                                                        onclick="toggleStatus(@account.UserId, @account.StatusId)">
+                                                    @(account.StatusId == 6 ? "🔒 Khóa" : "🔓 Mở khóa")
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        stt++;
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            Không có dữ liệu
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (ViewBag.TotalPages > 1)
+                    {
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                                {
+                                    <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                        <a class="page-link" asp-controller="ManageAccount" asp-action="Index" 
+                                           asp-route-filterRole="@ViewBag.FilterRole"
+                                           asp-route-filterStatus="@ViewBag.FilterStatus"
+                                           asp-route-searchAccount="@ViewBag.SearchAccount"
+                                           asp-route-page="@i">@i</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Tự động lọc khi bấm Enter trong ô tìm kiếm
+            $('#searchAccount').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $('#filterForm').submit();
+                }
+            });
+
+            // Tự động lọc khi thay đổi dropdown
+            $('#filterRole, #filterStatus').on('change', function() {
+                $('#filterForm').submit();
+            });
+        });
+
+        function toggleStatus(userId, currentStatusId) {
+            const action = currentStatusId == 6 ? 'khóa' : 'mở khóa';
+            if (confirm(`Bạn có chắc chắn muốn ${action} tài khoản này?`)) {
+                $.ajax({
+                    url: '@Url.Action("ToggleStatus", "ManageAccount")',
+                    type: 'POST',
+                    data: {
+                        userId: userId
+                    },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            location.reload();
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Đã xảy ra lỗi. Vui lòng thử lại.');
+                    }
+                });
+            }
+        }
+    </script>
+}
+
+<style>
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .card-header {
+        border-bottom: 2px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+</style>

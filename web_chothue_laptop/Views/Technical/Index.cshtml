@@ -7,49 +7,92 @@
 
 <div class="container-fluid px-4">
     <h1 class="mt-4">Technical Dashboard</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item active">Danh sách thiết bị cần xử lý</li>
-    </ol>
+    <div class="mb-4 text-muted">Danh sách thiết bị cần xử lý</div>
 
-    <div class="row">
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-danger text-white mb-4">
-                <div class="card-body fw-bold fs-5 text-white">Máy hư hỏng</div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-warning text-dark fw-bold fs-5">
-                    <span class="stretched-link">Cần xử lý gấp</span>
-                    <i class="fas fa-angle-right"></i>
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase small opacity-75 fw-bold">Tổng số phiếu</div>
+                        <span class="fs-1 fw-bold">@ViewData["TotalCount"]</span>
+                        <span class="fs-6 opacity-75">ticket</span>
+                    </div>
+                    <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-dark mb-4">
-                <div class="card-body fw-bold fs-5">Đang sửa chữa</div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-success text-white fw-bold fs-5">
-                    <span class="stretched-link">Đang thực hiện</span>
-                    <i class="fas fa-angle-right"></i>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase small opacity-75 fw-bold">Máy hư hỏng</div>
+                        <span class="fs-1 fw-bold">@ViewData["BrokenCount"]</span>
+                        <span class="fs-6 opacity-75">thiết bị</span>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-dark h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase small opacity-75 fw-bold">Đang sửa chữa</div>
+                        <span class="fs-1 fw-bold">@ViewData["ProcessingCount"]</span>
+                        <span class="fs-6 opacity-75">thiết bị</span>
+                    </div>
+                    <i class="fas fa-tools fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-uppercase small opacity-75 fw-bold">Đã sửa xong</div>
+                        <span class="fs-1 fw-bold">@ViewData["FixedCount"]</span>
+                        <span class="fs-6 opacity-75">thiết bị</span>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
                 </div>
             </div>
         </div>
     </div>
 
-
-       <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-tools me-1"></i>
-            Danh sách các thiết bị cần sửa
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <span class="fw-bold text-primary">Danh sách thiết bị cần sửa</span>
+                </div>
+                <div class="col-md-6">
+                    <form asp-action="Index" method="get" class="d-flex justify-content-md-end mt-2 mt-md-0">
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="text" name="searchString" value="@ViewData["CurrentFilter"]"
+                                   class="form-control" placeholder="Nhập mã Ticket (VD: 3)..." aria-label="Search">
+                            <button class="btn btn-primary" type="submit">Tìm</button>
+                            
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="table-dark">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <th>Mã Ticket</th>
-                            <th>Thiết bị (Laptop)</th>
+                            <th class="text-center" style="width: 100px;">Mã Ticket</th>
+                            <th>Thiết bị</th>
                             <th>Mô tả lỗi</th>
-                            <th>Ngày tạo</th>
-                            <th>Trạng thái</th>
-                            <th class="text-center">Hành động</th>
+                            <th style="width: 150px;">Ngày tạo</th>
+                            <th class="text-center" style="width: 120px;">Trạng thái</th>
+                            <th class="text-center" style="width: 100px;">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -58,14 +101,19 @@
                             foreach (var item in Model)
                             {
                                 <tr>
-                                    <td><strong>#@item.Id</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary rounded-pill">#@item.Id</span>
+                                    </td>
                                     <td>
-                                        <span class="fw-bold">@item.Laptop?.Name</span> <br />
-                                        <small class="text-muted">ID: @item.LaptopId</small>
+                                        <span class="fw-bold text-dark">@item.Laptop?.Name</span>
+                                        <div class="small text-muted">Device ID: @item.LaptopId</div>
                                     </td>
                                     <td>@item.Description</td>
-                                    <td>@item.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>
+                                        <i class="far fa-clock me-1 text-muted"></i>
+                                        @item.CreatedDate?.ToString("dd/MM/yyyy HH:mm")
+                                    </td>
+                                    <td class="text-center">
                                         @if (item.StatusId == 3) // Broken
                                         {
                                             <span class="badge bg-danger">Hư hỏng</span>
@@ -78,14 +126,18 @@
                                         {
                                             <span class="badge bg-success">Đã sửa xong</span>
                                         }
+                                        else if (item.StatusId == 6) // Waiting Parts
+                                        {
+                                            <span class="badge bg-warning text-dark" style="background-color: #fd7e14 !important; color: white !important;">Chờ linh kiện</span>
+                                        }
                                         else
                                         {
                                             <span class="badge bg-secondary">Khác (@item.StatusId)</span>
                                         }
                                     </td>
                                     <td class="text-center">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-edit"></i> Xử lý
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm px-3">
+                                            Xử lý
                                         </a>
                                     </td>
                                 </tr>
@@ -94,7 +146,10 @@
                         else
                         {
                             <tr>
-                                <td colspan="6" class="text-center text-muted">Không có dữ liệu hiển thị.</td>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i><br />
+                                    Không tìm thấy phiếu sửa chữa nào.
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -102,26 +157,31 @@
             </div>
 
             @{
-                
-                var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
-                var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+                var hasPrevious = Model?.HasPreviousPage ?? false;
+                var hasNext = Model?.HasNextPage ?? false;
+                var prevDisabled = !hasPrevious ? "disabled" : "";
+                var nextDisabled = !hasNext ? "disabled" : "";
+                var pageIndex = Model?.PageIndex ?? 1;
+                var totalPages = Model?.TotalPages ?? 1;
             }
 
             <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                <span class="text-muted fst-italic small">
-                    Trang @Model.PageIndex / @Model.TotalPages
+                <span class="text-muted small">
+                    Đang xem trang <strong>@pageIndex</strong> trên tổng số <strong>@totalPages</strong> trang
                 </span>
 
                 <div>
                     <a asp-action="Index"
-                       asp-route-pageNumber="@(Model.PageIndex - 1)"
-                       class="btn btn-outline-secondary btn-sm @prevDisabled">
+                       asp-route-pageNumber="@(pageIndex - 1)"
+                       asp-route-searchString="@ViewData["CurrentFilter"]"
+                       class="btn btn-outline-primary btn-sm @prevDisabled">
                         <i class="fas fa-chevron-left"></i> Trước
                     </a>
 
                     <a asp-action="Index"
-                       asp-route-pageNumber="@(Model.PageIndex + 1)"
-                       class="btn btn-outline-secondary btn-sm ms-2 @nextDisabled">
+                       asp-route-pageNumber="@(pageIndex + 1)"
+                       asp-route-searchString="@ViewData["CurrentFilter"]"
+                       class="btn btn-outline-primary btn-sm ms-2 @nextDisabled">
                         Sau <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>
