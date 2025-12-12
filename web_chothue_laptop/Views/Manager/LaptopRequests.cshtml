@@ -1,9 +1,34 @@
 ﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
 
-<h2>Danh sách Laptop chờ phê duyệt</h2>
+<h2 class="mb-3">Danh sách Laptop chờ phê duyệt</h2>
+
+<!-- Search + Filter -->
+<form method="get" asp-action="LaptopRequests">
+    <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Search..." />
+
+    <select name="statusId">
+        <option value="0">All Status</option>
+
+        @foreach (var s in ViewBag.StatusList)
+        {
+            if (s.Id == ViewBag.SelectedStatus)
+            {
+                <option value="@s.Id" selected="selected">@s.StatusName</option>
+            }
+            else
+            {
+                <option value="@s.Id">@s.StatusName</option>
+            }
+        }
+    </select>
+
+    <button type="submit">Search</button>
+</form>
 
 
-<table class="table table-bordered mt-3">
+
+
+<table class="table table-bordered table-striped">
     <thead>
         <tr>
             <th>Product Name</th>
@@ -11,7 +36,7 @@
             <th>Status</th>
             <th>Student</th>
             <th>Created Date</th>
-            <th>Action</th>
+            <th style="width: 220px;">Action</th>
         </tr>
     </thead>
     <tbody>
@@ -23,35 +48,51 @@
                         @item.Name
                     </a>
                 </td>
+
                 <td>@item.Brand?.BrandName</td>
-                <td>@item.Status?.StatusName</td>
+
                 <td>
-                    @(item.Student != null ? $"{item.Student.FirstName} {item.Student.LastName}" : "No Student")
+                    <span class="badge 
+                        @(item.StatusId == 1 ? "bg-secondary" : 
+                          item.StatusId == 2 ? "bg-success" : 
+                          "bg-danger")">
+                        @item.Status?.StatusName
+                    </span>
                 </td>
-                <td>@item.CreatedDate?.ToString("yyyy-MM-dd")</td>
+
                 <td>
-                    @if (item.StatusId == 1)
+                    @(item.Student != null
+                        ? $"{item.Student.FirstName} {item.Student.LastName}"
+                        : "No Student")
+                </td>
+
+                <td>@item.CreatedDate?.ToString("yyyy-MM-dd")</td>
+
+                <td>
+                    @* --- Toggle Approve/Reject logic --- *@
+
+                    @if (item.StatusId == 1)  @* Pending *@
                     {
-                        <form method="post" asp-action="Approve" asp-controller="Manager" style="display:inline">
+                        <form method="post" asp-action="Approve" class="d-inline">
                             <input type="hidden" name="id" value="@item.Id" />
                             <button class="btn btn-success btn-sm">Approve</button>
                         </form>
 
-                        <form method="post" asp-action="Reject" asp-controller="Manager" style="display:inline">
+                        <form method="post" asp-action="Reject" class="d-inline">
                             <input type="hidden" name="id" value="@item.Id" />
                             <button class="btn btn-danger btn-sm">Reject</button>
                         </form>
                     }
-                    else if (item.StatusId == 2)
+                    else if (item.StatusId == 2) @* Approved *@
                     {
-                        <form method="post" asp-action="Approve" asp-controller="Manager" style="display:inline">
+                        <form method="post" asp-action="Approve" class="d-inline">
                             <input type="hidden" name="id" value="@item.Id" />
                             <button class="btn btn-warning btn-sm">Unapprove</button>
                         </form>
                     }
-                    else if (item.StatusId == 3)
+                    else if (item.StatusId == 3) @* Rejected *@
                     {
-                        <form method="post" asp-action="Reject" asp-controller="Manager" style="display:inline">
+                        <form method="post" asp-action="Reject" class="d-inline">
                             <input type="hidden" name="id" value="@item.Id" />
                             <button class="btn btn-warning btn-sm">Unreject</button>
                         </form>
@@ -62,10 +103,15 @@
     </tbody>
 </table>
 
-<nav>
+
+<!-- Pagination -->
+<nav aria-label="Page navigation">
     <ul class="pagination">
+
         <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
-            <a class="page-link" href="@Url.Action("LaptopRequests", new { page = ViewBag.CurrentPage - 1 })">
+            <a class="page-link"
+               href="@Url.Action("LaptopRequests",
+               new { page = ViewBag.CurrentPage - 1, searchString = ViewBag.SearchString, statusId = ViewBag.SelectedStatus })">
                 Previous
             </a>
         </li>
@@ -73,14 +119,21 @@
         @for (int i = 1; i <= ViewBag.TotalPages; i++)
         {
             <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
-                <a class="page-link" href="@Url.Action("LaptopRequests", new { page = i })">@i</a>
+                <a class="page-link"
+                   href="@Url.Action("LaptopRequests",
+                   new { page = i, searchString = ViewBag.SearchString, statusId = ViewBag.SelectedStatus })">
+                    @i
+                </a>
             </li>
         }
 
         <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-            <a class="page-link" href="@Url.Action("LaptopRequests", new { page = ViewBag.CurrentPage + 1 })">
+            <a class="page-link"
+               href="@Url.Action("LaptopRequests",
+               new { page = ViewBag.CurrentPage + 1, searchString = ViewBag.SearchString, statusId = ViewBag.SelectedStatus })">
                 Next
             </a>
         </li>
+
     </ul>
 </nav>

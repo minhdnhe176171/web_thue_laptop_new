@@ -1,0 +1,68 @@
+﻿@model web_chothue_laptop.Models.Laptop
+
+<h2>Chi tiết Laptop</h2>
+
+<div class="card mt-3 p-4">
+    <h4>Thông tin sản phẩm</h4>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-4">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="Laptop Image" class="img-fluid rounded" />
+            }
+            else
+            {
+                <img src="https://via.placeholder.com/300x200?text=No+Image"
+                     class="img-fluid rounded" />
+            }
+        </div>
+
+        <div class="col-md-8">
+            <p><strong>Name:</strong> @Model.Name</p>
+            <p><strong>Brand:</strong> @Model.Brand?.BrandName</p>
+            <p><strong>Status:</strong> @Model.Status?.StatusName</p>
+            <p><strong>Price:</strong> @(Model.Price?.ToString("N0")) VND</p>
+            <p><strong>Created Date:</strong> @Model.CreatedDate?.ToString("yyyy-MM-dd")</p>
+        </div>
+    </div>
+
+
+    <h4 class="mt-4">Thông tin sinh viên cho thuê</h4>
+    <hr />
+
+    @if (Model.Student != null)
+    {
+        <p><strong>Full Name:</strong> @Model.Student.FirstName @Model.Student.LastName</p>
+        <p><strong>Email:</strong> @Model.Student.Email</p>
+        <p><strong>Phone:</strong> @Model.Student.Phone</p>
+        <p><strong>DOB:</strong> @Model.Student.Dob?.ToString("yyyy-MM-dd")</p>
+    }
+    else
+    {
+        <p>Không có thông tin.</p>
+    }
+
+
+    <h4 class="mt-4">Thông số kỹ thuật</h4>
+    <hr />
+
+    @if (Model.LaptopDetails != null && Model.LaptopDetails.Any())
+    {
+        var d = Model.LaptopDetails.FirstOrDefault();
+
+        <p><strong>CPU:</strong> @d.Cpu</p>
+        <p><strong>RAM:</strong> @d.RamSize @d.RamType</p>
+        <p><strong>Storage:</strong> @d.Storage</p>
+        <p><strong>GPU:</strong> @d.Gpu</p>
+        <p><strong>Screen Size:</strong> @d.ScreenSize</p>
+        <p><strong>OS:</strong> @d.Os</p>
+    }
+    else
+    {
+        <p>Không có thông số chi tiết.</p>
+    }
+
+    <a href="@Url.Action("LaptopRequests", "Manager")" class="btn btn-secondary mt-3">Quay lại danh sách</a>
+</div>

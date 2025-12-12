@@ -255,53 +255,53 @@ namespace web_chothue_laptop.Controllers
                             model.RoleName = user.Role?.RoleName;
                             model.AvatarUrl = user.AvatarUrl;
                             
-                            var customer = user.Customers.FirstOrDefault();
-                            if (customer != null)
+                            var customer1 = user.Customers.FirstOrDefault();
+                            if (customer1 != null)
                             {
-                                model.FirstName = customer.FirstName;
-                                model.LastName = customer.LastName;
-                                model.Phone = customer.Phone;
-                                model.Dob = customer.Dob;
+                                model.FirstName = customer1.FirstName;
+                                model.LastName = customer1.LastName;
+                                model.Phone = customer1.Phone;
+                                model.Dob = customer1.Dob;
                             }
                             else
                             {
-                                var staff = user.Staff.FirstOrDefault();
-                                if (staff != null)
+                                var staff1 = user.Staff.FirstOrDefault();
+                                if (staff1 != null)
                                 {
-                                    model.FirstName = staff.FirstName;
-                                    model.LastName = staff.LastName;
-                                    model.Phone = staff.Phone;
-                                    model.Dob = staff.Dob;
+                                    model.FirstName = staff1.FirstName;
+                                    model.LastName = staff1.LastName;
+                                    model.Phone = staff1.Phone;
+                                    model.Dob = staff1.Dob;
                                 }
                                 else
                                 {
-                                    var student = user.Students.FirstOrDefault();
-                                    if (student != null)
+                                    var student1 = user.Students.FirstOrDefault();
+                                    if (student1 != null)
                                     {
-                                        model.FirstName = student.FirstName;
-                                        model.LastName = student.LastName;
-                                        model.Phone = student.Phone;
-                                        model.Dob = student.Dob;
+                                        model.FirstName = student1.FirstName;
+                                        model.LastName = student1.LastName;
+                                        model.Phone = student1.Phone;
+                                        model.Dob = student1.Dob;
                                     }
                                     else
                                     {
-                                        var manager = user.Managers.FirstOrDefault();
-                                        if (manager != null)
+                                        var manager1 = user.Managers.FirstOrDefault();
+                                        if (manager1 != null)
                                         {
-                                            model.FirstName = manager.FirstName;
-                                            model.LastName = manager.LastName;
-                                            model.Phone = manager.Phone;
-                                            model.Dob = manager.Dob;
+                                            model.FirstName = manager1.FirstName;
+                                            model.LastName = manager1.LastName;
+                                            model.Phone = manager1.Phone;
+                                            model.Dob = manager1.Dob;
                                         }
                                         else
                                         {
-                                            var technical = user.Technicals.FirstOrDefault();
-                                            if (technical != null)
+                                            var technical1 = user.Technicals.FirstOrDefault();
+                                            if (technical1 != null)
                                             {
-                                                model.FirstName = technical.FirstName;
-                                                model.LastName = technical.LastName;
-                                                model.Phone = technical.Phone;
-                                                model.Dob = technical.Dob;
+                                                model.FirstName = technical1.FirstName;
+                                                model.LastName = technical1.LastName;
+                                                model.Phone = technical1.Phone;
+                                                model.Dob = technical1.Dob;
                                             }
                                         }
                                     }

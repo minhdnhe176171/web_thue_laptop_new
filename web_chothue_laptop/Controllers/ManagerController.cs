@@ -21,16 +21,19 @@ public class ManagerController : Controller
             .OrderByDescending(l => l.CreatedDate)
             .AsQueryable();
 
+        // Search
         if (!string.IsNullOrEmpty(searchString))
         {
             query = query.Where(l => l.Name.Contains(searchString));
         }
 
+        // Filter Status
         if (statusId.HasValue && statusId.Value != 0)
         {
             query = query.Where(l => l.StatusId == statusId.Value);
         }
 
+        // Pagination
         int totalItems = query.Count();
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
@@ -39,11 +42,13 @@ public class ManagerController : Controller
             .Take(pageSize)
             .ToList();
 
+        // ViewBag
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
         ViewBag.SearchString = searchString;
         ViewBag.SelectedStatus = statusId ?? 0;
 
+        // Status dropdown
         ViewBag.StatusList = _context.Statuses
             .Select(s => new { s.Id, s.StatusName })
             .ToList();
@@ -52,12 +57,15 @@ public class ManagerController : Controller
     }
 
 
+    // APPROVE (toggle giữa Approved <-> Pending)
     [HttpPost]
     public IActionResult Approve(long id)
     {
         var laptop = _context.Laptops.FirstOrDefault(x => x.Id == id);
         if (laptop == null) return NotFound();
 
+        // Nếu đang Approved => chuyển về Pending
+        // Nếu đang Pending hoặc Reject => chuyển thành Approved
         laptop.StatusId = laptop.StatusId == 2 ? 1 : 2;
         laptop.UpdatedDate = DateTime.Now;
 
@@ -65,12 +73,16 @@ public class ManagerController : Controller
         return RedirectToAction("LaptopRequests");
     }
 
+
+    // REJECT (toggle giữa Rejected <-> Pending)
     [HttpPost]
     public IActionResult Reject(long id)
     {
         var laptop = _context.Laptops.FirstOrDefault(x => x.Id == id);
         if (laptop == null) return NotFound();
 
+        // Nếu đang Rejected => chuyển về Pending
+        // Nếu đang Pending hoặc Approved => chuyển thành Rejected
         laptop.StatusId = laptop.StatusId == 3 ? 1 : 3;
         laptop.UpdatedDate = DateTime.Now;
 
@@ -78,6 +90,8 @@ public class ManagerController : Controller
         return RedirectToAction("LaptopRequests");
     }
 
+
+    // Laptop Detail
     public IActionResult LaptopDetail(long id)
     {
         var laptop = _context.Laptops

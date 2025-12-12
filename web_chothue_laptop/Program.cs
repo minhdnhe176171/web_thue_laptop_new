@@ -73,9 +73,7 @@ app.UseAuthorization();
 // Map SignalR Hub
 app.MapHub<ChatHub>("/chathub");
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Manager}/{action=LaptopRequests}/{id?}");
+
 
 app.MapControllerRoute(
     name: "createAccount",
@@ -92,5 +90,9 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+//app.MapControllerRoute(
+//    name: "manager",
+//    pattern: "{controller=Manager}/{action=LaptopRequests}/{id?}");
 
 app.Run();
