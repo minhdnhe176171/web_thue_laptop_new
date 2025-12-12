@@ -48,17 +48,17 @@ public partial class Swp391LaptopContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-{
-    if (!optionsBuilder.IsConfigured)
     {
-        optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+        }
     }
-}
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Booking>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__BOOKING__3214EC2713A1D559");
+            entity.HasKey(e => e.Id).HasName("PK__BOOKING__3214EC27887C744A");
 
             entity.ToTable("BOOKING");
 
@@ -106,7 +106,7 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<BookingReceipt>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__BOOKING___3214EC27DBB77950");
+            entity.HasKey(e => e.Id).HasName("PK__BOOKING___3214EC27B612B75E");
 
             entity.ToTable("BOOKING_RECEIPT");
 
@@ -153,11 +153,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Brand>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__BRAND__3214EC27B8554681");
+            entity.HasKey(e => e.Id).HasName("PK__BRAND__3214EC273DAD367B");
 
             entity.ToTable("BRAND");
 
-            entity.HasIndex(e => e.BrandName, "UQ__BRAND__FBF481360C3F20AF").IsUnique();
+            entity.HasIndex(e => e.BrandName, "UQ__BRAND__FBF481367C60841D").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.BrandName)
@@ -167,11 +167,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Customer>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__CUSTOMER__3214EC2743E57B4A");
+            entity.HasKey(e => e.Id).HasName("PK__CUSTOMER__3214EC27D70F7DF9");
 
             entity.ToTable("CUSTOMER");
 
-            entity.HasIndex(e => e.Email, "UQ__CUSTOMER__161CF724875096EC").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__CUSTOMER__161CF724941D646B").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -205,7 +205,7 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Laptop>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LAPTOP__3214EC276CDD9EB2");
+            entity.HasKey(e => e.Id).HasName("PK__LAPTOP__3214EC272E977043");
 
             entity.ToTable("LAPTOP");
 
@@ -248,7 +248,7 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<LaptopDetail>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LAPTOP_D__3214EC2743149ABB");
+            entity.HasKey(e => e.Id).HasName("PK__LAPTOP_D__3214EC27B656DECA");
 
             entity.ToTable("LAPTOP_DETAIL");
 
@@ -283,11 +283,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Manager>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MANAGER__3214EC27DE366A17");
+            entity.HasKey(e => e.Id).HasName("PK__MANAGER__3214EC27DA0666D5");
 
             entity.ToTable("MANAGER");
 
-            entity.HasIndex(e => e.Email, "UQ__MANAGER__161CF72488A75336").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__MANAGER__161CF7240FDD4056").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -321,11 +321,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ROLE__3214EC2704B24386");
+            entity.HasKey(e => e.Id).HasName("PK__ROLE__3214EC27A1C14377");
 
             entity.ToTable("ROLE");
 
-            entity.HasIndex(e => e.RoleName, "UQ__ROLE__2B9B877E941DEF77").IsUnique();
+            entity.HasIndex(e => e.RoleName, "UQ__ROLE__2B9B877E4CF99AEF").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.RoleName)
@@ -335,11 +335,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Staff>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STAFF__3214EC27FF368ED7");
+            entity.HasKey(e => e.Id).HasName("PK__STAFF__3214EC279835DA41");
 
             entity.ToTable("STAFF");
 
-            entity.HasIndex(e => e.Email, "UQ__STAFF__161CF724943EA263").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__STAFF__161CF724F290BB07").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -373,11 +373,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Status>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STATUS__3214EC271D599864");
+            entity.HasKey(e => e.Id).HasName("PK__STATUS__3214EC2761C082DA");
 
             entity.ToTable("STATUS");
 
-            entity.HasIndex(e => e.StatusName, "UQ__STATUS__064B2D2D7FCEC1EC").IsUnique();
+            entity.HasIndex(e => e.StatusName, "UQ__STATUS__064B2D2DC9E8B5FD").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.StatusName)
@@ -387,11 +387,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Student>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STUDENT__3214EC277517CA24");
+            entity.HasKey(e => e.Id).HasName("PK__STUDENT__3214EC274F49AD5A");
 
             entity.ToTable("STUDENT");
 
-            entity.HasIndex(e => e.Email, "UQ__STUDENT__161CF7249D3C7F7F").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__STUDENT__161CF724488D0C6E").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -425,7 +425,7 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<StudentRentNotification>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__STUDENT___3214EC27C4EC3D81");
+            entity.HasKey(e => e.Id).HasName("PK__STUDENT___3214EC277414D2C2");
 
             entity.ToTable("STUDENT_RENT_NOTIFICATION");
 
@@ -460,11 +460,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<Technical>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC27981BC704");
+            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC27085F8AF0");
 
             entity.ToTable("TECHNICAL");
 
-            entity.HasIndex(e => e.Email, "UQ__TECHNICA__161CF72447B4CFD8").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__TECHNICA__161CF72453EA1492").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.CreatedDate)
@@ -503,7 +503,7 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<TechnicalTicket>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC277438CFD2");
+            entity.HasKey(e => e.Id).HasName("PK__TECHNICA__3214EC27793838D0");
 
             entity.ToTable("TECHNICAL_TICKET");
 
@@ -549,7 +549,7 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<TicketList>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__TICKET_L__3214EC2761172DD7");
+            entity.HasKey(e => e.Id).HasName("PK__TICKET_L__3214EC2756BE29A1");
 
             entity.ToTable("TICKET_LIST");
 
@@ -603,11 +603,11 @@ public partial class Swp391LaptopContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__USER__3214EC27088875ED");
+            entity.HasKey(e => e.Id).HasName("PK__USER__3214EC274B2352F5");
 
             entity.ToTable("USER");
 
-            entity.HasIndex(e => e.Email, "UQ__USER__161CF724CA8B7E17").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__USER__161CF724DDEAE9FF").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.AvatarUrl)

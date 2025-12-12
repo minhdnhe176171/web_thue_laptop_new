@@ -4,9 +4,11 @@ using web_chothue_laptop.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace web_chothue_laptop.Controllers
 {
+    [Authorize(Roles = "Staff")]
     public class StaffController : Controller
     {
         private readonly Swp391LaptopContext _context;

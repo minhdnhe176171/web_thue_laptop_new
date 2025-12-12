@@ -1,13 +1,22 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using web_chothue_laptop.Hubs;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.Services;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+    
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login"; // Chuyển hướng nếu chưa đăng nhập
+        options.AccessDeniedPath = "/Account/AccessDenied"; // Chuyển hướng nếu không đủ quyền
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // Hết hạn sau 60 phút
+        options.Cookie.HttpOnly = true;
+    });
 
 // Add Session
 builder.Services.AddDistributedMemoryCache();

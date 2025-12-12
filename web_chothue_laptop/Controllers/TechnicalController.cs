@@ -4,9 +4,11 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using web_chothue_laptop.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace web_chothue_laptop.Controllers
 {
+    [Authorize(Roles = "Technical")]
     public class TechnicalController : Controller
     {
         private readonly Swp391LaptopContext _context;
@@ -45,6 +47,8 @@ namespace web_chothue_laptop.Controllers
             // --- BƯỚC 3: LẤY DỮ LIỆU TAB 1 (YÊU CẦU KIỂM TRA) ---
             ViewBag.InspectionList = await activeTickets
                 .Include(t => t.Laptop).ThenInclude(l => l.Student)
+                .Include(t => t.Laptop).ThenInclude(l => l.Brand)
+                .Include(t => t.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Where(t => t.StatusId == 1)
                 .OrderBy(t => t.CreatedDate)
                 .ToListAsync();

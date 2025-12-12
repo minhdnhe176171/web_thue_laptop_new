@@ -110,7 +110,7 @@
                             <tr>
                                 <th class="ps-4">Mã Ticket</th>
                                 <th>Thiết bị</th>
-                                <th>Chủ Máy (Student)</th>
+                                <th>Chủ Máy</th>
                                 <th>Mô Tả</th>
                                 <th class="text-center">Hành Động</th>
                             </tr>
@@ -130,16 +130,74 @@
                                             @(item.Laptop?.Student?.LastName + " " + item.Laptop?.Student?.FirstName)
                                         </td>
                                         <td>@item.Description</td>
+
                                         <td class="text-center">
+                                            <button type="button" class="btn btn-info btn-sm px-3 text-white me-1" data-bs-toggle="modal" data-bs-target="#detailModal-@item.Id">
+                                                <i class="bi bi-eye"></i> Chi tiết
+                                            </button>
+
                                             <form asp-action="ApproveLaptop" method="post" class="d-inline">
                                                 <input type="hidden" name="ticketId" value="@item.Id" />
                                                 <button type="submit" class="btn btn-primary btn-sm px-3" onclick="return confirm('Xác nhận ĐẠT?')">
                                                     Đạt
                                                 </button>
                                             </form>
+
                                             <button type="button" class="btn btn-outline-danger btn-sm px-3 ms-1" data-bs-toggle="modal" data-bs-target="#rejectModal-@item.Id">
                                                 Loại
                                             </button>
+
+                                            <div class="modal fade" id="detailModal-@item.Id" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-info text-white">
+                                                            <h5 class="modal-title">Thông số: @item.Laptop?.Name</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body text-start">
+                                                            @{
+                                                                // Lấy dòng đầu tiên từ bảng LAPTOP_DETAIL
+                                                                var specs = item.Laptop?.LaptopDetails?.FirstOrDefault();
+                                                            }
+                                                            <div class="row">
+                                                                <div class="col-md-4 text-center border-end">
+                                                                    <img src="@(item.Laptop?.ImageUrl ?? "https://res.cloudinary.com/drzc5ulxv/image/upload/v1765469106/tickets/bi1hujemmwiffwp2ffwc.png")"
+                                                                         class="img-fluid mb-3 rounded shadow-sm" style="max-height: 150px;" alt="Laptop Image">
+                                                                    <h5 class="fw-bold text-primary">@item.Laptop?.Name</h5>
+                                                                    <span class="badge bg-secondary mb-2">
+                                                                        @(item.Laptop?.Brand?.BrandName ?? "N/A")
+                                                                    </span>
+                                                                    <p class="text-muted small">Device ID: @item.LaptopId</p>
+                                                                </div>
+                                                                <div class="col-md-8">
+                                                                    <h6 class="fw-bold border-bottom pb-2 mb-3">Cấu hình phần cứng</h6>
+                                                                    @if (specs != null)
+                                                                    {
+                                                                        <div class="row g-3">
+                                                                            <div class="col-6"><small class="text-muted d-block">CPU</small><strong>@specs.Cpu</strong></div>
+                                                                            <div class="col-6"><small class="text-muted d-block">RAM</small><strong>@specs.RamSize  @specs.RamType</strong></div>
+                                                                            <div class="col-6"><small class="text-muted d-block">Ổ cứng</small><strong>@specs.Storage</strong></div>
+                                                                            <div class="col-6"><small class="text-muted d-block">VGA</small><strong>@specs.Gpu</strong></div>
+                                                                            <div class="col-6"><small class="text-muted d-block">OS</small><strong>@specs.Os</strong></div>
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="alert alert-warning">Chưa có thông số kỹ thuật (Bảng LAPTOP_DETAIL trống).</div>
+                                                                    }
+                                                                    <div class="alert alert-light border mt-3 mb-0">
+                                                                        <small class="fw-bold text-danger">Mô tả từ sinh viên:</small><br>
+                                                                        <i>"@item.Description"</i>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             <div class="modal fade" id="rejectModal-@item.Id" tabindex="-1">
                                                 <div class="modal-dialog">
@@ -185,7 +243,6 @@
                         <button class="btn btn-primary btn-sm ms-2" type="submit">Tìm</button>
                     </form>
                 </div>
-
                 <div class="card-body p-0">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
@@ -233,9 +290,7 @@
                                             }
                                         </td>
                                         <td class="text-center">
-                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm px-3">
-                                                Xử lý
-                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm px-3">Xử lý</a>
                                         </td>
                                     </tr>
                                 }
@@ -250,17 +305,14 @@
                     @{
                         var hasPrevious = Model?.HasPreviousPage ?? false;
                         var hasNext = Model?.HasNextPage ?? false;
-                        var prevDisabled = !hasPrevious ? "disabled" : "";
-                        var nextDisabled = !hasNext ? "disabled" : "";
                         var pageIndex = Model?.PageIndex ?? 1;
                         var totalPages = Model?.TotalPages ?? 1;
                     }
-
                     <div class="d-flex justify-content-between align-items-center p-3 border-top">
                         <span class="text-muted small">Đang xem trang @pageIndex trên tổng số @totalPages trang</span>
                         <div>
-                            <a asp-action="Index" asp-route-pageNumber="@(pageIndex - 1)" asp-route-activeTab="repair" class="btn btn-sm btn-outline-secondary me-2 @prevDisabled">Trước</a>
-                            <a asp-action="Index" asp-route-pageNumber="@(pageIndex + 1)" asp-route-activeTab="repair" class="btn btn-sm btn-outline-secondary @nextDisabled">Sau</a>
+                            <a asp-action="Index" asp-route-pageNumber="@(pageIndex - 1)" asp-route-activeTab="repair" class="btn btn-sm btn-outline-secondary me-2 @(!hasPrevious ? "disabled" : "")">Trước</a>
+                            <a asp-action="Index" asp-route-pageNumber="@(pageIndex + 1)" asp-route-activeTab="repair" class="btn btn-sm btn-outline-secondary @(!hasNext ? "disabled" : "")">Sau</a>
                         </div>
                     </div>
                 </div>
