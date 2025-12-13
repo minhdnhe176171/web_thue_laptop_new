@@ -45,6 +45,13 @@ namespace web_chothue_laptop.Controllers
                 return NotFound();
             }
 
+            // Kiểm tra laptop có sẵn không
+            if (laptop.Status?.StatusName?.ToLower() != "available")
+            {
+                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
+                return RedirectToAction("Details", "Laptop", new { id = id });
+            }
+
             // Lấy Customer từ UserId
             var userIdLong = long.Parse(userId);
             var customer = await _context.Customers
@@ -56,13 +63,33 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Kiểm tra booking (nếu có)
+            // Kiểm tra booking - bắt buộc phải có active booking
             Booking? booking = null;
             if (bookingId.HasValue)
             {
                 booking = await _context.Bookings
                     .Include(b => b.Status)
                     .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id && b.LaptopId == laptop.Id);
+            }
+            else
+            {
+                // Nếu không có bookingId, tìm active booking của customer này
+                booking = await _context.Bookings
+                    .Include(b => b.Status)
+                    .Where(b => b.CustomerId == customer.Id 
+                        && b.LaptopId == laptop.Id 
+                        && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                        && b.EndTime >= DateTime.Today)
+                    .FirstOrDefaultAsync();
+            }
+
+            // Kiểm tra có active booking không
+            if (booking == null || booking.Status == null || 
+                (booking.Status.StatusName.ToLower() != "approved" && booking.Status.StatusName.ToLower() != "rented") || 
+                booking.EndTime < DateTime.Today)
+            {
+                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
+                return RedirectToAction("Details", "Laptop", new { id = id });
             }
 
             var model = new TicketViewModel
@@ -101,6 +128,13 @@ namespace web_chothue_laptop.Controllers
                 return NotFound();
             }
 
+            // Kiểm tra laptop có sẵn không
+            if (laptop.Status?.StatusName?.ToLower() != "available")
+            {
+                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
+                return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
+            }
+
             ViewBag.Laptop = laptop;
 
             if (!ModelState.IsValid)
@@ -114,10 +148,10 @@ namespace web_chothue_laptop.Controllers
                     
                     if (customer != null)
                     {
-                        var booking = await _context.Bookings
+                        var bookingForView = await _context.Bookings
                             .Include(b => b.Status)
                             .FirstOrDefaultAsync(b => b.Id == model.BookingId.Value && b.CustomerId == customer.Id);
-                        ViewBag.Booking = booking;
+                        ViewBag.Booking = bookingForView;
                     }
                 }
                 return View(model);
@@ -132,6 +166,40 @@ namespace web_chothue_laptop.Controllers
             {
                 TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
                 return RedirectToAction("Login", "Account");
+            }
+
+            // Kiểm tra có active booking không
+            Booking? booking = null;
+            if (model.BookingId.HasValue)
+            {
+                booking = await _context.Bookings
+                    .Include(b => b.Status)
+                    .FirstOrDefaultAsync(b => b.Id == model.BookingId.Value && b.CustomerId == customer2.Id && b.LaptopId == laptop.Id);
+            }
+            else
+            {
+                // Nếu không có bookingId, tìm active booking của customer này
+                booking = await _context.Bookings
+                    .Include(b => b.Status)
+                    .Where(b => b.CustomerId == customer2.Id 
+                        && b.LaptopId == laptop.Id 
+                        && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                        && b.EndTime >= DateTime.Today)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (booking == null || booking.Status == null || 
+                (booking.Status.StatusName.ToLower() != "approved" && booking.Status.StatusName.ToLower() != "rented") || 
+                booking.EndTime < DateTime.Today)
+            {
+                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
+                return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
+            }
+
+            // Cập nhật model.BookingId nếu chưa có
+            if (!model.BookingId.HasValue && booking != null)
+            {
+                model.BookingId = booking.Id;
             }
 
             // Lấy Staff có StaffId = 6 (staff mới được tạo)
