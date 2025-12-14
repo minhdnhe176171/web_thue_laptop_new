@@ -390,9 +390,6 @@ namespace web_chothue_laptop.Controllers
                 // Nếu không tìm thấy bất kỳ record nào
                 ModelState.AddModelError("", "Không tìm thấy thông tin người dùng để cập nhật");
                 return View("Index", model);
-
-                TempData["SuccessMessage"] = "Cập nhật thông tin thành công";
-                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {

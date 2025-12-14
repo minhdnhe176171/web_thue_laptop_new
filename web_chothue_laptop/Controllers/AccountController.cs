@@ -30,105 +30,82 @@ namespace web_chothue_laptop.Controllers
             return View();
         }
 
-        // POST: Account/Login
+
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            // 1. Trim dữ liệu đầu vào
             if (model != null) model.Email = model.Email?.Trim() ?? string.Empty;
-
             if (!ModelState.IsValid) return View(model);
 
-            // 2. Tìm User & Include Role
-            var emailLower = model.Email.ToLower();
+            // Tìm User
             var user = await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Status)
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == emailLower);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower());
 
-            // 3. Kiểm tra User & Password
+            // Validate User & Password
             if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
             {
                 ModelState.AddModelError("", "Email hoặc mật khẩu không đúng");
                 return View(model);
             }
 
-            // 4. Kiểm tra Active
+            // Validate Active
             if (user.Status?.StatusName?.Trim().ToLower() != "active")
             {
                 ModelState.AddModelError("", "Tài khoản chưa được kích hoạt hoặc đã bị khóa");
                 return View(model);
             }
 
-            // ============================================================
-            // 5. XỬ LÝ ROLE AN TOÀN (FIX LỖI TẠI ĐÂY)
-            // ============================================================
+            // --- XỬ LÝ ROLE ---
+            string roleName = user.Role?.RoleName?.Trim() ?? "Customer"; // Mặc định là Customer nếu null
 
-            // Lấy RoleName từ DB, nếu null thì gán rỗng
-            string rawRole = user.Role?.RoleName ?? "";
-
-            // BƯỚC QUAN TRỌNG: Cắt khoảng trắng thừa (Trim)
-            // Giả sử DB lưu "Technical " -> thành "Technical"
-            string cleanRole = rawRole.Trim();
-
-            // ============================================================
-            // 6. GHI COOKIE (Dùng cleanRole đã xử lý sạch)
-            // ============================================================
+            // --- TẠO CLAIMS (Giấy thông hành) ---
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Email),
                 new Claim("UserId", user.Id.ToString()),
-                // LƯU Ý: Cookie phải lưu đúng chữ hoa/thường khớp với [Authorize]
-                // Ví dụ: [Authorize(Roles="Technical")] thì ở đây phải lưu "Technical"
-                new Claim(ClaimTypes.Role, cleanRole)
+                // Dòng này cực quan trọng để [Authorize(Roles="...")] hoạt động
+                new Claim(ClaimTypes.Role, roleName)
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
             {
-                IsPersistent = true,
+                IsPersistent = true, // Nhớ đăng nhập
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(60)
             };
 
+            // --- GHI COOKIE VÀO TRÌNH DUYỆT ---
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            // Lưu Session bổ trợ (Tùy chọn)
+            // Lưu Session (Phụ trợ)
             HttpContext.Session.SetString("UserId", user.Id.ToString());
-            HttpContext.Session.SetString("UserEmail", user.Email);
-            HttpContext.Session.SetString("UserRole", cleanRole);
+            HttpContext.Session.SetString("UserRole", roleName);
 
-            // ============================================================
-            // 7. ĐIỀU HƯỚNG (So sánh chữ thường để không bị sai Case)
-            // ============================================================
-
-            switch (cleanRole.ToLower()) // Ép về chữ thường để so sánh: "technical"
+            // --- ĐIỀU HƯỚNG DỰA TRÊN ROLE ---
+            // Dùng ToLower() để so sánh cho chắc chắn
+            switch (roleName.ToLower())
             {
                 case "staff":
-                    return RedirectToAction("Index", "Staff");
+                    return RedirectToAction("Index", "Staff"); // Vào thẳng Staff
 
                 case "technical":
-                    return RedirectToAction("Index", "Technical");
+                    return RedirectToAction("Index", "Technical"); // Vào thẳng Technical
 
                 case "admin":
                 case "manager":
                     return RedirectToAction("Index", "Admin");
 
-                case "customer":
-                case "student":
-                    return RedirectToAction("Index", "Home");
-
                 default:
-                    // Nếu Role bị lỗi, in ra log hoặc debug tại đây
-                    // Tạm thời về Home
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Home"); // Customer/Student về Home
             }
         }
-
         // GET: Account/Register
         public IActionResult Register()
         {

@@ -17,74 +17,128 @@ namespace web_chothue_laptop.Controllers
         {
             _context = context;
         }
-
         // ============================================================
-        // 1. DASHBOARD & DANH SÁCH
+        // 1. DASHBOARD & DANH SÁCH (ĐÃ TỐI ƯU PHÂN TRANG RIÊNG BIỆT)
         // ============================================================
-        public async Task<IActionResult> Index(int? pageNumber, string? searchString, string activeTab = "inspection")
+        public async Task<IActionResult> Index(int? pageNumber, string? searchString, string activeTab = "inspection", DateTime? startDate = null, DateTime? endDate = null)
         {
-            // --- BƯỚC 1: LỌC DỮ LIỆU CƠ BẢN ---
-            // Chỉ lấy các Ticket chưa hoàn thành (Loại bỏ Approved - ID 2 và Close - ID 8 nếu có)
-            // Điều này giúp Ticket biến mất khỏi Dashboard khi đã duyệt.
+            ViewBag.ActiveTab = activeTab;
+
+            // CẤU HÌNH SỐ LƯỢNG DÒNG MỖI TRANG Ở ĐÂY ĐỂ DỄ SỬA
+            int pageSizeInspection = 5; // Số dòng tab Kiểm tra
+            int pageSizeRepair = 5;     // Số dòng tab Sửa chữa
+            int pageSizeReport = 5;    // Số dòng tab Báo cáo
+
+            // ------------------------------------------------------------
+            // TRƯỜNG HỢP 1: TAB BÁO CÁO (REPORT)
+            // ------------------------------------------------------------
+            if (activeTab == "report")
+            {
+                var reportQuery = _context.TechnicalTickets
+                    .Include(t => t.Laptop).ThenInclude(l => l.Brand)
+                    .Include(t => t.Laptop).ThenInclude(l => l.Student)
+                    .Include(t => t.Status)
+                    .Where(t => t.StatusId == 2 || t.StatusId == 8);
+
+                // Lọc theo ngày
+                if (startDate.HasValue) reportQuery = reportQuery.Where(t => t.CreatedDate >= startDate.Value);
+                if (endDate.HasValue)
+                {
+                    var endDateEndOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                    reportQuery = reportQuery.Where(t => t.CreatedDate <= endDateEndOfDay);
+                }
+
+                // TÍNH TOÁN SỐ LIỆU THỐNG KÊ (Trước khi search text)
+                ViewData["TotalCompleted"] = await reportQuery.CountAsync();
+                ViewData["ApprovedCount"] = await reportQuery.CountAsync(t => t.StatusId == 2);
+                ViewData["ClosedCount"] = await reportQuery.CountAsync(t => t.StatusId == 8);
+
+                // Lưu dữ liệu filter
+                ViewData["CurrentFilter"] = searchString;
+                ViewData["StartDate"] = startDate?.ToString("yyyy-MM-dd");
+                ViewData["EndDate"] = endDate?.ToString("yyyy-MM-dd");
+
+                // Tìm kiếm Text
+                if (!string.IsNullOrEmpty(searchString))
+                {
+                    searchString = searchString.Trim();
+                    if (long.TryParse(searchString, out long searchId))
+                        reportQuery = reportQuery.Where(t => t.Id == searchId);
+                    else
+                        reportQuery = reportQuery.Where(t => t.Laptop.Name.Contains(searchString)
+                            || (t.Laptop.Student != null && (t.Laptop.Student.FirstName + " " + t.Laptop.Student.LastName).Contains(searchString)));
+                }
+
+                var pagedReport = reportQuery.OrderByDescending(t => t.UpdatedDate ?? t.CreatedDate);
+                // Trả về dữ liệu cho tab Report
+                return View(await PaginatedList<TechnicalTicket>.CreateAsync(pagedReport.AsNoTracking(), pageNumber ?? 1, pageSizeReport));
+            }
+
+            // ------------------------------------------------------------
+            // TRƯỜNG HỢP 2: TAB KIỂM TRA & SỬA CHỮA (MẶC ĐỊNH)
+            // ------------------------------------------------------------
+
+            // 1. Query cơ bản (Chưa hoàn thành)
             var activeTickets = _context.TechnicalTickets.Where(t => t.StatusId != 2 && t.StatusId != 8);
 
-            // --- BƯỚC 2: TÍNH TOÁN SỐ LIỆU (Dựa trên activeTickets đã lọc) ---
-            int totalCount = await activeTickets.CountAsync(); // Tổng số phiếu (Đã trừ cái vừa duyệt)
-            int processingCount = await activeTickets.CountAsync(t => t.StatusId == 4); // Đang sửa
-            int fixedCount = await activeTickets.CountAsync(t => t.StatusId == 5);      // Đã sửa xong
-            int pendingCount = await activeTickets.CountAsync(t => t.StatusId == 1);    // Chờ duyệt
-
-            // Máy hỏng = Tổng - (Các trạng thái kia). 
-            // Vì "Approved" đã bị lọc khỏi 'totalCount' ngay từ đầu, nên số liệu sẽ giảm chuẩn xác.
+            // 2. Tính toán thống kê Dashboard
+            int totalCount = await activeTickets.CountAsync();
+            int processingCount = await activeTickets.CountAsync(t => t.StatusId == 4);
+            int fixedCount = await activeTickets.CountAsync(t => t.StatusId == 5);
+            int pendingCount = await activeTickets.CountAsync(t => t.StatusId == 1);
             int brokenCount = totalCount - processingCount - fixedCount - pendingCount;
 
             ViewData["TotalCount"] = totalCount;
             ViewData["ProcessingCount"] = processingCount;
             ViewData["FixedCount"] = fixedCount;
             ViewData["BrokenCount"] = brokenCount;
-            ViewBag.ActiveTab = activeTab;
+            ViewData["CurrentFilter"] = searchString;
 
-            // --- BƯỚC 3: LẤY DỮ LIỆU TAB 1 (YÊU CẦU KIỂM TRA) ---
-            ViewBag.InspectionList = await activeTickets
+            // 3. XỬ LÝ TAB 1: YÊU CẦU KIỂM TRA (INSPECTION)
+            var inspectionQuery = activeTickets
                 .Include(t => t.Laptop).ThenInclude(l => l.Student)
                 .Include(t => t.Laptop).ThenInclude(l => l.Brand)
                 .Include(t => t.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Where(t => t.StatusId == 1)
-                .OrderBy(t => t.CreatedDate)
-                .ToListAsync();
+                .OrderBy(t => t.CreatedDate);
 
-            // --- BƯỚC 4: LẤY DỮ LIỆU TAB 2 (DANH SÁCH SỬA CHỮA) ---
-            // Lấy tất cả activeTickets ngoại trừ Pending (ID 1)
-            // Vì activeTickets đã loại ID 2 rồi, nên đơn Approved sẽ KHÔNG hiện ở đây.
+            // Đếm tổng để hiện Badge đỏ
+            ViewBag.InspectionTotalCount = await inspectionQuery.CountAsync();
+
+            // [QUAN TRỌNG] Logic phân trang riêng cho Inspection
+            // Nếu đang ở tab 'inspection', dùng pageNumber từ URL. Nếu không, reset về trang 1.
+            int inspectionPage = (activeTab == "inspection") ? (pageNumber ?? 1) : 1;
+
+            ViewBag.InspectionList = await PaginatedList<TechnicalTicket>.CreateAsync(inspectionQuery.AsNoTracking(), inspectionPage, pageSizeInspection);
+
+
+            // 4. XỬ LÝ TAB 2: DANH SÁCH SỬA CHỮA (REPAIR)
             var listRepair = activeTickets
                 .Include(t => t.Laptop)
                 .Include(t => t.Status)
                 .Where(t => t.StatusId != 1)
                 .AsQueryable();
 
-            // Tìm kiếm
             if (!string.IsNullOrEmpty(searchString))
             {
                 searchString = searchString.Trim();
                 if (long.TryParse(searchString, out long searchId))
-                {
                     listRepair = listRepair.Where(t => t.Id == searchId);
-                }
                 else
-                {
                     listRepair = listRepair.Where(t => t.Laptop != null && t.Laptop.Name.Contains(searchString));
-                }
             }
 
             listRepair = listRepair.OrderByDescending(t => t.StatusId == 11 || t.StatusId == 3)
                                    .ThenByDescending(t => t.StatusId == 4)
                                    .ThenByDescending(t => t.UpdatedDate);
 
-            ViewData["CurrentFilter"] = searchString;
-            int pageSize = 5;
-            return View(await PaginatedList<TechnicalTicket>.CreateAsync(listRepair.AsNoTracking(), pageNumber ?? 1, pageSize));
-        }
+            // [QUAN TRỌNG] Logic phân trang riêng cho Repair
+            // Nếu đang ở tab 'repair', dùng pageNumber từ URL. Nếu không, reset về trang 1.
+            int repairPage = (activeTab == "repair") ? (pageNumber ?? 1) : 1;
 
+            // Trả về View với Model chính là danh sách Repair
+            return View(await PaginatedList<TechnicalTicket>.CreateAsync(listRepair.AsNoTracking(), repairPage, pageSizeRepair));
+        }
         // ============================================================
         // 2. ACTION DUYỆT (APPROVE) - ĐẨY SANG STAFF
         // ============================================================
@@ -114,7 +168,22 @@ namespace web_chothue_laptop.Controllers
             // Quay lại dashboard (Lúc này ticket vừa duyệt sẽ biến mất)
             return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
         }
+        // GET: Technical/InspectionDetails/5
+        public async Task<IActionResult> InspectionDetails(long id)
+        {
+            var ticket = await _context.TechnicalTickets
+                .Include(t => t.Laptop).ThenInclude(l => l.Brand)
+                .Include(t => t.Laptop).ThenInclude(l => l.Student)
+                .Include(t => t.Laptop).ThenInclude(l => l.LaptopDetails) // Lấy thông số kỹ thuật
+                .FirstOrDefaultAsync(t => t.Id == id);
 
+            if (ticket == null)
+            {
+                return NotFound();
+            }
+
+            return View(ticket);
+        }
         // ============================================================
         // 3. CÁC HÀM KHÁC (GIỮ NGUYÊN LOGIC CŨ CỦA BẠN)
         // ============================================================

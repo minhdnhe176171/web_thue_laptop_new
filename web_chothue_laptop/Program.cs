@@ -8,14 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-    
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login"; // Chuyển hướng nếu chưa đăng nhập
-        options.AccessDeniedPath = "/Account/AccessDenied"; // Chuyển hướng nếu không đủ quyền
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // Hết hạn sau 60 phút
-        options.Cookie.HttpOnly = true;
+        options.LoginPath = "/Account/Login"; // Nếu chưa đăng nhập thì đá về đây
+        options.AccessDeniedPath = "/Account/AccessDenied"; // Nếu không đủ quyền (Staff vào trang Tech) thì đá về đây
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
 
 // Add Session
@@ -75,7 +74,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseSession();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Map SignalR Hub
