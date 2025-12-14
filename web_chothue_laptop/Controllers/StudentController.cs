@@ -16,24 +16,11 @@ namespace web_chothue_laptop.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index(string? search, string? status)
+        // Trang tổng quan - Tất cả laptop
+        public async Task<IActionResult> Index(string? search)
         {
-            var userId = HttpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userId))
-            {
-                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem danh sách laptop.";
-                return RedirectToAction("Login", "Account");
-            }
-
-            var userIdLong = long.Parse(userId);
-            var student = await _context.Students
-                .FirstOrDefaultAsync(s => s.StudentId == userIdLong);
-
-            if (student == null)
-            {
-                TempData["ErrorMessage"] = "Không tìm thấy thông tin sinh viên. Vui lòng đăng nhập lại.";
-                return RedirectToAction("Login", "Account");
-            }
+            var student = await GetCurrentStudentAsync();
+            if (student == null) return RedirectToLogin();
 
             var laptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
@@ -49,29 +36,91 @@ namespace web_chothue_laptop.Controllers
                 ViewBag.Search = search;
             }
 
-            // Lọc theo trạng thái
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                var statusLower = status.ToLower();
-                laptopsQuery = laptopsQuery.Where(l => 
-                    l.Status != null && l.Status.StatusName.ToLower() == statusLower);
-                ViewBag.CurrentStatus = status;
-            }
-
             var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
 
             // Đếm số lượng theo từng trạng thái
-            var allLaptops = await _context.Laptops
-                .Include(l => l.Status)
-                .Where(l => l.StudentId == student.Id)
-                .ToListAsync();
+            await SetLaptopCountsAsync(student.Id);
 
-            ViewBag.PendingCount = allLaptops.Count(l => l.Status?.StatusName?.ToLower() == "pending");
-            ViewBag.ApprovedCount = allLaptops.Count(l => l.Status?.StatusName?.ToLower() == "approved");
-            ViewBag.RejectedCount = allLaptops.Count(l => l.Status?.StatusName?.ToLower() == "rejected");
-            ViewBag.TotalCount = allLaptops.Count;
-
+            ViewBag.CurrentPage = "All";
             return View(laptops);
+        }
+
+        // Trang Đang chờ xử lý
+        public async Task<IActionResult> Pending(string? search)
+        {
+            var student = await GetCurrentStudentAsync();
+            if (student == null) return RedirectToLogin();
+
+            var laptopsQuery = _context.Laptops
+                .Include(l => l.Brand)
+                .Include(l => l.Status)
+                .Where(l => l.StudentId == student.Id && l.Status.StatusName.ToLower() == "pending");
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                laptopsQuery = laptopsQuery.Where(l => 
+                    l.Name.Contains(search) || 
+                    (l.Brand != null && l.Brand.BrandName.Contains(search)));
+                ViewBag.Search = search;
+            }
+
+            var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
+            await SetLaptopCountsAsync(student.Id);
+
+            ViewBag.CurrentPage = "Pending";
+            return View("Index", laptops);
+        }
+
+        // Trang Đã phê duyệt
+        public async Task<IActionResult> Approved(string? search)
+        {
+            var student = await GetCurrentStudentAsync();
+            if (student == null) return RedirectToLogin();
+
+            var laptopsQuery = _context.Laptops
+                .Include(l => l.Brand)
+                .Include(l => l.Status)
+                .Where(l => l.StudentId == student.Id && l.Status.StatusName.ToLower() == "approved");
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                laptopsQuery = laptopsQuery.Where(l => 
+                    l.Name.Contains(search) || 
+                    (l.Brand != null && l.Brand.BrandName.Contains(search)));
+                ViewBag.Search = search;
+            }
+
+            var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
+            await SetLaptopCountsAsync(student.Id);
+
+            ViewBag.CurrentPage = "Approved";
+            return View("Index", laptops);
+        }
+
+        // Trang Bị từ chối
+        public async Task<IActionResult> Rejected(string? search)
+        {
+            var student = await GetCurrentStudentAsync();
+            if (student == null) return RedirectToLogin();
+
+            var laptopsQuery = _context.Laptops
+                .Include(l => l.Brand)
+                .Include(l => l.Status)
+                .Where(l => l.StudentId == student.Id && l.Status.StatusName.ToLower() == "rejected");
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                laptopsQuery = laptopsQuery.Where(l => 
+                    l.Name.Contains(search) || 
+                    (l.Brand != null && l.Brand.BrandName.Contains(search)));
+                ViewBag.Search = search;
+            }
+
+            var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
+            await SetLaptopCountsAsync(student.Id);
+
+            ViewBag.CurrentPage = "Rejected";
+            return View("Index", laptops);
         }
 
         public async Task<IActionResult> Create()
@@ -235,7 +284,8 @@ namespace web_chothue_laptop.Controllers
                 StudentId = student.Id,
                 StatusId = pendingStatusId.Value,
                 CreatedDate = DateTime.Now,
-                UpdatedDate = model.Deadline
+                UpdatedDate = DateTime.Now,
+                EndTime = model.Deadline  // Lưu deadline vào ENDTIME thay vì UPDATED_DATE
             };
 
             _context.Laptops.Add(laptop);
@@ -345,7 +395,7 @@ namespace web_chothue_laptop.Controllers
                 Name = laptop.Name,
                 BrandId = laptop.BrandId,
                 Price = laptop.Price,
-                Deadline = laptop.UpdatedDate,
+                Deadline = laptop.EndTime,  // Lấy từ ENDTIME thay vì UPDATED_DATE
                 Cpu = laptopDetail?.Cpu,
                 RamSize = laptopDetail?.RamSize,
                 Storage = laptopDetail?.Storage,
@@ -471,7 +521,8 @@ namespace web_chothue_laptop.Controllers
             laptop.Name = model.Name;
             laptop.BrandId = model.BrandId.Value;
             laptop.Price = model.Price;
-            laptop.UpdatedDate = model.Deadline;
+            laptop.UpdatedDate = DateTime.Now;  // Cập nhật thời gian sửa
+            laptop.EndTime = model.Deadline;    // Lưu deadline vào ENDTIME
 
             var laptopDetail = laptop.LaptopDetails.FirstOrDefault();
             if (laptopDetail != null)
@@ -634,6 +685,35 @@ namespace web_chothue_laptop.Controllers
                 .ToListAsync();
 
             return View(tickets);
+        }
+
+        // Helper Methods
+        private async Task<Student?> GetCurrentStudentAsync()
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId)) return null;
+
+            var userIdLong = long.Parse(userId);
+            return await _context.Students.FirstOrDefaultAsync(s => s.StudentId == userIdLong);
+        }
+
+        private IActionResult RedirectToLogin()
+        {
+            TempData["ErrorMessage"] = "Vui lòng đăng nhập để tiếp tục.";
+            return RedirectToAction("Login", "Account");
+        }
+
+        private async Task SetLaptopCountsAsync(long studentId)
+        {
+            var allLaptops = await _context.Laptops
+                .Include(l => l.Status)
+                .Where(l => l.StudentId == studentId)
+                .ToListAsync();
+
+            ViewBag.PendingCount = allLaptops.Count(l => l.Status?.StatusName?.ToLower() == "pending");
+            ViewBag.ApprovedCount = allLaptops.Count(l => l.Status?.StatusName?.ToLower() == "approved");
+            ViewBag.RejectedCount = allLaptops.Count(l => l.Status?.StatusName?.ToLower() == "rejected");
+            ViewBag.TotalCount = allLaptops.Count;
         }
 
         private async Task<long?> GetStatusIdAsync(string statusName)
