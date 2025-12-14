@@ -1,0 +1,143 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+@{
+    ViewData["Title"] = "Quản lý Giao Máy";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary fw-bold">Quản lý Giao Máy</h2>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại Dashboard
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 text-primary">Danh sách các khách hàng chờ nhận máy</h5>
+
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Mã Booking</th>
+                        <th>Khách Hàng</th>
+                        <th>Laptop</th>
+                        <th>Thông Số</th>
+                        <th>Thời Gian Thuê</th>
+                        <th>Tổng Tiền</th>
+                        <th class="text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var booking in Model)
+                        {
+                            var detail = booking.Laptop?.LaptopDetails?.FirstOrDefault();
+                            var isToday = booking.StartTime.Date == DateTime.Today;
+                            var isPast = booking.StartTime.Date < DateTime.Today;
+                            
+                            <tr class="@(isPast ? "table-danger" : isToday)">
+                                <td class="ps-4">
+                                    <span class="badge bg-primary">#@booking.Id</span>
+                                    @if (isPast)
+                                    {
+                                        <br /><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Quá hạn</small>
+                                    }
+                                    else if (isToday)
+                                    {
+                                        <br /><small ><i class="fas fa-clock"></i> Hôm nay</small>
+                                    }
+                                </td>
+                                <td>
+                                    <div>
+                                        <span class="fw-semibold">@(booking.Customer?.LastName) @(booking.Customer?.FirstName)</span>
+                                        <br />
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope"></i> @booking.Customer?.Email
+                                            <br />
+                                            <i class="fas fa-phone"></i> @booking.Customer?.Phone
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <span class="fw-bold">@booking.Laptop?.Name</span>
+                                        <br />
+                                        <small class="text-muted">@booking.Laptop?.Brand?.BrandName</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (detail != null)
+                                    {
+                                        <small>
+                                            @if (!string.IsNullOrEmpty(detail.Cpu))
+                                            {
+                                                <div><i class="fas fa-microchip"></i> @detail.Cpu</div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(detail.RamSize))
+                                            {
+                                                <div><i class="fas fa-memory"></i> RAM: @detail.RamSize</div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(detail.Storage))
+                                            {
+                                                <div><i class="fas fa-hdd"></i> @detail.Storage</div>
+                                            }
+                                        </small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">Chưa có thông số</small>
+                                    }
+                                </td>
+                                <td>
+                                    <div>
+                                        <i class="fas fa-calendar-check text-success"></i> @booking.StartTime.ToString("dd/MM/yyyy")
+                                        <br />
+                                        <i class="fas fa-calendar-times text-danger"></i> @booking.EndTime.ToString("dd/MM/yyyy")
+                                        <br />
+                                        <small class="text-muted">(@((booking.EndTime - booking.StartTime).Days) ngày)</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</span>
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="CreateDelivery" asp-route-id="@booking.Id" class="btn btn-success btn-sm">
+                                        <i class="fas fa-truck"></i> Giao Máy
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                Không có booking nào cần giao máy
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

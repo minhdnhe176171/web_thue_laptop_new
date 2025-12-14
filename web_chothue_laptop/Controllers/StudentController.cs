@@ -105,10 +105,102 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Trim và validate tên laptop
+            if (!string.IsNullOrWhiteSpace(model.Name))
+            {
+                model.Name = model.Name.Trim();
+                
+                // Kiểm tra độ dài
+                if (model.Name.Length < 5)
+                {
+                    ModelState.AddModelError(nameof(model.Name), "Tên laptop phải có ít nhất 5 ký tự");
+                }
+                else if (model.Name.Length > 200)
+                {
+                    ModelState.AddModelError(nameof(model.Name), "Tên laptop không được vượt quá 200 ký tự");
+                }
+                
+                // Kiểm tra format
+                if (!System.Text.RegularExpressions.Regex.IsMatch(model.Name, @"^[a-zA-Z0-9\s\-_\.]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Name), "Tên laptop chỉ được chứa chữ cái, số, dấu cách và ký tự đặc biệt (-_.)");
+                }
+            }
+
+            // Validate BrandId
+            if (model.BrandId == null || model.BrandId <= 0)
+            {
+                ModelState.AddModelError(nameof(model.BrandId), "Vui lòng chọn hãng laptop");
+            }
+            else
+            {
+                // Validate: Tên laptop phải chứa tên hãng
+                var brand = await _context.Brands.FindAsync(model.BrandId.Value);
+                if (brand != null && !string.IsNullOrWhiteSpace(model.Name))
+                {
+                    // Kiểm tra tên laptop có chứa tên hãng không (không phân biệt hoa thường)
+                    if (!model.Name.ToLower().Contains(brand.BrandName.ToLower()))
+                    {
+                        ModelState.AddModelError(nameof(model.Name), 
+                            $"Tên laptop phải chứa tên hãng '{brand.BrandName}'. Ví dụ: {brand.BrandName} Latitude 5420");
+                    }
+                }
+            }
+
+            // Validate Price
+            if (model.Price == null || model.Price < 100000 || model.Price > 1000000)
+            {
+                ModelState.AddModelError(nameof(model.Price), "Giá phải từ 100,000 đến 1,000,000 VNĐ");
+            }
+
             // Validate deadline
             if (model.Deadline.HasValue && model.Deadline.Value < DateTime.Today)
             {
                 ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải từ hôm nay trở đi");
+            }
+            else if (!model.Deadline.HasValue)
+            {
+                ModelState.AddModelError(nameof(model.Deadline), "Vui lòng chọn thời gian đến hạn");
+            }
+
+            // Validate thông số kỹ thuật (nếu có)
+            if (!string.IsNullOrWhiteSpace(model.Cpu))
+            {
+                model.Cpu = model.Cpu.Trim();
+                if (model.Cpu.Length > 100)
+                {
+                    ModelState.AddModelError(nameof(model.Cpu), "CPU không được vượt quá 100 ký tự");
+                }
+                if (!System.Text.RegularExpressions.Regex.IsMatch(model.Cpu, @"^[a-zA-Z0-9\s\-]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Cpu), "CPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Storage))
+            {
+                model.Storage = model.Storage.Trim();
+                if (model.Storage.Length > 100)
+                {
+                    ModelState.AddModelError(nameof(model.Storage), "Thông tin lưu trữ không được vượt quá 100 ký tự");
+                }
+                if (!System.Text.RegularExpressions.Regex.IsMatch(model.Storage, @"^[a-zA-Z0-9\s\-]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Storage), "Lưu trữ chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Gpu))
+            {
+                model.Gpu = model.Gpu.Trim();
+                if (model.Gpu.Length > 100)
+                {
+                    ModelState.AddModelError(nameof(model.Gpu), "GPU không được vượt quá 100 ký tự");
+                }
+                if (!System.Text.RegularExpressions.Regex.IsMatch(model.Gpu, @"^[a-zA-Z0-9\s\-]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Gpu), "GPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang");
+                }
             }
 
             if (!ModelState.IsValid)
@@ -138,12 +230,12 @@ namespace web_chothue_laptop.Controllers
             var laptop = new Laptop
             {
                 Name = model.Name,
-                BrandId = model.BrandId,
+                BrandId = model.BrandId.Value,
                 Price = model.Price,
                 StudentId = student.Id,
                 StatusId = pendingStatusId.Value,
-                CreatedDate = DateTime.Now, // Thời gian tạo
-                UpdatedDate = model.Deadline // Thời gian đến hạn
+                CreatedDate = DateTime.Now,
+                UpdatedDate = model.Deadline
             };
 
             _context.Laptops.Add(laptop);
@@ -275,10 +367,78 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Trim và validate tên laptop
+            if (!string.IsNullOrWhiteSpace(model.Name))
+            {
+                model.Name = model.Name.Trim();
+                
+                if (model.Name.Length < 5)
+                {
+                    ModelState.AddModelError(nameof(model.Name), "Tên laptop phải có ít nhất 5 ký tự");
+                }
+                else if (model.Name.Length > 200)
+                {
+                    ModelState.AddModelError(nameof(model.Name), "Tên laptop không được vượt quá 200 ký tự");
+                }
+                
+                if (!System.Text.RegularExpressions.Regex.IsMatch(model.Name, @"^[a-zA-Z0-9\s\-_\.]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Name), "Tên laptop chỉ được chứa chữ cái, số, dấu cách và ký tự đặc biệt (-_.)");
+                }
+            }
+
+            // Validate BrandId và tên laptop phải chứa tên hãng
+            if (model.BrandId == null || model.BrandId <= 0)
+            {
+                ModelState.AddModelError(nameof(model.BrandId), "Vui lòng chọn hãng laptop");
+            }
+            else
+            {
+                // Validate: Tên laptop phải chứa tên hãng
+                var brand = await _context.Brands.FindAsync(model.BrandId.Value);
+                if (brand != null && !string.IsNullOrWhiteSpace(model.Name))
+                {
+                    // Kiểm tra tên laptop có chứa tên hãng không (không phân biệt hoa thường)
+                    if (!model.Name.ToLower().Contains(brand.BrandName.ToLower()))
+                    {
+                        ModelState.AddModelError(nameof(model.Name), 
+                            $"Tên laptop phải chứa tên hãng '{brand.BrandName}'. Ví dụ: {brand.BrandName} Latitude 5420");
+                    }
+                }
+            }
+
             // Validate deadline
             if (model.Deadline.HasValue && model.Deadline.Value < DateTime.Today)
             {
                 ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải từ hôm nay trở đi");
+            }
+
+            // Validate thông số kỹ thuật
+            if (!string.IsNullOrWhiteSpace(model.Cpu))
+            {
+                model.Cpu = model.Cpu.Trim();
+                if (model.Cpu.Length > 100 || !System.Text.RegularExpressions.Regex.IsMatch(model.Cpu, @"^[a-zA-Z0-9\s\-]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Cpu), "CPU không hợp lệ");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Storage))
+            {
+                model.Storage = model.Storage.Trim();
+                if (model.Storage.Length > 100 || !System.Text.RegularExpressions.Regex.IsMatch(model.Storage, @"^[a-zA-Z0-9\s\-]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Storage), "Thông tin lưu trữ không hợp lệ");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Gpu))
+            {
+                model.Gpu = model.Gpu.Trim();
+                if (model.Gpu.Length > 100 || !System.Text.RegularExpressions.Regex.IsMatch(model.Gpu, @"^[a-zA-Z0-9\s\-]+$"))
+                {
+                    ModelState.AddModelError(nameof(model.Gpu), "GPU không hợp lệ");
+                }
             }
 
             if (!ModelState.IsValid)
@@ -309,9 +469,9 @@ namespace web_chothue_laptop.Controllers
             }
 
             laptop.Name = model.Name;
-            laptop.BrandId = model.BrandId;
+            laptop.BrandId = model.BrandId.Value;
             laptop.Price = model.Price;
-            laptop.UpdatedDate = model.Deadline; // Cập nhật deadline
+            laptop.UpdatedDate = model.Deadline;
 
             var laptopDetail = laptop.LaptopDetails.FirstOrDefault();
             if (laptopDetail != null)
@@ -398,7 +558,7 @@ namespace web_chothue_laptop.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult Report()
+        public async Task<IActionResult> Report()
         {
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -407,7 +567,73 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            return View();
+            var userIdLong = long.Parse(userId);
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentId == userIdLong);
+
+            if (student == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin sinh viên. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy tất cả laptop của student
+            var laptops = await _context.Laptops
+                .Where(l => l.StudentId == student.Id)
+                .ToListAsync();
+
+            var laptopIds = laptops.Select(l => l.Id).ToList();
+
+            // Tính tổng thu nhập từ các booking đã hoàn thành
+            var totalIncome = await _context.BookingReceipts
+                .Include(br => br.Booking)
+                .Where(br => laptopIds.Contains(br.Booking.LaptopId))
+                .SumAsync(br => br.TotalPrice);
+
+            ViewBag.Income = totalIncome.ToString("#,##0") + " VNĐ";
+
+            // Lấy danh sách booking đã hoàn thành (có BookingReceipt)
+            var completedBookings = await _context.BookingReceipts
+                .Include(br => br.Booking)
+                    .ThenInclude(b => b.Laptop)
+                        .ThenInclude(l => l.Brand)
+                .Include(br => br.Booking)
+                    .ThenInclude(b => b.Customer)
+                .Include(br => br.Booking)
+                    .ThenInclude(b => b.Status)
+                .Where(br => laptopIds.Contains(br.Booking.LaptopId))
+                .OrderByDescending(br => br.CreatedDate)
+                .ToListAsync();
+
+            ViewBag.CompletedBookings = completedBookings;
+
+            // Lấy danh sách booking đang thuê (status = Rented)
+            var rentedBookings = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Customer)
+                .Include(b => b.Status)
+                .Where(b => laptopIds.Contains(b.LaptopId) && 
+                           b.Status.StatusName.ToLower() == "rented")
+                .OrderBy(b => b.EndTime)
+                .ToListAsync();
+
+            ViewBag.RentedBookings = rentedBookings;
+
+            // Thống kê
+            ViewBag.TotalBookings = completedBookings.Count + rentedBookings.Count;
+            ViewBag.TotalRented = rentedBookings.Count;
+            ViewBag.TotalCompleted = completedBookings.Count;
+
+            // Lấy danh sách Technical Tickets liên quan đến laptop của student
+            var tickets = await _context.TechnicalTickets
+                .Include(t => t.Laptop)
+                .Include(t => t.Status)
+                .Where(t => laptopIds.Contains(t.LaptopId))
+                .OrderByDescending(t => t.CreatedDate)
+                .ToListAsync();
+
+            return View(tickets);
         }
 
         private async Task<long?> GetStatusIdAsync(string statusName)
