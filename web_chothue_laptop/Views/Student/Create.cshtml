@@ -3,83 +3,343 @@
     ViewData["Title"] = "Tạo laptop";
 }
 
-<h2>Tạo laptop</h2>
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-laptop-code me-2"></i>Tạo laptop cho thuê</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" id="createLaptopForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        
+                        <!-- Thông tin cơ bản -->
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin cơ bản</h5>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Hãng <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="BrandId" class="form-select" id="brandSelect">
+                                <option value="">-- Chọn hãng laptop --</option>
+                                @foreach(var b in (IEnumerable<web_chothue_laptop.Models.Brand>)ViewBag.Brands)
+                                {
+                                    <option value="@b.Id" data-brand-name="@b.BrandName">@b.BrandName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="BrandId" class="text-danger small"></span>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-lightbulb"></i> Sau khi chọn hãng, tên laptop phải bắt đầu với tên hãng đó
+                            </small>
+                        </div>
 
-<form asp-action="Create" method="post">
-    @Html.AntiForgeryToken()
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-bold">
+                                Tên laptop <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control" id="laptopName" placeholder="Vui lòng chọn hãng trước" maxlength="200" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                            <small class="form-text text-muted" id="nameHint">
+                                <i class="fas fa-info-circle"></i> Tên từ 5-200 ký tự, chỉ chữ cái, số, dấu cách và ký tự đặc biệt (-_.)
+                            </small>
+                        </div>
 
-    <div class="form-group">
-        <label>Hãng</label>
-        <select asp-for="BrandId" class="form-control">
-            <option value="">-- Chọn hãng --</option>
-@foreach(var b in (IEnumerable<web_chothue_laptop.Models.Brand>)ViewBag.Brands)
-{
-    <option value="@b.Id">@b.BrandName</option>
-}
-        </select>
-        <span asp-validation-for="BrandId" class="text-danger"></span>
-    </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Giá thuê/ngày <span class="text-danger">*</span>
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="100000" class="form-check-input" id="price100k" />
+                                        <label class="form-check-label" for="price100k">
+                                            <i class="fas fa-tag me-1"></i>100,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="200000" class="form-check-input" id="price200k" />
+                                        <label class="form-check-label" for="price200k">
+                                            <i class="fas fa-tag me-1"></i>200,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="300000" class="form-check-input" id="price300k" />
+                                        <label class="form-check-label" for="price300k">
+                                            <i class="fas fa-tag me-1"></i>300,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="400000" class="form-check-input" id="price400k" />
+                                        <label class="form-check-label" for="price400k">
+                                            <i class="fas fa-tag me-1"></i>400,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="500000" class="form-check-input" id="price500k" />
+                                        <label class="form-check-label" for="price500k">
+                                            <i class="fas fa-tag me-1"></i>500,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                              
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger small d-block mt-1"></span>
+                        </div>
 
-    <div class="form-group">
-        <label>Giá</label>
-        <div>
-            <label><input asp-for="Price" type="radio" value="100000" /> 100,000</label>
-            <label><input asp-for="Price" type="radio" value="200000" /> 200,000</label>
-            <label><input asp-for="Price" type="radio" value="300000" /> 300,000</label>
-            <label><input asp-for="Price" type="radio" value="400000" /> 400,000</label>
-            <label><input asp-for="Price" type="radio" value="500000" /> 500,000</label>
-            <span asp-validation-for="Price" class="text-danger"></span>
-        </div>
-    </div>
+                        <div class="mb-3">
+                            <label asp-for="Deadline" class="form-label fw-bold">
+                                Thời gian đến hạn <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Deadline" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="Deadline" class="text-danger small"></span>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-calendar-alt"></i> Chọn ngày đến hạn cho việc cho thuê laptop này (từ hôm nay trở đi)
+                            </small>
+                        </div>
 
-    <div class="form-group">
-        <label asp-for="Deadline">Thời gian đến hạn</label>
-        <input asp-for="Deadline" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-        <span asp-validation-for="Deadline" class="text-danger"></span>
-        <small class="form-text text-muted">Chọn ngày đến hạn cho việc cho thuê laptop này</small>
-    </div>
+                        <!-- Thông số kỹ thuật -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4"><i class="fas fa-cogs me-2"></i>Thông số kỹ thuật</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Cpu" class="form-label">
+                                    <i class="fas fa-microchip"></i> CPU
+                                </label>
+                                <input asp-for="Cpu" class="form-control" placeholder="VD: Intel Core i5-11400H" maxlength="100" />
+                                <span asp-validation-for="Cpu" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-memory"></i> RAM
+                                </label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <div class="form-check">
+                                        <input asp-for="RamSize" type="radio" value="8GB" class="form-check-input" id="ram8gb" />
+                                        <label class="form-check-label" for="ram8gb">8GB</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input asp-for="RamSize" type="radio" value="16GB" class="form-check-input" id="ram16gb" />
+                                        <label class="form-check-label" for="ram16gb">16GB</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input asp-for="RamSize" type="radio" value="32GB" class="form-check-input" id="ram32gb" />
+                                        <label class="form-check-label" for="ram32gb">32GB</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input asp-for="RamSize" type="radio" value="64GB" class="form-check-input" id="ram64gb" />
+                                        <label class="form-check-label" for="ram64gb">64GB</label>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="RamSize" class="text-danger small"></span>
+                            </div>
+                        </div>
 
-    <h4>Thông số kỹ thuật</h4>
-    <div class="form-row">
-        <div class="form-group col-md-6">
-            <label>CPU</label>
-            <input asp-for="Cpu" class="form-control" placeholder="Ví dụ: Intel Core i5-11400H" />
-            <span asp-validation-for="Cpu" class="text-danger"></span>
-        </div>
-        <div class="form-group col-md-6">
-            <label>RAM</label>
-            <div>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="8GB" /> 8GB</label>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="16GB" /> 16GB</label>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="32GB" /> 32GB</label>
-                <label class="mr-2"><input asp-for="RamSize" type="radio" value="64GB" /> 64GB</label>
-                <span asp-validation-for="RamSize" class="text-danger"></span>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Storage" class="form-label">
+                                    <i class="fas fa-hdd"></i> Lưu trữ
+                                </label>
+                                <input asp-for="Storage" class="form-control" placeholder="VD: 512GB SSD" maxlength="100" />
+                                <span asp-validation-for="Storage" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Gpu" class="form-label">
+                                    <i class="fas fa-th"></i> GPU (Card màn hình)
+                                </label>
+                                <input asp-for="Gpu" class="form-control" placeholder="VD: NVIDIA GTX 1650" maxlength="100" />
+                                <span asp-validation-for="Gpu" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a class="btn btn-secondary" asp-action="Index">
+                                <i class="fas fa-times"></i> Hủy
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Gửi để duyệt
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="form-group col-md-6">
-            <label>Lưu trữ</label>
-            <input asp-for="Storage" class="form-control" placeholder="Ví dụ: 512GB SSD" />
-            <span asp-validation-for="Storage" class="text-danger"></span>
-        </div>
-        <div class="form-group col-md-6">
-            <label>GPU</label>
-            <input asp-for="Gpu" class="form-control" placeholder="Ví dụ: NVIDIA GTX 1650" />
-            <span asp-validation-for="Gpu" class="text-danger"></span>
-        </div>
     </div>
-
-    <button type="submit" class="btn btn-primary">Gửi để duyệt</button>
-    <a class="btn btn-secondary" asp-action="Index">Hủy</a>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function() {
+            // Handle brand selection
+            $('#brandSelect').on('change', function() {
+                var selectedBrand = $(this).find('option:selected').data('brand-name');
+                var $nameInput = $('#laptopName');
+                
+                if (selectedBrand) {
+                    // Update placeholder
+                    $nameInput.attr('placeholder', 'VD: ' + selectedBrand + ' Latitude 5420 i5 Gen 11');
+                    
+                    // Update hint
+                    $('#nameHint').html('<i class="fas fa-info-circle"></i> Tên laptop phải chứa "<strong>' + selectedBrand + '</strong>". Ví dụ: ' + selectedBrand + ' Latitude 5420');
+                    
+                    // Clear current name if it doesn't contain brand
+                    var currentName = $nameInput.val().trim();
+                    if (currentName && !currentName.toLowerCase().includes(selectedBrand.toLowerCase())) {
+                        $nameInput.val('');
+                    }
+                } else {
+                    $nameInput.attr('placeholder', 'Vui lòng chọn hãng trước');
+                 
+                    $('#nameHint').html('<i class="fas fa-info-circle"></i> Tên từ 5-200 ký tự, chỉ chữ cái, số, dấu cách và ký tự đặc biệt (-_.)');
+                }
+            });
+
+            // Validate name contains brand
+            $('#laptopName').on('blur', function() {
+                var name = $(this).val().trim();
+                var selectedBrand = $('#brandSelect').find('option:selected').data('brand-name');
+                
+                if (name && selectedBrand) {
+                    if (!name.toLowerCase().includes(selectedBrand.toLowerCase())) {
+                        $(this).addClass('is-invalid');
+                        var errorMsg = $(this).siblings('.text-danger');
+                        if (!errorMsg.text()) {
+                            errorMsg.text('Tên laptop phải chứa tên hãng "' + selectedBrand + '"');
+                        }
+                    } else {
+                        $(this).removeClass('is-invalid');
+                        if (name.length >= 5 && name.length <= 200 && /^[a-zA-Z0-9\s\-_\.]+$/.test(name)) {
+                            $(this).addClass('is-valid');
+                        }
+                    }
+                }
+            });
+
+            $('#createLaptopForm').on('submit', function(e) {
+                // Reset previous errors
+                $('.is-invalid').removeClass('is-invalid');
+                
+                var isValid = true;
+                
+                // Validate Brand first
+                var brandId = $('#BrandId').val();
+                if (!brandId) {
+                    $('#BrandId').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                // Validate Name
+                var name = $('#Name').val().trim();
+                var selectedBrand = $('#brandSelect').find('option:selected').data('brand-name');
+                
+                if (name.length < 5) {
+                    $('#Name').addClass('is-invalid');
+                    isValid = false;
+                } else if (name.length > 200) {
+                    $('#Name').addClass('is-invalid');
+                    isValid = false;
+                } else if (!/^[a-zA-Z0-9\s\-_\.]+$/.test(name)) {
+                    $('#Name').addClass('is-invalid');
+                    isValid = false;
+                } else if (selectedBrand && !name.toLowerCase().includes(selectedBrand.toLowerCase())) {
+                    $('#Name').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                // Validate Price
+                if (!$('input[name="Price"]:checked').val()) {
+                    isValid = false;
+                    if (!$('.price-error').length) {
+                        $('input[name="Price"]').first().parent().parent().after('<div class="text-danger small price-error">Vui lòng chọn giá thuê</div>');
+                    }
+                } else {
+                    $('.price-error').remove();
+                }
+                
+                // Validate Deadline
+                var deadline = new Date($('#Deadline').val());
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (!$('#Deadline').val() || deadline < today) {
+                    $('#Deadline').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                // Validate CPU format (if filled)
+                var cpu = $('#Cpu').val().trim();
+                if (cpu && !/^[a-zA-Z0-9\s\-]+$/.test(cpu)) {
+                    $('#Cpu').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                // Validate Storage format (if filled)
+                var storage = $('#Storage').val().trim();
+                if (storage && !/^[a-zA-Z0-9\s\-]+$/.test(storage)) {
+                    $('#Storage').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                // Validate GPU format (if filled)
+                var gpu = $('#Gpu').val().trim();
+                if (gpu && !/^[a-zA-Z0-9\s\-]+$/.test(gpu)) {
+                    $('#Gpu').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    // Scroll to first error
+                    var firstError = $('.is-invalid').first();
+                    if (firstError.length) {
+                        $('html, body').animate({
+                            scrollTop: firstError.offset().top - 100
+                        }, 500);
+                    }
+                }
+            });
+            
+            // Real-time validation for Name
+            $('#Name').on('input', function() {
+                var val = $(this).val().trim();
+                var selectedBrand = $('#brandSelect').find('option:selected').data('brand-name');
+                
+                if (val.length >= 5 && val.length <= 200 && /^[a-zA-Z0-9\s\-_\.]+$/.test(val)) {
+                    if (!selectedBrand || val.toLowerCase().includes(selectedBrand.toLowerCase())) {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                    } else {
+                        $(this).removeClass('is-valid').addClass('is-invalid');
+                    }
+                } else if (val.length > 0) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-valid is-invalid');
+                }
+            });
+            
+            // Character counter for Name
+            $('#Name').on('input', function() {
+                var length = $(this).val().length;
+                var counter = $(this).next('.char-counter');
+                if (!counter.length) {
+                    $(this).after('<small class="char-counter text-muted float-end">' + length + '/200</small>');
+                } else {
+                    counter.text(length + '/200');
+                }
+            });
+        });
+    </script>
 }
 

@@ -6,9 +6,17 @@
 }
 
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold">Staff Dashboard</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold">Staff Dashboard</h2>
+    <div>
+        <a asp-action="RentedLaptops" class="btn btn-info me-2">
+            <i class="fas fa-list"></i> Máy Đang Thuê
+        </a>
+        <a asp-action="Deliveries" class="btn btn-success">
+            <i class="fas fa-truck"></i> Quản lý Giao Máy
+        </a>
     </div>
+</div>
 
     @if (TempData["SuccessMessage"] != null)
     {
@@ -36,7 +44,7 @@
         <div class="tab-pane fade show active" id="booking-content" role="tabpanel">
             <div class="card shadow-sm border-0">
                 <div class="card-body p-0">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-bordered table-hover align-middle">
                         <thead class="bg-light">
                             <tr>
                                 <th class="ps-4">Mã Đơn</th>
@@ -87,7 +95,7 @@
                     <h5 class="mb-0 text-primary">Danh sách máy mới cần xử lý</h5>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-bordered table-hover align-middle">
                         <thead class="bg-light">
                             <tr>
                                 <th class="ps-4">Tên Laptop</th>

@@ -7,14 +7,18 @@ namespace web_chothue_laptop.ViewModels
         public long? Id { get; set; }
 
         [Required(ErrorMessage = "Tên laptop là bắt buộc")]
+        [StringLength(200, MinimumLength = 5, ErrorMessage = "Tên laptop phải từ 5 đến 200 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-_\.]+$", ErrorMessage = "Tên laptop chỉ được chứa chữ cái, số, dấu cách, dấu gạch ngang và gạch dưới")]
         [Display(Name = "Tên laptop")]
         public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng chọn hãng")]
+        [Range(1, long.MaxValue, ErrorMessage = "Vui lòng chọn hãng hợp lệ")]
         [Display(Name = "Hãng")]
         public long? BrandId { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn giá")]
+        [Range(100000, 1000000, ErrorMessage = "Giá phải từ 100,000 đến 1,000,000 VNĐ")]
         [Display(Name = "Giá")]
         public decimal? Price { get; set; }
 
@@ -23,15 +27,21 @@ namespace web_chothue_laptop.ViewModels
         [Display(Name = "Thời gian đến hạn")]
         public DateTime? Deadline { get; set; }
 
+        [StringLength(100, ErrorMessage = "CPU không được vượt quá 100 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "CPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
         [Display(Name = "CPU")]
         public string? Cpu { get; set; }
 
         [Display(Name = "RAM")]
         public string? RamSize { get; set; }
 
+        [StringLength(100, ErrorMessage = "Thông tin lưu trữ không được vượt quá 100 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "Lưu trữ chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
         [Display(Name = "Lưu trữ")]
         public string? Storage { get; set; }
 
+        [StringLength(100, ErrorMessage = "GPU không được vượt quá 100 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "GPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
         [Display(Name = "GPU")]
         public string? Gpu { get; set; }
     }
