@@ -35,13 +35,12 @@
 
                     <dt class="col-sm-4">Trạng thái:</dt>
                     <dd class="col-sm-8">
-                        <span class="badge 
-                            @(Model.Status?.StatusName?.ToLower() switch 
+                        <span class="@(Model.Status?.StatusName?.ToLower() switch 
                             {
-                                "pending" => "bg-warning text-dark",
-                                "approved" => "bg-success",
-                                "rejected" => "bg-danger",
-                                _ => "bg-secondary"
+                                "pending" => "text-black fw-bold",
+                                "approved" => "text-black fw-bold",
+                                "rejected" => "text-black fw-bold",
+                                _ => "text-secondary fw-bold"
                             })">
                             @TranslateStatus(Model.Status?.StatusName)
                         </span>
@@ -52,18 +51,18 @@
 
                     <dt class="col-sm-4">Thời gian đến hạn:</dt>
                     <dd class="col-sm-8">
-                        @if (Model.UpdatedDate.HasValue)
+                        @if (Model.EndTime.HasValue)
                         {
-                            <span class="@(Model.UpdatedDate.Value < DateTime.Today ? "text-danger fw-bold" : "")">
-                                @Model.UpdatedDate.Value.ToString("dd/MM/yyyy")
-                                @if (Model.UpdatedDate.Value < DateTime.Today)
+                            <span class="@(Model.EndTime.Value < DateTime.Today ? "text-danger fw-bold" : "")">
+                                @Model.EndTime.Value.ToString("dd/MM/yyyy")
+                                @if (Model.EndTime.Value < DateTime.Today)
                                 {
                                     <i class="bi bi-exclamation-triangle-fill"></i>
                                     <span class="small">(Đã quá hạn)</span>
                                 }
                                 else
                                 {
-                                    var daysLeft = (Model.UpdatedDate.Value - DateTime.Today).Days;
+                                    var daysLeft = (Model.EndTime.Value - DateTime.Today).Days;
                                     <span class="small text-muted">(Còn @daysLeft ngày)</span>
                                 }
                             </span>
@@ -107,6 +106,18 @@
                             <dt class="col-sm-4">GPU:</dt>
                             <dd class="col-sm-8">@detail.Gpu</dd>
                         }
+
+                        @if (!string.IsNullOrEmpty(detail.ScreenSize))
+                        {
+                            <dt class="col-sm-4">Màn hình:</dt>
+                            <dd class="col-sm-8">@detail.ScreenSize</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(detail.Os))
+                        {
+                            <dt class="col-sm-4">Hệ điều hành:</dt>
+                            <dd class="col-sm-8">@detail.Os</dd>
+                        }
                     </dl>
                 }
                 else
@@ -129,11 +140,16 @@
         <a class="btn btn-secondary" asp-action="Index">
             <i class="bi bi-arrow-left"></i> Quay lại
         </a>
-        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
-            @Html.AntiForgeryToken()
-            <button class="btn btn-danger" type="submit">
-                <i class="bi bi-trash"></i> Xóa
-            </button>
-        </form>
+        
+        @* Chỉ hiển thị nút Xóa khi trạng thái là Pending *@
+        @if (Model.Status?.StatusName?.ToLower() == "pending")
+        {
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-danger" type="submit">
+                    <i class="bi bi-trash"></i> Xóa
+                </button>
+            </form>
+        }
     </div>
 </div>

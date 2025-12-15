@@ -17,7 +17,7 @@ namespace web_chothue_laptop.Controllers
         }
 
         // Trang tổng quan - Tất cả laptop
-        public async Task<IActionResult> Index(string? search)
+        public async Task<IActionResult> Index(string? search, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -42,11 +42,12 @@ namespace web_chothue_laptop.Controllers
             await SetLaptopCountsAsync(student.Id);
 
             ViewBag.CurrentPage = "All";
+            ViewBag.Page = page;
             return View(laptops);
         }
 
         // Trang Đang chờ xử lý
-        public async Task<IActionResult> Pending(string? search)
+        public async Task<IActionResult> Pending(string? search, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -68,11 +69,12 @@ namespace web_chothue_laptop.Controllers
             await SetLaptopCountsAsync(student.Id);
 
             ViewBag.CurrentPage = "Pending";
+            ViewBag.Page = page;
             return View("Index", laptops);
         }
 
         // Trang Đã phê duyệt
-        public async Task<IActionResult> Approved(string? search)
+        public async Task<IActionResult> Approved(string? search, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -94,11 +96,12 @@ namespace web_chothue_laptop.Controllers
             await SetLaptopCountsAsync(student.Id);
 
             ViewBag.CurrentPage = "Approved";
+            ViewBag.Page = page;
             return View("Index", laptops);
         }
 
         // Trang Bị từ chối
-        public async Task<IActionResult> Rejected(string? search)
+        public async Task<IActionResult> Rejected(string? search, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -120,6 +123,7 @@ namespace web_chothue_laptop.Controllers
             await SetLaptopCountsAsync(student.Id);
 
             ViewBag.CurrentPage = "Rejected";
+            ViewBag.Page = page;
             return View("Index", laptops);
         }
 
@@ -203,11 +207,18 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Validate deadline
-            if (model.Deadline.HasValue && model.Deadline.Value < DateTime.Today)
+            if (model.Deadline.HasValue)
             {
-                ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải từ hôm nay trở đi");
+                if (model.Deadline.Value < DateTime.Today)
+                {
+                    ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải từ hôm nay trở đi");
+                }
+                else if (model.Deadline.Value < DateTime.Today.AddDays(5))
+                {
+                    ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải ít nhất 5 ngày kể từ hôm nay");
+                }
             }
-            else if (!model.Deadline.HasValue)
+            else
             {
                 ModelState.AddModelError(nameof(model.Deadline), "Vui lòng chọn thời gian đến hạn");
             }
@@ -294,7 +305,9 @@ namespace web_chothue_laptop.Controllers
             if (!string.IsNullOrWhiteSpace(model.Cpu) || 
                 !string.IsNullOrWhiteSpace(model.RamSize) || 
                 !string.IsNullOrWhiteSpace(model.Storage) || 
-                !string.IsNullOrWhiteSpace(model.Gpu))
+                !string.IsNullOrWhiteSpace(model.Gpu) ||
+                !string.IsNullOrWhiteSpace(model.ScreenSize) ||
+                !string.IsNullOrWhiteSpace(model.Os))
             {
                 var laptopDetail = new LaptopDetail
                 {
@@ -302,7 +315,9 @@ namespace web_chothue_laptop.Controllers
                     Cpu = model.Cpu,
                     RamSize = model.RamSize,
                     Storage = model.Storage,
-                    Gpu = model.Gpu
+                    Gpu = model.Gpu,
+                    ScreenSize = model.ScreenSize,
+                    Os = model.Os
                 };
 
                 _context.LaptopDetails.Add(laptopDetail);
@@ -399,7 +414,9 @@ namespace web_chothue_laptop.Controllers
                 Cpu = laptopDetail?.Cpu,
                 RamSize = laptopDetail?.RamSize,
                 Storage = laptopDetail?.Storage,
-                Gpu = laptopDetail?.Gpu
+                Gpu = laptopDetail?.Gpu,
+                ScreenSize = laptopDetail?.ScreenSize,
+                Os = laptopDetail?.Os
             };
 
             ViewBag.Brands = await _context.Brands.ToListAsync();
@@ -458,9 +475,16 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Validate deadline
-            if (model.Deadline.HasValue && model.Deadline.Value < DateTime.Today)
+            if (model.Deadline.HasValue)
             {
-                ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải từ hôm nay trở đi");
+                if (model.Deadline.Value < DateTime.Today)
+                {
+                    ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải từ hôm nay trở đi");
+                }
+                else if (model.Deadline.Value < DateTime.Today.AddDays(5))
+                {
+                    ModelState.AddModelError(nameof(model.Deadline), "Thời gian đến hạn phải ít nhất 5 ngày kể từ hôm nay");
+                }
             }
 
             // Validate thông số kỹ thuật
@@ -531,11 +555,15 @@ namespace web_chothue_laptop.Controllers
                 laptopDetail.RamSize = model.RamSize;
                 laptopDetail.Storage = model.Storage;
                 laptopDetail.Gpu = model.Gpu;
+                laptopDetail.ScreenSize = model.ScreenSize;
+                laptopDetail.Os = model.Os;
             }
             else if (!string.IsNullOrWhiteSpace(model.Cpu) || 
                      !string.IsNullOrWhiteSpace(model.RamSize) || 
                      !string.IsNullOrWhiteSpace(model.Storage) || 
-                     !string.IsNullOrWhiteSpace(model.Gpu))
+                     !string.IsNullOrWhiteSpace(model.Gpu) ||
+                     !string.IsNullOrWhiteSpace(model.ScreenSize) ||
+                     !string.IsNullOrWhiteSpace(model.Os))
             {
                 var newDetail = new LaptopDetail
                 {
@@ -543,7 +571,9 @@ namespace web_chothue_laptop.Controllers
                     Cpu = model.Cpu,
                     RamSize = model.RamSize,
                     Storage = model.Storage,
-                    Gpu = model.Gpu
+                    Gpu = model.Gpu,
+                    ScreenSize = model.ScreenSize,
+                    Os = model.Os
                 };
                 _context.LaptopDetails.Add(newDetail);
             }
@@ -609,7 +639,7 @@ namespace web_chothue_laptop.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Report()
+        public async Task<IActionResult> Report(string? tab, int page = 1)
         {
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -671,11 +701,6 @@ namespace web_chothue_laptop.Controllers
 
             ViewBag.RentedBookings = rentedBookings;
 
-            // Thống kê
-            ViewBag.TotalBookings = completedBookings.Count + rentedBookings.Count;
-            ViewBag.TotalRented = rentedBookings.Count;
-            ViewBag.TotalCompleted = completedBookings.Count;
-
             // Lấy danh sách Technical Tickets liên quan đến laptop của student
             var tickets = await _context.TechnicalTickets
                 .Include(t => t.Laptop)
@@ -684,7 +709,67 @@ namespace web_chothue_laptop.Controllers
                 .OrderByDescending(t => t.CreatedDate)
                 .ToListAsync();
 
+            // Set pagination info based on tab
+            if (tab == "tickets")
+            {
+                ViewBag.TicketsPage = page;
+                ViewBag.CompletedPage = 1;
+            }
+            else
+            {
+                ViewBag.CompletedPage = page;
+                ViewBag.TicketsPage = 1;
+            }
+
             return View(tickets);
+        }
+
+        // Action mới: Hiển thị laptop đang cho thuê
+        public async Task<IActionResult> MyRentals(string? tab, int page = 1)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem danh sách cho thuê.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var userIdLong = long.Parse(userId);
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentId == userIdLong);
+
+            if (student == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin sinh viên.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy tất cả laptop của student với bookings
+            var myLaptops = await _context.Laptops
+                .Include(l => l.Brand)
+                .Include(l => l.Status)
+                .Include(l => l.LaptopDetails)
+                .Include(l => l.Bookings)
+                    .ThenInclude(b => b.Customer)
+                .Include(l => l.Bookings)
+                    .ThenInclude(b => b.Status)
+                .Where(l => l.StudentId == student.Id && l.Status.StatusName.ToLower() == "available")
+                .OrderByDescending(l => l.CreatedDate)
+                .ToListAsync();
+
+            // Set pagination info based on tab
+            if (tab == "rented")
+            {
+                ViewBag.RentedPage = page;
+                ViewBag.AvailablePage = 1;
+            }
+            else
+            {
+                ViewBag.AvailablePage = page;
+                ViewBag.RentedPage = 1;
+            }
+
+            return View(myLaptops);
         }
 
         // Helper Methods

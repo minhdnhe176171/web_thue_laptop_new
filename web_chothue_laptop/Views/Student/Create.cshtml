@@ -55,7 +55,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="100000" class="form-check-input" id="price100k" />
                                         <label class="form-check-label" for="price100k">
-                                            <i class="fas fa-tag me-1"></i>100,000 đ
+                                            <i class="fas fa-tag me-1"></i>70,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -63,7 +63,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="200000" class="form-check-input" id="price200k" />
                                         <label class="form-check-label" for="price200k">
-                                            <i class="fas fa-tag me-1"></i>200,000 đ
+                                            <i class="fas fa-tag me-1"></i>140,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -71,7 +71,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="300000" class="form-check-input" id="price300k" />
                                         <label class="form-check-label" for="price300k">
-                                            <i class="fas fa-tag me-1"></i>300,000 đ
+                                            <i class="fas fa-tag me-1"></i>210,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -100,10 +100,10 @@
                             <label asp-for="Deadline" class="form-label fw-bold">
                                 Thời gian đến hạn <span class="text-danger">*</span>
                             </label>
-                            <input asp-for="Deadline" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <input asp-for="Deadline" type="date" class="form-control" id="deadlineInput" />
                             <span asp-validation-for="Deadline" class="text-danger small"></span>
                             <small class="form-text text-muted">
-                                <i class="fas fa-calendar-alt"></i> Chọn ngày đến hạn cho việc cho thuê laptop này (từ hôm nay trở đi)
+                                <i class="fas fa-calendar-alt"></i> Thời gian đến hạn phải ít nhất 5 ngày kể từ hôm nay (từ @DateTime.Today.AddDays(5).ToString("dd/MM/yyyy") trở đi)
                             </small>
                         </div>
 
@@ -158,6 +158,23 @@
                                 </label>
                                 <input asp-for="Gpu" class="form-control" placeholder="VD: NVIDIA GTX 1650" maxlength="100" />
                                 <span asp-validation-for="Gpu" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ScreenSize" class="form-label">
+                                    <i class="fas fa-desktop"></i> Màn hình
+                                </label>
+                                <input asp-for="ScreenSize" class="form-control" placeholder="VD: 15.6 inch Full HD" maxlength="50" />
+                                <span asp-validation-for="ScreenSize" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Os" class="form-label">
+                                    <i class="fas fa-windows"></i> Hệ điều hành
+                                </label>
+                                <input asp-for="Os" class="form-control" placeholder="VD: Windows 11 Pro" maxlength="100" />
+                                <span asp-validation-for="Os" class="text-danger small"></span>
                             </div>
                         </div>
 
@@ -237,7 +254,7 @@
                 var brandId = $('#BrandId').val();
                 if (!brandId) {
                     $('#BrandId').addClass('is-invalid');
-                    isValid = false;
+                    isValid = false;zx
                 }
                 
                 // Validate Name
@@ -268,14 +285,27 @@
                     $('.price-error').remove();
                 }
                 
-                // Validate Deadline
+                // Validate Deadline - Phải ít nhất 5 ngày kể từ hôm nay
                 var deadline = new Date($('#Deadline').val());
                 var today = new Date();
                 today.setHours(0, 0, 0, 0);
+                var minDeadline = new Date(today);
+                minDeadline.setDate(today.getDate() + 5);
                 
-                if (!$('#Deadline').val() || deadline < today) {
+                if (!$('#Deadline').val()) {
                     $('#Deadline').addClass('is-invalid');
+                    var errorSpan = $('#Deadline').siblings('.text-danger');
+                    if (!errorSpan.text()) {
+                        errorSpan.text('Vui lòng chọn thời gian đến hạn');
+                    }
                     isValid = false;
+                } else if (deadline < minDeadline) {
+                    $('#Deadline').addClass('is-invalid');
+                    var errorSpan = $('#Deadline').siblings('.text-danger');
+                    errorSpan.text('Thời gian đến hạn phải ít nhất 5 ngày kể từ hôm nay');
+                    isValid = false;
+                } else {
+                    $('#Deadline').removeClass('is-invalid');
                 }
                 
                 // Validate CPU format (if filled)
@@ -337,6 +367,29 @@
                     $(this).after('<small class="char-counter text-muted float-end">' + length + '/200</small>');
                 } else {
                     counter.text(length + '/200');
+                }
+            });
+
+            // Real-time validation for Deadline
+            $('#Deadline').on('change', function() {
+                var deadline = new Date($(this).val());
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                var minDeadline = new Date(today);
+                minDeadline.setDate(today.getDate() + 5);
+                
+                var errorSpan = $(this).siblings('.text-danger');
+                
+                if (!$(this).val()) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                    errorSpan.text('Vui lòng chọn thời gian đến hạn');
+                } else if (deadline < minDeadline) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                    var daysShort = Math.ceil((minDeadline - deadline) / (1000 * 60 * 60 * 24));
+                    errorSpan.text('Thời gian đến hạn phải ít nhất 5 ngày kể từ hôm nay (thiếu ' + daysShort + ' ngày)');
+                } else {
+                    $(this).removeClass('is-invalid').addClass('is-valid');
+                    errorSpan.text('');
                 }
             });
         });

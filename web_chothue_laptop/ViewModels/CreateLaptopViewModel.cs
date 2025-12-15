@@ -44,5 +44,15 @@ namespace web_chothue_laptop.ViewModels
         [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "GPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
         [Display(Name = "GPU")]
         public string? Gpu { get; set; }
+
+        [StringLength(50, ErrorMessage = "Thông tin màn hình không được vượt quá 50 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-\.]+$", ErrorMessage = "Màn hình chỉ được chứa chữ cái, số, dấu cách, dấu gạch ngang và dấu chấm")]
+        [Display(Name = "Màn hình")]
+        public string? ScreenSize { get; set; }
+
+        [StringLength(100, ErrorMessage = "Hệ điều hành không được vượt quá 100 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-\.]+$", ErrorMessage = "Hệ điều hành chỉ được chứa chữ cái, số, dấu cách, dấu gạch ngang và dấu chấm")]
+        [Display(Name = "Hệ điều hành")]
+        public string? Os { get; set; }
     }
 }
