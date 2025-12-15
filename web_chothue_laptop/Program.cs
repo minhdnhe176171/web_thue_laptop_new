@@ -77,8 +77,9 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map SignalR Hub
+// Map SignalR Hubs
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<BookingHub>("/bookinghub");
 
 app.MapControllerRoute(
     name: "default",

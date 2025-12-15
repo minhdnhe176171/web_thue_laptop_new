@@ -1,0 +1,138 @@
+@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Models
+@{
+    ViewData["Title"] = "Lịch Sử Báo Lỗi";
+    var tickets = ViewBag.Tickets as List<TicketList> ?? new List<TicketList>();
+}
+
+<div class="container py-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-primary">
+            ← Quay lại trang chủ
+        </a>
+    </div>
+
+    <h2 class="mb-4">Lịch Sử Báo Lỗi</h2>
+
+    @if (tickets.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Mã Ticket</th>
+                                <th>Tên Laptop</th>
+                                <th>Mô Tả Lỗi</th>
+                                <th>Ngày Tạo</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-center">Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ticket in tickets)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="badge bg-secondary rounded-pill">#@ticket.Id</span>
+                                    </td>
+                                    <td>
+                                        <strong>@ticket.Laptop?.Name</strong>
+                                        <div class="small text-muted">@ticket.Laptop?.Brand?.BrandName</div>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 300px;" title="@ticket.Description">
+                                            @ticket.Description
+                                        </div>
+                                    </td>
+                                    <td>@(ticket.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
+                                    <td>
+                                        @if (ticket.TechnicalTicket?.Status != null)
+                                        {
+                                            var statusId = ticket.TechnicalTicket.StatusId;
+                                            string statusVi = "";
+                                            string badgeClass = "";
+
+                                            switch (statusId)
+                                            {
+                                                case 1:
+                                                    statusVi = "Mới tạo";
+                                                    badgeClass = "bg-warning";
+                                                    break;
+                                                case 2:
+                                                    statusVi = "Kỹ thuật đã nhận";
+                                                    badgeClass = "bg-info";
+                                                    break;
+                                                case 4:
+                                                    statusVi = "Đang sửa";
+                                                    badgeClass = "bg-primary";
+                                                    break;
+                                                case 5:
+                                                    statusVi = "Hoàn thành";
+                                                    badgeClass = "bg-success";
+                                                    break;
+                                                default:
+                                                    statusVi = ticket.TechnicalTicket.Status.StatusName;
+                                                    badgeClass = "bg-secondary";
+                                                    break;
+                                            }
+                                            <span class="badge @badgeClass">@statusVi</span>
+                                        }
+                                        else if (ticket.Status != null)
+                                        {
+                                            var statusVi = StatusHelper.GetVietnameseStatus(ticket.Status.StatusName);
+                                            var badgeClass = StatusHelper.GetStatusBadgeClass(ticket.Status.StatusName);
+                                            <span class="badge @badgeClass">@statusVi</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <a asp-controller="Ticket" asp-action="Details" asp-route-id="@ticket.Id" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i> Xem Chi Tiết
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 48px; color: #dee2e6;"></i>
+                <p class="text-muted mt-3 mb-0">Bạn chưa có ticket báo lỗi nào.</p>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .card {
+        border: 1px solid #dee2e6;
+    }
+
+    .table th {
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+</style>
+

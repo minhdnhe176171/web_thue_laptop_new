@@ -1,0 +1,307 @@
+@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Models
+@using web_chothue_laptop.Controllers
+@{
+    ViewData["Title"] = "Chi Tiết Ticket";
+    var ticket = ViewBag.Ticket as TicketList;
+    var statusHistory = ViewBag.StatusHistory as List<StatusHistoryItem> ?? new List<StatusHistoryItem>();
+}
+
+<div class="container py-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a asp-controller="Ticket" asp-action="MyTickets" class="text-decoration-none text-primary">
+            ← Quay lại lịch sử báo lỗi
+        </a>
+    </div>
+
+    @if (ticket != null)
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Thông tin cơ bản -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-ticket-detailed"></i> Chi Tiết Ticket #@ticket.Id
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Tên Laptop:</strong>
+                                <p class="mb-0">@ticket.Laptop?.Name</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Hãng:</strong>
+                                <p class="mb-0">@ticket.Laptop?.Brand?.BrandName</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Ngày Tạo:</strong>
+                                <p class="mb-0">@(ticket.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Trạng Thái Hiện Tại:</strong>
+                                <p class="mb-0">
+                                    @if (ticket.TechnicalTicket?.Status != null)
+                                    {
+                                        var statusId = ticket.TechnicalTicket.StatusId;
+                                        string statusVi = "";
+                                        string badgeClass = "";
+
+                                        switch (statusId)
+                                        {
+                                            case 1:
+                                                statusVi = "Mới tạo";
+                                                badgeClass = "bg-warning";
+                                                break;
+                                            case 2:
+                                                statusVi = "Kỹ thuật đã nhận";
+                                                badgeClass = "bg-info";
+                                                break;
+                                            case 4:
+                                                statusVi = "Đang sửa";
+                                                badgeClass = "bg-primary";
+                                                break;
+                                            case 5:
+                                                statusVi = "Hoàn thành";
+                                                badgeClass = "bg-success";
+                                                break;
+                                            default:
+                                                statusVi = ticket.TechnicalTicket.Status.StatusName;
+                                                badgeClass = "bg-secondary";
+                                                break;
+                                        }
+                                        <span class="badge @badgeClass fs-6">@statusVi</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Mô Tả Lỗi:</strong>
+                            <p class="mb-0">@ticket.Description</p>
+                        </div>
+                        @if (!string.IsNullOrEmpty(ticket.ErrorImageUrl))
+                        {
+                            <div class="mb-3">
+                                <strong>Hình Ảnh Lỗi:</strong>
+                                <div class="mt-2">
+                                    <img src="@ticket.ErrorImageUrl" alt="Hình ảnh lỗi" class="img-fluid rounded" style="max-height: 300px;">
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Timeline Trạng Thái -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> Timeline Trạng Thái
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            @foreach (var status in statusHistory)
+                            {
+                                <div class="timeline-item @(status.IsCompleted ? "completed" : "") @(status.IsActive ? "active" : "")">
+                                    <div class="timeline-marker">
+                                        @if (status.IsCompleted)
+                                        {
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                        }
+                                        else if (status.IsActive)
+                                        {
+                                            <i class="bi bi-circle-fill text-primary"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-circle text-muted"></i>
+                                        }
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">@status.StatusVi</h6>
+                                        @if (status.StatusId == 5 && status.IsActive)
+                                        {
+                                            <span class="badge bg-success">Hoàn thành</span>
+                                        }
+                                        else if (status.IsActive)
+                                        {
+                                            <span class="badge bg-primary">Đang xử lý</span>
+                                        }
+                                        else if (status.IsCompleted)
+                                        {
+                                            <span class="badge bg-success">Hoàn thành</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Chờ xử lý</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phản Hồi Kỹ Thuật (chỉ hiển thị khi Fixed - StatusId = 5) -->
+                @if (ticket.TechnicalTicket?.StatusId == 5)
+                {
+                    <div class="card shadow-sm mb-4 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-check-circle"></i> Phản Hồi Kỹ Thuật
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(ticket.TechnicalTicket.TechnicalResponse))
+                            {
+                                <div class="alert alert-success mb-0">
+                                    <h6 class="alert-heading">
+                                        <i class="bi bi-tools"></i> Kết Quả Sửa Chữa:
+                                    </h6>
+                                    <p class="mb-0">@ticket.TechnicalTicket.TechnicalResponse</p>
+                                </div>
+                                @if (ticket.TechnicalTicket.UpdatedDate.HasValue)
+                                {
+                                    <small class="text-muted mt-2 d-block">
+                                        <i class="bi bi-clock"></i> Cập nhật lúc: @ticket.TechnicalTicket.UpdatedDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                }
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle"></i> Đã hoàn thành sửa chữa. Đang chờ phản hồi chi tiết từ kỹ thuật viên.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-4">
+                <!-- Thông tin bổ sung -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">Thông Tin Bổ Sung</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Mã Ticket:</strong> #@ticket.Id</p>
+                        <p class="mb-2"><strong>Mã Technical Ticket:</strong> #@ticket.TechnicalTicketId</p>
+                        @if (ticket.UpdatedDate.HasValue)
+                        {
+                            <p class="mb-2"><strong>Cập nhật:</strong> @ticket.UpdatedDate.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                        }
+                        @if (ticket.TechnicalTicket?.Technical != null)
+                        {
+                            <p class="mb-2">
+                                <strong>Kỹ thuật viên xử lý:</strong><br>
+                                <span class="text-primary">
+                                    <i class="bi bi-person-badge"></i> @ticket.TechnicalTicket.Technical.FirstName @ticket.TechnicalTicket.Technical.LastName
+                                </span>
+                            </p>
+                            @if (!string.IsNullOrEmpty(ticket.TechnicalTicket.Technical.Email))
+                            {
+                                <p class="mb-0 small text-muted">
+                                    <i class="bi bi-envelope"></i> @ticket.TechnicalTicket.Technical.Email
+                                </p>
+                            }
+                        }
+                        else
+                        {
+                            <p class="mb-0 text-muted">
+                                <small>Đang chờ kỹ thuật viên nhận xử lý...</small>
+                            </p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            Không tìm thấy thông tin ticket.
+        </div>
+    }
+</div>
+
+<style>
+    .card {
+        border: 1px solid #dee2e6;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+        padding-left: 40px;
+    }
+
+    .timeline-item:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 24px;
+        bottom: -20px;
+        width: 2px;
+        background-color: #dee2e6;
+    }
+
+    .timeline-item.completed:not(:last-child)::before {
+        background-color: #28a745;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 14px;
+        height: 14px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+
+    .timeline-content {
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 8px;
+        border-left: 3px solid #dee2e6;
+    }
+
+    .timeline-item.completed .timeline-content {
+        border-left-color: #28a745;
+        background-color: #d4edda;
+    }
+
+    .timeline-item.active .timeline-content {
+        border-left-color: #0d6efd;
+        background-color: #cfe2ff;
+    }
+</style>
+
