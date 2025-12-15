@@ -230,7 +230,7 @@ namespace web_chothue_laptop.Controllers
             var laptop = new Laptop
             {
                 Name = model.Name,
-                BrandId = model.BrandId.Value,
+                BrandId = model.BrandId!.Value,
                 Price = model.Price,
                 StudentId = student.Id,
                 StatusId = pendingStatusId.Value,
@@ -469,7 +469,7 @@ namespace web_chothue_laptop.Controllers
             }
 
             laptop.Name = model.Name;
-            laptop.BrandId = model.BrandId.Value;
+            laptop.BrandId = model.BrandId;
             laptop.Price = model.Price;
             laptop.UpdatedDate = model.Deadline;
 

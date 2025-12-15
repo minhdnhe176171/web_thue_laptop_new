@@ -5,6 +5,9 @@ using System.Text;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.Services;
 using web_chothue_laptop.ViewModels;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 namespace web_chothue_laptop.Controllers
 {
@@ -27,90 +30,82 @@ namespace web_chothue_laptop.Controllers
             return View();
         }
 
+
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            // 1. Trim dữ liệu đầu vào
             if (model != null) model.Email = model.Email?.Trim() ?? string.Empty;
-
             if (!ModelState.IsValid) return View(model);
 
-            // 2. Validate cơ bản
-            if (string.IsNullOrWhiteSpace(model.Email))
-            {
-                ModelState.AddModelError("Email", "Email là bắt buộc");
-                return View(model);
-            }
-            if (string.IsNullOrWhiteSpace(model.Password))
-            {
-                ModelState.AddModelError("Password", "Mật khẩu là bắt buộc");
-                return View(model);
-            }
-
-            // 3. Tìm User trong Database (Include Role để check quyền)
-            var emailLower = model.Email.ToLower();
+            // Tìm User
             var user = await _context.Users
-                .Include(u => u.Role)   // <--- QUAN TRỌNG: Phải lấy thông tin Role
+                .Include(u => u.Role)
                 .Include(u => u.Status)
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == emailLower);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower());
 
-            // 4. Kiểm tra mật khẩu và tài khoản
+            // Validate User & Password
             if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
             {
                 ModelState.AddModelError("", "Email hoặc mật khẩu không đúng");
                 return View(model);
             }
 
-            if (user.Status?.StatusName?.ToLower() != "active")
+            // Validate Active
+            if (user.Status?.StatusName?.Trim().ToLower() != "active")
             {
                 ModelState.AddModelError("", "Tài khoản chưa được kích hoạt hoặc đã bị khóa");
                 return View(model);
             }
 
-            // 5. Lưu Session
-            HttpContext.Session.SetString("UserId", user.Id.ToString());
-            HttpContext.Session.SetString("UserEmail", user.Email);
+            // --- XỬ LÝ ROLE ---
+            string roleName = user.Role?.RoleName?.Trim() ?? "Customer"; // Mặc định là Customer nếu null
 
-            // Lấy tên quyền (RoleName) từ bảng Role
-            string roleName = user.Role?.RoleName ?? "";
-            HttpContext.Session.SetString("UserRole", roleName);
-            
-            // Lưu RoleId vào session để dễ kiểm tra
-            if (user.RoleId.HasValue)
+            // --- TẠO CLAIMS (Giấy thông hành) ---
+            var claims = new List<Claim>
             {
-                HttpContext.Session.SetString("UserRoleId", user.RoleId.Value.ToString());
-            }
+                new Claim(ClaimTypes.Name, user.Email),
+                new Claim("UserId", user.Id.ToString()),
+                // Dòng này cực quan trọng để [Authorize(Roles="...")] hoạt động
+                new Claim(ClaimTypes.Role, roleName)
+            };
 
-            // ============================================================
-            // 6. LOGIC ĐIỀU HƯỚNG (ROUTING) - PHẦN QUAN TRỌNG NHẤT
-            // ============================================================
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true, // Nhớ đăng nhập
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(60)
+            };
 
-            // Chuyển role về chữ thường để so sánh cho chính xác
+            // --- GHI COOKIE VÀO TRÌNH DUYỆT ---
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            // Lưu Session (Phụ trợ)
+            HttpContext.Session.SetString("UserId", user.Id.ToString());
+            HttpContext.Session.SetString("UserRole", roleName);
+
+            // --- ĐIỀU HƯỚNG DỰA TRÊN ROLE ---
+            // Dùng ToLower() để so sánh cho chắc chắn
             switch (roleName.ToLower())
             {
                 case "staff":
-                    // Nếu là Staff -> Chuyển sang Staff Dashboard
-                    return RedirectToAction("Index", "Staff");
+                    return RedirectToAction("Index", "Staff"); // Vào thẳng Staff
 
                 case "technical":
-                    // Nếu là Technical -> Chuyển sang Technical Dashboard
-                    return RedirectToAction("Index", "Technical");
+                    return RedirectToAction("Index", "Technical"); // Vào thẳng Technical
 
                 case "admin":
                 case "manager":
-                    // Nếu là Admin/Manager -> Chuyển sang Admin Dashboard (nếu có)
                     return RedirectToAction("Index", "Admin");
 
-                case "customer":
-                case "student":
                 default:
-                    // Các trường hợp còn lại -> Về trang chủ
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Home"); // Customer/Student về Home
             }
         }
-
         // GET: Account/Register
         public IActionResult Register()
         {

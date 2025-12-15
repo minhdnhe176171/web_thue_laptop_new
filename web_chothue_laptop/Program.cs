@@ -1,13 +1,21 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using web_chothue_laptop.Hubs;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.Services;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login"; // Nếu chưa đăng nhập thì đá về đây
+        options.AccessDeniedPath = "/Account/AccessDenied"; // Nếu không đủ quyền (Staff vào trang Tech) thì đá về đây
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    });
 
 // Add Session
 builder.Services.AddDistributedMemoryCache();
@@ -66,7 +74,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseSession();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Map SignalR Hubs

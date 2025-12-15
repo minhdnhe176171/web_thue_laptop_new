@@ -1,0 +1,116 @@
+﻿@model web_chothue_laptop.Models.TechnicalTicket
+@{
+    ViewData["Title"] = "Chi Tiết Kiểm Tra";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var specs = Model.Laptop?.LaptopDetails?.FirstOrDefault();
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-action="Index" asp-route-activeTab="inspection" class="text-decoration-none text-muted">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0">Chi Tiết Yêu Cầu Kiểm Tra #@Model.Id</h4>
+        </div>
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-4 text-center border-end">
+                    <img src="@(Model.Laptop?.ImageUrl ?? "https://res.cloudinary.com/drzc5ulxv/image/upload/v1765469106/tickets/bi1hujemmwiffwp2ffwc.png")"
+                         class="img-fluid rounded shadow-sm mb-3"
+                         style="max-height: 250px; object-fit: contain;">
+
+                    <h3 class="text-primary fw-bold">@Model.Laptop?.Name</h3>
+                    <span class="badge bg-secondary fs-6 mb-3">@(Model.Laptop?.Brand?.BrandName ?? "N/A")</span>
+
+                    <div class="text-start mt-3 px-3">
+                        <p class="mb-1"><strong>Chủ máy:</strong> @(Model.Laptop?.Student?.LastName + " " + Model.Laptop?.Student?.FirstName)</p>
+                        <p class="mb-1"><strong>Email:</strong> @Model.Laptop?.Student?.Email</p>
+                        <p class="mb-1"><strong>Ngày tạo:</strong> @Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+                </div>
+
+                <div class="col-md-8 ps-md-4">
+                    <h5 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Cấu hình phần cứng</h5>
+
+                    @if (specs != null)
+                    {
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">CPU</small>
+                                    <span class="fw-bold fs-5">@specs.Cpu</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">RAM</small>
+                                    <span class="fw-bold fs-5">@specs.RamSize @specs.RamType</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">Ổ Cứng</small>
+                                    <span class="fw-bold fs-5">@specs.Storage</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">Card Đồ Họa</small>
+                                    <span class="fw-bold fs-5">@specs.Gpu</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">Chưa cập nhật thông số kỹ thuật chi tiết.</div>
+                    }
+
+                    <h5 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Mô tả tình trạng</h5>
+                    <div class="alert alert-info border-0 shadow-sm">
+                        <i class="bi bi-info-circle me-2"></i> @Model.Description
+                    </div>
+
+                    <div class="mt-5 d-flex gap-3 pt-3 border-top">
+                        <form asp-action="ApproveLaptop" method="post" class="flex-grow-1">
+                            <input type="hidden" name="ticketId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-success w-100 py-2 fw-bold" onclick="return confirm('Xác nhận thiết bị ĐẠT chuẩn?')">
+                                <i class="bi bi-check-circle-fill me-2"></i> XÁC NHẬN ĐẠT
+                            </button>
+                        </form>
+
+                        <button type="button" class="btn btn-danger flex-grow-1 py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#rejectPageModal">
+                            <i class="bi bi-x-circle-fill me-2"></i> TỪ CHỐI / LOẠI
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectPageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="RejectLaptop" method="post">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Từ chối Ticket #@Model.Id</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="ticketId" value="@Model.Id" />
+                    <label class="form-label fw-bold">Lý do từ chối:</label>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Nhập lý do chi tiết..." required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">Xác Nhận Loại</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
