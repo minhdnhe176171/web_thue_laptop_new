@@ -3,141 +3,165 @@
     ViewData["Title"] = "Quản lý Giao Máy";
 }
 
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary fw-bold">Quản lý Giao Máy</h2>
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Quay lại Dashboard
-        </a>
+<style>
+    .container, .body-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .staff-wrapper {
+        display: flex;
+        min-height: calc(100vh - 60px);
+        background-color: #f8f9fa;
+        margin-top: -1.5rem;
+        padding-top: 1.5rem;
+    }
+
+    .staff-sidebar {
+        width: 260px;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .sidebar-header {
+        background-color: #0d6efd;
+        color: white;
+        padding: 20px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sidebar-menu {
+        padding-top: 10px;
+    }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            color: #495057;
+            text-decoration: none;
+            transition: 0.2s;
+            border-left: 5px solid transparent;
+            font-weight: 500;
+        }
+
+            .sidebar-menu a:hover {
+                background-color: #f1f4f9;
+                color: #0d6efd;
+            }
+
+            .sidebar-menu a.active {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+                font-weight: bold;
+                border-left-color: #0d6efd;
+            }
+
+    .staff-content {
+        flex-grow: 1;
+        padding: 30px;
+        overflow-x: auto;
+    }
+</style>
+
+<div class="staff-wrapper">
+    <div class="staff-sidebar">
+        <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
+        <div class="sidebar-menu">
+            <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
+            <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
+            <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+            <a href="@Url.Action("Deliveries", "Staff")" class="active"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
+            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
+        </div>
     </div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+    <div class="staff-content">
+        <h2 class="text-primary fw-bold mb-4">Danh Sách Cần Giao Máy</h2>
 
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show"> <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"] <button type="button" class="btn-close" data-bs-dismiss="alert"></button> </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show"> <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"] <button type="button" class="btn-close" data-bs-dismiss="alert"></button> </div>
+        }
 
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3">
-            <h5 class="mb-0 text-primary">Danh sách các khách hàng chờ nhận máy</h5>
-
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Mã Booking</th>
-                        <th>Khách Hàng</th>
-                        <th>Laptop</th>
-                        <th>Thông Số</th>
-                        <th>Thời Gian Thuê</th>
-                        <th>Tổng Tiền</th>
-                        <th class="text-center">Thao Tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        foreach (var booking in Model)
-                        {
-                            var detail = booking.Laptop?.LaptopDetails?.FirstOrDefault();
-                            var isToday = booking.StartTime.Date == DateTime.Today;
-                            var isPast = booking.StartTime.Date < DateTime.Today;
-                            
-                            <tr class="@(isPast ? "table-danger" : isToday)">
-                                <td class="ps-4">
-                                    <span class="badge bg-primary">#@booking.Id</span>
-                                    @if (isPast)
-                                    {
-                                        <br /><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Quá hạn</small>
-                                    }
-                                    else if (isToday)
-                                    {
-                                        <br /><small ><i class="fas fa-clock"></i> Hôm nay</small>
-                                    }
-                                </td>
-                                <td>
-                                    <div>
-                                        <span class="fw-semibold">@(booking.Customer?.LastName) @(booking.Customer?.FirstName)</span>
-                                        <br />
-                                        <small class="text-muted">
-                                            <i class="fas fa-envelope"></i> @booking.Customer?.Email
-                                            <br />
-                                            <i class="fas fa-phone"></i> @booking.Customer?.Phone
-                                        </small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div>
-                                        <span class="fw-bold">@booking.Laptop?.Name</span>
-                                        <br />
-                                        <small class="text-muted">@booking.Laptop?.Brand?.BrandName</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    @if (detail != null)
-                                    {
-                                        <small>
-                                            @if (!string.IsNullOrEmpty(detail.Cpu))
-                                            {
-                                                <div><i class="fas fa-microchip"></i> @detail.Cpu</div>
-                                            }
-                                            @if (!string.IsNullOrEmpty(detail.RamSize))
-                                            {
-                                                <div><i class="fas fa-memory"></i> RAM: @detail.RamSize</div>
-                                            }
-                                            @if (!string.IsNullOrEmpty(detail.Storage))
-                                            {
-                                                <div><i class="fas fa-hdd"></i> @detail.Storage</div>
-                                            }
-                                        </small>
-                                    }
-                                    else
-                                    {
-                                        <small class="text-muted">Chưa có thông số</small>
-                                    }
-                                </td>
-                                <td>
-                                    <div>
-                                        <i class="fas fa-calendar-check text-success"></i> @booking.StartTime.ToString("dd/MM/yyyy")
-                                        <br />
-                                        <i class="fas fa-calendar-times text-danger"></i> @booking.EndTime.ToString("dd/MM/yyyy")
-                                        <br />
-                                        <small class="text-muted">(@((booking.EndTime - booking.StartTime).Days) ngày)</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="text-success fw-bold">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</span>
-                                </td>
-                                <td class="text-center">
-                                    <a asp-action="CreateDelivery" asp-route-id="@booking.Id" class="btn btn-success btn-sm">
-                                        <i class="fas fa-truck"></i> Giao Máy
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary">Khách hàng đang chờ nhận máy</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-bordered table-hover align-middle mb-0">
+                    <thead class="bg-light">
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                Không có booking nào cần giao máy
-                            </td>
+                            <th class="ps-4">Mã Booking</th>
+                            <th>Khách Hàng</th>
+                            <th>Laptop</th>
+                            <th>Thời Gian Thuê</th>
+                            <th>Tổng Tiền</th>
+                            <th class="text-center">Thao Tác</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var booking in Model)
+                            {
+                                var isToday = booking.StartTime.Date == DateTime.Today;
+                                var isPast = booking.StartTime.Date < DateTime.Today;
+                                <tr class="@(isPast ? "table-danger" : (isToday ? "table-warning" : ""))">
+                                    <td class="ps-4">
+                                        <span class="badge bg-primary">#@booking.Id</span>
+                                        @if (isPast)
+                                        {
+                                            <br />
+                                            <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Quá hạn nhận</small>
+         }
+                                        else if (isToday)
+                                        {
+                                            <br />
+                                            <small class="fw-bold"><i class="fas fa-clock"></i> Hôm nay</small>
+         }
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold">@(booking.Customer?.LastName) @(booking.Customer?.FirstName)</span><br />
+                                        <small class="text-muted"><i class="fas fa-phone"></i> @booking.Customer?.Phone</small>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">@booking.Laptop?.Name</span><br />
+                                        <small class="text-muted">@booking.Laptop?.Brand?.BrandName</small>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-calendar-check text-success"></i> @booking.StartTime.ToString("dd/MM/yyyy") <br />
+                                        <i class="fas fa-calendar-times text-danger"></i> @booking.EndTime.ToString("dd/MM/yyyy")
+                                    </td>
+                                    <td class="text-success fw-bold">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</td>
+                                    <td class="text-center">
+                                        <a asp-action="CreateDelivery" asp-route-id="@booking.Id" class="btn btn-success btn-sm">
+                                            <i class="fas fa-truck"></i> Giao Máy
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="6" class="text-center py-5 text-muted"><i class="fas fa-inbox fa-3x mb-3 d-block"></i>Không có booking nào cần giao máy</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

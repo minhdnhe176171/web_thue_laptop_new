@@ -28,7 +28,7 @@
     }
 
     .sidebar-header {
-        background-color: #0d6efd; /* MÀU XANH */
+        background-color: #0d6efd;
         color: white;
         padding: 20px;
         font-weight: bold;
@@ -59,7 +59,6 @@
                 color: #0d6efd;
             }
 
-            /* Trạng thái Active - MÀU XANH */
             .sidebar-menu a.active {
                 background-color: #e7f1ff;
                 color: #0d6efd;
@@ -76,17 +75,13 @@
 
 <div class="staff-wrapper">
     <div class="staff-sidebar">
-        <div class="sidebar-header">
-            <i class="fas fa-user-shield"></i> Staff Dashboard
-        </div>
+        <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
         <div class="sidebar-menu">
-            <a href="@Url.Action("Index", "Staff")">
-                <i class="fas fa-check-square"></i> Duyệt Đơn Thuê
-            </a>
-
-            <a href="@Url.Action("LaptopRequests", "Staff")" class="active">
-                <i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra
-            </a>
+            <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
+            <a href="@Url.Action("LaptopRequests", "Staff")" class="active"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
+            <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+            <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
+            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
         </div>
     </div>
 
