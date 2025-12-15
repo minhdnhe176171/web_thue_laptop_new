@@ -20,10 +20,22 @@ namespace web_chothue_laptop.Controllers
         {
             int pageIndex = page ?? 1;
             
-            // Lấy tất cả laptop để phân trang (bao gồm 8 sản phẩm mới)
+            // Lấy danh sách laptop ID đang có người thuê (active booking)
+            var rentedLaptopIds = await _context.Bookings
+                .Include(b => b.Status)
+                .Where(b => (b.StatusId == 2 || b.StatusId == 10)
+                    && b.StartTime <= DateTime.Now 
+                    && b.EndTime >= DateTime.Now)
+                .Select(b => b.LaptopId)
+                .Distinct()
+                .ToListAsync();
+            
+            // Lấy laptop có sẵn và không có người đang thuê
             var allLaptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
+                .Where(l => l.Status != null && l.Status.StatusName.ToLower() == "available"
+                    && !rentedLaptopIds.Contains(l.Id))
                 .OrderByDescending(l => l.CreatedDate) // Sắp xếp theo ngày tạo mới nhất
                 .ThenBy(l => l.Id);
 

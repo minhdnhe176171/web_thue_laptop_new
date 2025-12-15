@@ -57,14 +57,14 @@ namespace web_chothue_laptop.Controllers
                         .Include(b => b.Status)
                         .AnyAsync(b => b.CustomerId == customer.Id 
                             && b.LaptopId == laptop.Id 
-                            && b.Status.StatusName.ToLower() == "pending");
+                            && b.StatusId == 1);
 
                     // Kiểm tra booking active
                     activeBooking = await _context.Bookings
                         .Include(b => b.Status)
                         .Where(b => b.CustomerId == customer.Id 
                             && b.LaptopId == laptop.Id 
-                            && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                            && (b.StatusId == 2 || b.StatusId == 10)
                             && b.EndTime >= DateTime.Today)
                         .FirstOrDefaultAsync();
 
