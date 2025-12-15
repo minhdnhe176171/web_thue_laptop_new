@@ -65,13 +65,50 @@
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chathub")
+            .withUrl("/chathub", {
+                skipNegotiation: false,
+                transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+            })
+            .withAutomaticReconnect({
+                nextRetryDelayInMilliseconds: retryContext => {
+                    if (retryContext.elapsedMilliseconds < 60000) {
+                        // Retry quickly for the first minute
+                        return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 10000);
+                    }
+                    // After a minute, retry every 10 seconds
+                    return 10000;
+                }
+            })
             .build();
 
         const staffId = @staffId;
         const staffName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(staffName));
         let selectedCustomerId = null;
         let selectedCustomerName = null;
+        let pendingMessages = new Map(); // Store messages received when customer not selected
+
+        // Connection state handlers
+        connection.onreconnecting(function (error) {
+            console.log("SignalR reconnecting...", error);
+        });
+
+        connection.onreconnected(function (connectionId) {
+            console.log("SignalR reconnected:", connectionId);
+            // Rejoin staff group after reconnection
+            connection.invoke("JoinStaffGroup").catch(function (err) {
+                console.error("Error rejoining staff group:", err.toString());
+            });
+        });
+
+        connection.onclose(function (error) {
+            console.log("SignalR connection closed", error);
+            // Try to reconnect
+            setTimeout(function() {
+                connection.start().catch(function (err) {
+                    console.error("Error reconnecting:", err.toString());
+                });
+            }, 5000);
+        });
 
         connection.start().then(function () {
             console.log("SignalR Connected");
@@ -82,7 +119,7 @@
             });
         }).catch(function (err) {
             console.error("SignalR connection error:", err.toString());
-            alert("Không thể kết nối đến server chat. Vui lòng refresh trang.");
+            // Don't show alert immediately, let auto-reconnect handle it
         });
 
         connection.on("ReceiveMessage", function (data) {
@@ -102,17 +139,20 @@
                     displayMessage(data, data.senderType);
                 }
             }
-            // Nếu chưa chọn customer nào, tự động chọn customer này
-            else if (data.customerId && !selectedCustomerId) {
-                selectCustomer(data.customerId, data.customerName);
-                // Đợi một chút để UI cập nhật, rồi hiển thị tin nhắn
-                setTimeout(() => {
-                    displayMessage(data, data.senderType);
-                }, 100);
-            }
-            
-            // Update customer list if new customer joined
-            if (data.customerId) {
+            // Nếu chưa chọn customer này, lưu tin nhắn để hiển thị sau
+            else if (data.customerId) {
+                // Lưu tin nhắn vào pendingMessages
+                if (!pendingMessages.has(data.customerId)) {
+                    pendingMessages.set(data.customerId, []);
+                }
+                pendingMessages.get(data.customerId).push(data);
+                
+                // Nếu chưa chọn customer nào, tự động chọn customer này
+                if (!selectedCustomerId) {
+                    selectCustomer(data.customerId, data.customerName);
+                }
+                
+                // Update customer list
                 updateCustomerList(data.customerId, data.customerName);
             }
         });
@@ -149,15 +189,23 @@
             
             // Show chat area
             document.getElementById('noCustomerSelected').style.display = 'none';
-            document.getElementById('messagesList').style.display = 'block';
+            const messagesList = document.getElementById('messagesList');
+            messagesList.style.display = 'block';
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendButton').disabled = false;
             
-            // Load conversation history (chỉ load nếu chưa có tin nhắn nào)
-            const messagesList = document.getElementById('messagesList');
-            if (messagesList.children.length === 0) {
-                loadConversationHistory(customerId);
-            }
+            // Clear current messages and always load fresh conversation history
+            messagesList.innerHTML = '';
+            loadConversationHistory(customerId).then(() => {
+                // After loading history, display any pending messages
+                if (pendingMessages.has(customerId)) {
+                    const pending = pendingMessages.get(customerId);
+                    pending.forEach(msg => {
+                        displayMessage(msg, msg.senderType);
+                    });
+                    pendingMessages.delete(customerId);
+                }
+            });
         }
 
         async function loadConversationHistory(customerId) {
@@ -173,23 +221,17 @@
                 
                 const messagesList = document.getElementById('messagesList');
                 
-                // Chỉ load nếu chưa có tin nhắn nào, hoặc nếu đang chọn customer này
-                if (selectedCustomerId === customerId) {
-                    // Lưu số lượng tin nhắn hiện tại
-                    const currentMessageCount = messagesList.children.length;
-                    
-                    // Chỉ xóa và load lại nếu chưa có tin nhắn nào
-                    if (currentMessageCount === 0 && messages && messages.length > 0) {
-                        messages.forEach(msg => {
-                            displayMessage({
-                                message: msg.message,
-                                senderType: msg.senderType,
-                                customerName: msg.senderType === 'customer' ? msg.senderName : null,
-                                staffName: msg.senderType === 'staff' ? msg.senderName : null,
-                                timestamp: msg.timestamp
-                            }, msg.senderType);
-                        });
-                    }
+                // Always load messages if we're selecting this customer
+                if (selectedCustomerId === customerId && messages && messages.length > 0) {
+                    messages.forEach(msg => {
+                        displayMessage({
+                            message: msg.message,
+                            senderType: msg.senderType,
+                            customerName: msg.senderType === 'customer' ? msg.senderName : null,
+                            staffName: msg.senderType === 'staff' ? msg.senderName : null,
+                            timestamp: msg.timestamp
+                        }, msg.senderType);
+                    });
                 }
                 
                 const chatArea = document.getElementById('chatArea');
@@ -206,6 +248,31 @@
             const messagesList = document.getElementById('messagesList');
             if (!messagesList) {
                 console.error("messagesList element not found");
+                return;
+            }
+            
+            // Check for duplicate messages
+            const existingMessages = Array.from(messagesList.children);
+            const messageExists = existingMessages.some(msgDiv => {
+                const msgContent = msgDiv.querySelector('div > div:nth-child(2)');
+                const msgTimestamp = msgDiv.querySelector('div > div:nth-child(3)');
+                if (!msgContent) return false;
+                
+                const existingText = msgContent.textContent.trim();
+                const newText = (data.message || '').trim();
+                
+                // Check if message text and timestamp match (within 1 second tolerance)
+                if (existingText === newText && msgTimestamp) {
+                    const existingTime = new Date(msgTimestamp.textContent);
+                    const newTime = data.timestamp ? new Date(data.timestamp) : new Date();
+                    const timeDiff = Math.abs(existingTime.getTime() - newTime.getTime());
+                    return timeDiff < 1000; // 1 second tolerance
+                }
+                return false;
+            });
+            
+            if (messageExists) {
+                console.log("Duplicate message detected, skipping");
                 return;
             }
             

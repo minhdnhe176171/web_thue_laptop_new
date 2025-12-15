@@ -51,7 +51,7 @@ public partial class Swp391LaptopContext : DbContext
 {
     if (!optionsBuilder.IsConfigured)
     {
-        optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+        optionsBuilder.UseSqlServer("Server=DESKTOP-0NF6T35;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
     }
 }
     protected override void OnModelCreating(ModelBuilder modelBuilder)

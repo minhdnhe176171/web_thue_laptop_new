@@ -47,11 +47,47 @@
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chathub")
+            .withUrl("/chathub", {
+                skipNegotiation: false,
+                transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+            })
+            .withAutomaticReconnect({
+                nextRetryDelayInMilliseconds: retryContext => {
+                    if (retryContext.elapsedMilliseconds < 60000) {
+                        // Retry quickly for the first minute
+                        return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 10000);
+                    }
+                    // After a minute, retry every 10 seconds
+                    return 10000;
+                }
+            })
             .build();
 
         const customerId = @customerId;
         const customerName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(customerName));
+
+        // Connection state handlers
+        connection.onreconnecting(function (error) {
+            console.log("SignalR reconnecting...", error);
+        });
+
+        connection.onreconnected(function (connectionId) {
+            console.log("SignalR reconnected:", connectionId);
+            // Rejoin customer group after reconnection
+            connection.invoke("JoinCustomerGroup", customerId).catch(function (err) {
+                console.error("Error rejoining customer group:", err.toString());
+            });
+        });
+
+        connection.onclose(function (error) {
+            console.log("SignalR connection closed", error);
+            // Try to reconnect
+            setTimeout(function() {
+                connection.start().catch(function (err) {
+                    console.error("Error reconnecting:", err.toString());
+                });
+            }, 5000);
+        });
 
         connection.start().then(function () {
             console.log("SignalR Connected");
@@ -62,11 +98,23 @@
             });
         }).catch(function (err) {
             console.error("SignalR connection error:", err.toString());
-            alert("Không thể kết nối đến server chat. Vui lòng refresh trang.");
+            // Don't show alert immediately, let auto-reconnect handle it
         });
 
         connection.on("ReceiveMessage", function (data) {
             const messagesList = document.getElementById("messagesList");
+            
+            // Check if message already exists (avoid duplicates)
+            const existingMessages = Array.from(messagesList.children);
+            const messageExists = existingMessages.some(msgDiv => {
+                const messageText = msgDiv.querySelector('div:last-of-type')?.textContent;
+                return messageText && messageText.trim() === data.message.trim();
+            });
+            
+            if (messageExists) {
+                return; // Skip duplicate message
+            }
+            
             const messageDiv = document.createElement("div");
             messageDiv.className = "mb-3 " + (data.senderType === "customer" ? "text-end" : "text-start");
             

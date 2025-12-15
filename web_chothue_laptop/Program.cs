@@ -21,8 +21,15 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add SignalR
-builder.Services.AddSignalR();
+// Add SignalR with optimized settings for real-time chat
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+    options.KeepAliveInterval = TimeSpan.FromSeconds(5); // Send keep-alive every 5 seconds
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30); // Client timeout after 30 seconds
+    options.HandshakeTimeout = TimeSpan.FromSeconds(10); // Handshake timeout
+    options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB max message size
+});
 
 // Add Redis
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
