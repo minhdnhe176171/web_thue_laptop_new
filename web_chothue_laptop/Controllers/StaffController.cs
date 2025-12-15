@@ -350,11 +350,108 @@ namespace web_chothue_laptop.Controllers
                 return View(model);
             }
         }
+        // ==========================================
+        // GIAO MÁY NHANH (QUICK HANDOVER) - Mới thêm
+        // ==========================================
 
+        [HttpGet]
+        public async Task<IActionResult> QuickHandover(long? searchBookingId)
+        {
+            // Nếu chưa nhập gì thì trả về view rỗng
+            if (searchBookingId == null)
+            {
+                return View(null);
+            }
+
+            // Tìm kiếm Booking kèm thông tin Customer, Laptop, Status
+            var booking = await _context.Bookings
+                .Include(b => b.Customer)
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == searchBookingId);
+
+            // Xử lý thông báo lỗi
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = $"Không tìm thấy đơn hàng #{searchBookingId}";
+                return View(null);
+            }
+
+            // Kiểm tra trạng thái (Chỉ cho phép StatusId = 2 là Approved)
+            if (booking.StatusId != 2)
+            {
+                if (booking.StatusId == 10)
+                    TempData["WarningMessage"] = $"Đơn hàng #{searchBookingId} đã được giao (Rented) rồi!";
+                else
+                    TempData["ErrorMessage"] = $"Đơn hàng đang ở trạng thái '{booking.Status?.StatusName}'. Chỉ đơn 'Approved' mới được giao máy.";
+            }
+
+            return View(booking);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmHandover(long bookingId)
+        {
+            var booking = await _context.Bookings.FindAsync(bookingId);
+
+            // Check lại lần cuối
+            if (booking == null || booking.StatusId != 2)
+            {
+                TempData["ErrorMessage"] = "Đơn hàng không hợp lệ hoặc trạng thái đã thay đổi.";
+                return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
+            }
+
+            try
+            {
+                // 1. Cập nhật trạng thái Booking -> 10 (Rented)
+                booking.StatusId = 10;
+                booking.UpdatedDate = DateTime.Now;
+
+                // 2. Tạo phiếu BookingReceipt
+                // Lấy Staff ID từ session hoặc mặc định là 1 nếu null
+                long staffId = 1;
+                var userId = HttpContext.Session.GetString("UserId");
+                if (!string.IsNullOrEmpty(userId) && long.TryParse(userId, out long parsedId))
+                {
+                    // Logic map StaffId của bạn (nếu bảng Staff khác bảng Account)
+                    // Ở đây tạm thời để staffId = 1 để code chạy được ngay
+                    staffId = 1;
+                }
+
+                var receipt = new BookingReceipt
+                {
+                    BookingId = booking.Id,
+                    CustomerId = booking.CustomerId,
+                    StaffId = staffId,
+                    StartTime = booking.StartTime,
+                    EndTime = booking.EndTime,
+                    TotalPrice = booking.TotalPrice ?? 0,
+                    LateFee = 0,
+                    LateMinutes = 0,
+                    CreatedDate = DateTime.Now
+                };
+
+                _context.BookingReceipts.Add(receipt);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Giao máy thành công đơn #{bookingId}. Đã tạo phiếu thu!";
+
+                // Reset trang để làm đơn tiếp theo
+                return RedirectToAction(nameof(QuickHandover));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi giao máy nhanh");
+                TempData["ErrorMessage"] = "Lỗi hệ thống khi lưu dữ liệu.";
+                return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
+            }
+        }
         // ==========================================
         // QUẢN LÝ MÁY ĐANG ĐƯỢC THUÊ
         // ==========================================
-        
+
         /// <summary>
         /// Danh sách laptop đang được thuê
         /// </summary>
