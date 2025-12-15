@@ -212,6 +212,9 @@ public partial class Swp391LaptopContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("CREATED_DATE");
+            entity.Property(e => e.EndTime)
+                .HasColumnType("datetime")
+                .HasColumnName("END_TIME");
             entity.Property(e => e.ImageUrl).HasColumnName("IMAGE_URL");
             entity.Property(e => e.ManagerId).HasColumnName("MANAGER_ID");
             entity.Property(e => e.Name)

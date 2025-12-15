@@ -45,13 +45,6 @@ namespace web_chothue_laptop.Controllers
                 return NotFound();
             }
 
-            // Kiểm tra laptop có sẵn không
-            if (laptop.Status?.StatusName?.ToLower() != "available")
-            {
-                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
-                return RedirectToAction("Details", "Laptop", new { id = id });
-            }
-
             // Lấy Customer từ UserId
             var userIdLong = long.Parse(userId);
             var customer = await _context.Customers
@@ -78,17 +71,16 @@ namespace web_chothue_laptop.Controllers
                     .Include(b => b.Status)
                     .Where(b => b.CustomerId == customer.Id 
                         && b.LaptopId == laptop.Id 
-                        && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                        && (b.StatusId == 2 || b.StatusId == 10)
                         && b.EndTime >= DateTime.Today)
                     .FirstOrDefaultAsync();
             }
 
-            // Kiểm tra có active booking không
-            if (booking == null || booking.Status == null || 
-                (booking.Status.StatusName.ToLower() != "approved" && booking.Status.StatusName.ToLower() != "rented") || 
+            // Kiểm tra có active booking không - chỉ khi đang thuê mới được báo lỗi
+            if (booking == null || booking.StatusId != 2 && booking.StatusId != 10 || 
                 booking.EndTime < DateTime.Today)
             {
-                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
+                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi bạn đang thuê sản phẩm này.";
                 return RedirectToAction("Details", "Laptop", new { id = id });
             }
 
@@ -126,13 +118,6 @@ namespace web_chothue_laptop.Controllers
             if (laptop == null)
             {
                 return NotFound();
-            }
-
-            // Kiểm tra laptop có sẵn không
-            if (laptop.Status?.StatusName?.ToLower() != "available")
-            {
-                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
-                return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
             }
 
             ViewBag.Laptop = laptop;
@@ -183,16 +168,15 @@ namespace web_chothue_laptop.Controllers
                     .Include(b => b.Status)
                     .Where(b => b.CustomerId == customer2.Id 
                         && b.LaptopId == laptop.Id 
-                        && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                        && (b.StatusId == 2 || b.StatusId == 10)
                         && b.EndTime >= DateTime.Today)
                     .FirstOrDefaultAsync();
             }
 
-            if (booking == null || booking.Status == null || 
-                (booking.Status.StatusName.ToLower() != "approved" && booking.Status.StatusName.ToLower() != "rented") || 
+            if (booking == null || booking.StatusId != 2 && booking.StatusId != 10 || 
                 booking.EndTime < DateTime.Today)
             {
-                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi laptop có sẵn và bạn đang thuê sản phẩm này.";
+                TempData["ErrorMessage"] = "Chỉ có thể báo lỗi khi bạn đang thuê sản phẩm này.";
                 return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
             }
 
@@ -202,11 +186,32 @@ namespace web_chothue_laptop.Controllers
                 model.BookingId = booking.Id;
             }
 
-            // Lấy Staff có StaffId = 6 (staff mới được tạo)
-            var staff = await _context.Staff.FirstOrDefaultAsync(s => s.StaffId == 6);
+            // Lấy Technical từ User có role "technical" để xử lý ticket
+            var technicalRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == "technical");
+            if (technicalRole == null)
+            {
+                TempData["ErrorMessage"] = "Lỗi hệ thống. Không tìm thấy role technical.";
+                return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
+            }
+
+            // Lấy User có role technical
+            var technicalUser = await _context.Users
+                .Include(u => u.Technicals)
+                .FirstOrDefaultAsync(u => u.RoleId == technicalRole.Id);
+
+            if (technicalUser == null || !technicalUser.Technicals.Any())
+            {
+                TempData["ErrorMessage"] = "Lỗi hệ thống. Không tìm thấy kỹ thuật viên để xử lý.";
+                return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
+            }
+
+            var technical = technicalUser.Technicals.First();
+
+            // Lấy Staff để gán vào StaffId (required field) - có thể lấy staff đầu tiên hoặc staff mặc định
+            var staff = await _context.Staff.FirstOrDefaultAsync();
             if (staff == null)
             {
-                TempData["ErrorMessage"] = "Lỗi hệ thống. Không tìm thấy nhân viên xử lý.";
+                TempData["ErrorMessage"] = "Lỗi hệ thống. Không tìm thấy nhân viên.";
                 return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
             }
 
@@ -226,41 +231,32 @@ namespace web_chothue_laptop.Controllers
                 }
             }
 
-            // Lấy StatusId cho ticket mới (pending)
-            var statusId = await GetStatusIdAsync("pending");
-            if (statusId == null)
-            {
-                TempData["ErrorMessage"] = "Lỗi hệ thống. Vui lòng thử lại sau.";
-                return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
-            }
-
-            // Tạo TechnicalTicket placeholder (bắt buộc vì TechnicalTicketId là required)
-            // Staff sẽ cập nhật hoặc tạo TechnicalTicket mới khi xử lý
+            // Tạo TechnicalTicket với StatusId = 1 (Pending) và gán Technical để xử lý
             var technicalTicket = new TechnicalTicket
             {
                 LaptopId = model.LaptopId,
                 BookingId = model.BookingId,
-                StaffId = staff.Id,
-                Description = "Chờ Staff xử lý - Ticket từ Customer", // Placeholder, Staff sẽ cập nhật
-                StatusId = statusId.Value,
+                StaffId = staff.Id, // Required field
+                TechnicalId = technical.Id, // Gán Technical để xử lý
+                Description = model.Description, // Mô tả lỗi từ Customer
+                StatusId = 1, // Pending (ID 1)
                 CreatedDate = DateTime.Now
             };
 
             _context.TechnicalTickets.Add(technicalTicket);
             await _context.SaveChangesAsync();
 
-            // Chỉ tạo TicketList - gửi cho Staff xử lý
-            // Staff sẽ xử lý và cập nhật TechnicalTicket sau
+            // Tạo TicketList với StatusId = 1 (Pending)
             var ticketList = new TicketList
             {
                 CustomerId = customer2.Id,
                 StaffId = staff.Id,
                 LaptopId = model.LaptopId,
-                TechnicalTicketId = technicalTicket.Id, // Link với TechnicalTicket placeholder
+                TechnicalTicketId = technicalTicket.Id,
                 Description = model.Description, // Mô tả lỗi từ Customer
                 ErrorImageUrl = errorImageUrl,
-                FixedCost = 0, // Sẽ được cập nhật sau khi xử lý
-                StatusId = statusId.Value,
+                FixedCost = 0, // Bỏ qua logic chi phí
+                StatusId = 1, // Pending (ID 1)
                 CreatedDate = DateTime.Now
             };
 
@@ -271,11 +267,153 @@ namespace web_chothue_laptop.Controllers
             return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
         }
 
+        // GET: Ticket/MyTickets - Lịch sử báo lỗi
+        public async Task<IActionResult> MyTickets()
+        {
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem lịch sử báo lỗi.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy tất cả ticket của customer này, sắp xếp theo ngày tạo mới nhất
+            var tickets = await _context.TicketLists
+                .Include(t => t.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(t => t.Status)
+                .Include(t => t.TechnicalTicket)
+                    .ThenInclude(tt => tt.Status)
+                .Where(t => t.CustomerId == customer.Id)
+                .OrderByDescending(t => t.CreatedDate)
+                .ToListAsync();
+
+            ViewBag.Tickets = tickets;
+            ViewBag.CustomerId = customer.Id;
+
+            return View();
+        }
+
+        // GET: Ticket/Details/5 - Chi tiết ticket
+        public async Task<IActionResult> Details(long? id)
+        {
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem chi tiết ticket.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy ticket với đầy đủ thông tin (bao gồm Technical)
+            var ticket = await _context.TicketLists
+                .Include(t => t.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(t => t.Status)
+                .Include(t => t.TechnicalTicket)
+                    .ThenInclude(tt => tt.Status)
+                .Include(t => t.TechnicalTicket)
+                    .ThenInclude(tt => tt.Technical)
+                .FirstOrDefaultAsync(t => t.Id == id && t.CustomerId == customer.Id);
+
+            if (ticket == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy ticket.";
+                return RedirectToAction("MyTickets");
+            }
+
+            // Lấy timeline trạng thái từ TechnicalTicket
+            var statusHistory = new List<StatusHistoryItem>();
+            
+            // Pending (1) - Mặc định khi tạo
+            statusHistory.Add(new StatusHistoryItem
+            {
+                StatusId = 1,
+                StatusName = "Pending",
+                StatusVi = "Mới tạo",
+                IsActive = ticket.TechnicalTicket?.StatusId == 1,
+                IsCompleted = ticket.TechnicalTicket?.StatusId > 1
+            });
+
+            // Approved (2)
+            statusHistory.Add(new StatusHistoryItem
+            {
+                StatusId = 2,
+                StatusName = "Approved",
+                StatusVi = "Kỹ thuật đã nhận",
+                IsActive = ticket.TechnicalTicket?.StatusId == 2,
+                IsCompleted = ticket.TechnicalTicket?.StatusId > 2
+            });
+
+            // Fixing (4)
+            statusHistory.Add(new StatusHistoryItem
+            {
+                StatusId = 4,
+                StatusName = "Fixing",
+                StatusVi = "Đang sửa",
+                IsActive = ticket.TechnicalTicket?.StatusId == 4,
+                IsCompleted = ticket.TechnicalTicket?.StatusId > 4
+            });
+
+            // Fixed (5)
+            statusHistory.Add(new StatusHistoryItem
+            {
+                StatusId = 5,
+                StatusName = "Fixed",
+                StatusVi = "Đã sửa xong",
+                IsActive = ticket.TechnicalTicket?.StatusId == 5,
+                IsCompleted = ticket.TechnicalTicket?.StatusId == 5
+            });
+
+            ViewBag.Ticket = ticket;
+            ViewBag.StatusHistory = statusHistory;
+
+            return View();
+        }
+
         private async Task<long?> GetStatusIdAsync(string statusName)
         {
             var status = await _context.Statuses.FirstOrDefaultAsync(s => s.StatusName.ToLower() == statusName.ToLower());
             return status?.Id;
         }
+    }
+
+    // Helper class cho Status History
+    public class StatusHistoryItem
+    {
+        public long StatusId { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public string StatusVi { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public bool IsCompleted { get; set; }
     }
 }
 
