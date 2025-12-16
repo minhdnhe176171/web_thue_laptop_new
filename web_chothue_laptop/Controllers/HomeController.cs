@@ -20,17 +20,17 @@ namespace web_chothue_laptop.Controllers
         {
             int pageIndex = page ?? 1;
             
-            // Lấy danh sách laptop ID đang có người thuê (active booking)
+            // Lấy TẤT CẢ laptop ID đang có người thuê (bất kỳ user nào) - StatusId = 2 (Approved) hoặc 10 (Rented)
+            // Điều kiện: StartTime <= hiện tại và EndTime >= hôm nay (đang trong thời gian thuê)
             var rentedLaptopIds = await _context.Bookings
-                .Include(b => b.Status)
                 .Where(b => (b.StatusId == 2 || b.StatusId == 10)
                     && b.StartTime <= DateTime.Now 
-                    && b.EndTime >= DateTime.Now)
+                    && b.EndTime >= DateTime.Today)
                 .Select(b => b.LaptopId)
                 .Distinct()
                 .ToListAsync();
             
-            // Lấy laptop có sẵn và không có người đang thuê
+            // Lấy laptop có sẵn và KHÔNG có người đang thuê (bất kỳ ai)
             var allLaptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)

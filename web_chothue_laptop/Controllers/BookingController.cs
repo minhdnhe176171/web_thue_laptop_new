@@ -88,14 +88,28 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Details", "Laptop", new { id = id });
             }
 
+            // Tính toán thời gian có thể thuê dựa trên Laptop.EndTime (thời gian student muốn trả máy)
+            DateTime? availableStartDate = DateTime.Today;
+            DateTime? availableEndDate = null;
+            
+            if (laptop.EndTime.HasValue)
+            {
+                // Ngày trả tối đa = EndTime của student - 1 ngày
+                availableEndDate = laptop.EndTime.Value.Date.AddDays(-1);
+            }
+
             var model = new BookingViewModel
             {
                 LaptopId = laptop.Id,
                 Laptop = laptop,
                 StartDate = DateTime.Today,
-                EndDate = DateTime.Today.AddDays(1),
+                StartTime = "09:00",
+                EndDate = availableEndDate ?? DateTime.Today.AddDays(1),
                 PricePerDay = laptop.Price
             };
+
+            ViewBag.AvailableStartDate = availableStartDate;
+            ViewBag.AvailableEndDate = availableEndDate;
 
             return View(model);
         }
@@ -124,15 +138,45 @@ namespace web_chothue_laptop.Controllers
                 return NotFound();
             }
 
-            // Validate ngày
+            // Validate ngày nhận - phải >= thời gian thực
             if (model.StartDate < DateTime.Today)
             {
-                ModelState.AddModelError("StartDate", "Ngày nhận không được ở quá khứ");
+                ModelState.AddModelError("StartDate", "Ngày nhận không được ở quá khứ. Vui lòng chọn từ hôm nay trở đi.");
             }
 
+            // Validate giờ nhận - từ 7h sáng đến 21h tối
+            if (!string.IsNullOrEmpty(model.StartTime))
+            {
+                if (TimeSpan.TryParse(model.StartTime, out TimeSpan time))
+                {
+                    var hour = time.Hours;
+                    if (hour < 7 || hour > 21)
+                    {
+                        ModelState.AddModelError("StartTime", "Giờ nhận máy phải trong khoảng từ 7h sáng đến 21h tối. Nếu chọn ngoài khoảng thời gian này, đơn hàng sẽ không được duyệt.");
+                    }
+                }
+                else
+                {
+                    ModelState.AddModelError("StartTime", "Giờ nhận máy không hợp lệ.");
+                }
+            }
+
+            // Validate ngày trả - phải sau ngày nhận
             if (model.EndDate <= model.StartDate)
             {
                 ModelState.AddModelError("EndDate", "Ngày trả phải sau ngày nhận");
+            }
+
+            // Validate ngày trả với thời gian student muốn trả máy
+            if (model.Laptop.EndTime.HasValue)
+            {
+                // Ngày trả tối đa của customer = EndTime của student - 1 ngày
+                var maxEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
+                
+                if (model.EndDate >= model.Laptop.EndTime.Value.Date)
+                {
+                    ModelState.AddModelError("EndDate", $"Ngày trả máy phải nhỏ hơn ngày student muốn nhận lại máy ({model.Laptop.EndTime.Value.Date:dd/MM/yyyy}). Ngày trả tối đa là {maxEndDate:dd/MM/yyyy}.");
+                }
             }
 
             if (!model.AgreeToTerms)
@@ -143,6 +187,17 @@ namespace web_chothue_laptop.Controllers
             if (!ModelState.IsValid)
             {
                 model.PricePerDay = model.Laptop.Price;
+                
+                // Tính lại thời gian có thể thuê
+                DateTime? availableStartDate = DateTime.Today;
+                DateTime? availableEndDate = null;
+                if (model.Laptop.EndTime.HasValue)
+                {
+                    availableEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
+                }
+                ViewBag.AvailableStartDate = availableStartDate;
+                ViewBag.AvailableEndDate = availableEndDate;
+                
                 return View(model);
             }
 
@@ -172,6 +227,17 @@ namespace web_chothue_laptop.Controllers
             {
                 ModelState.AddModelError("", "Bạn đã có một đơn đặt thuê laptop này đang chờ duyệt. Vui lòng chờ đơn được xử lý trước khi đặt thuê lại.");
                 model.PricePerDay = model.Laptop.Price;
+                
+                // Tính lại thời gian có thể thuê
+                DateTime? availableStartDate = DateTime.Today;
+                DateTime? availableEndDate = null;
+                if (model.Laptop.EndTime.HasValue)
+                {
+                    availableEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
+                }
+                ViewBag.AvailableStartDate = availableStartDate;
+                ViewBag.AvailableEndDate = availableEndDate;
+                
                 return View(model);
             }
 
@@ -189,6 +255,17 @@ namespace web_chothue_laptop.Controllers
             {
                 ModelState.AddModelError("", $"Bạn đang có một đơn đặt thuê laptop này đang hoạt động (từ {activeBooking.StartTime:dd/MM/yyyy} đến {activeBooking.EndTime:dd/MM/yyyy}). Vui lòng hoàn thành việc trả máy trước khi đặt thuê lại.");
                 model.PricePerDay = model.Laptop.Price;
+                
+                // Tính lại thời gian có thể thuê
+                DateTime? availableStartDate = DateTime.Today;
+                DateTime? availableEndDate = null;
+                if (model.Laptop.EndTime.HasValue)
+                {
+                    availableEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
+                }
+                ViewBag.AvailableStartDate = availableStartDate;
+                ViewBag.AvailableEndDate = availableEndDate;
+                
                 return View(model);
             }
 
@@ -200,13 +277,24 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Details", "Laptop", new { id = model.LaptopId });
             }
 
+            // Tạo StartTime từ StartDate + StartTime (giờ)
+            DateTime startDateTime;
+            if (!string.IsNullOrEmpty(model.StartTime) && TimeSpan.TryParse(model.StartTime, out TimeSpan startTimeSpan))
+            {
+                startDateTime = model.StartDate.Date.Add(startTimeSpan);
+            }
+            else
+            {
+                startDateTime = model.StartDate.Date.AddHours(9); // Mặc định 9h sáng
+            }
+
             // Tạo booking
             var booking = new Booking
             {
                 CustomerId = customer.Id,
                 LaptopId = model.LaptopId,
-                StartTime = model.StartDate,
-                EndTime = model.EndDate,
+                StartTime = startDateTime,
+                EndTime = model.EndDate.Date.AddHours(23).AddMinutes(59).AddSeconds(59), // Cuối ngày trả
                 TotalPrice = totalPrice,
                 StatusId = statusId.Value,
                 CreatedDate = DateTime.Now

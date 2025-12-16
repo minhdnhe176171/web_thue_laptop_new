@@ -49,15 +49,67 @@
 
                         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
+                        @{
+                            var availableStartDate = ViewBag.AvailableStartDate as DateTime? ?? DateTime.Today;
+                            var availableEndDate = ViewBag.AvailableEndDate as DateTime?;
+                            var maxEndDate = availableEndDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.AddDays(30).ToString("yyyy-MM-dd");
+                        }
+
+                        @if (Model.Laptop?.EndTime.HasValue == true)
+                        {
+                            <div class="alert alert-info mb-3">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-calendar-check"></i> Thời gian có thể thuê
+                                </h6>
+                                <p class="mb-0">
+                                    <strong>Từ:</strong> @availableStartDate.ToString("dd/MM/yyyy") 
+                                    <strong>Đến:</strong> @(availableEndDate?.ToString("dd/MM/yyyy") ?? "Không giới hạn")
+                                </p>
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i> Ngày trả tối đa là @(availableEndDate?.ToString("dd/MM/yyyy") ?? "N/A") (trước 1 ngày so với ngày student muốn nhận lại máy: @Model.Laptop.EndTime.Value.Date.ToString("dd/MM/yyyy"))
+                                </small>
+                            </div>
+                        }
+
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label asp-for="StartDate" class="form-label"></label>
-                                <input asp-for="StartDate" type="date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" id="startDate" />
+                                <label asp-for="StartDate" class="form-label">
+                                    <i class="bi bi-calendar"></i> Ngày nhận máy
+                                </label>
+                                <input asp-for="StartDate" type="date" class="form-control" 
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")" 
+                                       max="@maxEndDate"
+                                       id="startDate" 
+                                       required />
                                 <span asp-validation-for="StartDate" class="text-danger"></span>
                             </div>
                             <div class="col-md-6">
-                                <label asp-for="EndDate" class="form-label"></label>
-                                <input asp-for="EndDate" type="date" class="form-control" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" id="endDate" />
+                                <label asp-for="StartTime" class="form-label">
+                                    <i class="bi bi-clock"></i> Giờ nhận máy
+                                </label>
+                                <input asp-for="StartTime" type="time" class="form-control" 
+                                       id="startTime" 
+                                       required />
+                                <small class="text-muted">Từ 7h sáng đến 21h tối. Nếu chọn ngoài khoảng này, đơn hàng sẽ không được duyệt.</small>
+                                <span asp-validation-for="StartTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label asp-for="EndDate" class="form-label">
+                                    <i class="bi bi-calendar-x"></i> Ngày trả máy
+                                </label>
+                                <input asp-for="EndDate" type="date" class="form-control" 
+                                       min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" 
+                                       max="@maxEndDate"
+                                       id="endDate" 
+                                       required />
+                                @if (availableEndDate.HasValue)
+                                {
+                                    <small class="text-muted">
+                                        Ngày trả tối đa: <strong>@availableEndDate.Value.ToString("dd/MM/yyyy")</strong>
+                                    </small>
+                                }
                                 <span asp-validation-for="EndDate" class="text-danger"></span>
                             </div>
                         </div>
@@ -141,7 +193,17 @@
                         <p class="mb-2"><strong>Hãng:</strong> @(Model.Laptop.Brand?.BrandName ?? "N/A")</p>
                         @if (Model.Laptop.Price.HasValue)
                         {
-                            <p class="mb-0"><strong>Giá thuê/ngày:</strong> <span class="text-primary fw-bold">@Model.Laptop.Price.Value.ToString("N0") VNĐ</span></p>
+                            <p class="mb-2"><strong>Giá thuê/ngày:</strong> <span class="text-primary fw-bold">@Model.Laptop.Price.Value.ToString("N0") VNĐ</span></p>
+                        }
+                        @if (Model.Laptop.EndTime.HasValue)
+                        {
+                            var availableEndDate = Model.Laptop.EndTime.Value.Date.AddDays(-1);
+                            <p class="mb-0">
+                                <strong>Thời gian có thể thuê:</strong><br>
+                                <small class="text-info">
+                                    Từ @DateTime.Today.ToString("dd/MM/yyyy") đến @availableEndDate.ToString("dd/MM/yyyy")
+                                </small>
+                            </p>
                         }
                     </div>
                 </div>
@@ -183,6 +245,37 @@
                 $('#totalPriceDisplay').text(totalPrice.toLocaleString('vi-VN') + ' VNĐ');
             }
 
+            // Validate giờ nhận máy
+            $('#startTime').on('change', function() {
+                var time = $(this).val();
+                if (time) {
+                    var hour = parseInt(time.split(':')[0]);
+                    if (hour < 7 || hour > 21) {
+                        alert('Giờ nhận máy phải trong khoảng từ 7h sáng đến 21h tối. Nếu chọn ngoài khoảng này, đơn hàng sẽ không được duyệt.');
+                        $(this).val('09:00'); // Reset về 9h
+                    }
+                }
+            });
+
+            // Validate ngày trả với ngày student muốn nhận lại máy
+            @if (Model.Laptop?.EndTime.HasValue == true)
+            {
+                var maxEndDate = Model.Laptop.EndTime.Value.Date.AddDays(-1);
+                <text>
+                $('#endDate').on('change', function() {
+                    var endDate = new Date($(this).val());
+                    var maxDate = new Date('@maxEndDate.ToString("yyyy-MM-dd")');
+                    var studentReturnDate = new Date('@Model.Laptop.EndTime.Value.Date.ToString("yyyy-MM-dd")');
+                    
+                    if (endDate >= studentReturnDate) {
+                        alert('Ngày trả máy phải nhỏ hơn ngày student muốn nhận lại máy (@Model.Laptop.EndTime.Value.Date.ToString("dd/MM/yyyy")). Ngày trả tối đa là @maxEndDate.ToString("dd/MM/yyyy")');
+                        $(this).val('@maxEndDate.ToString("yyyy-MM-dd")');
+                        calculatePrice();
+                    }
+                });
+                </text>
+            }
+
             $('#startDate, #endDate').on('change', function() {
                 calculatePrice();
             });
@@ -192,6 +285,7 @@
         });
     </script>
 }
+
 
 
 

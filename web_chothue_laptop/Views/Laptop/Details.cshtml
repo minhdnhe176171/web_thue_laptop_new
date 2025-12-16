@@ -61,6 +61,19 @@
                                 <span class="text-muted">Chưa có giá</span>
                             }
                         </div>
+                        @if (Model.EndTime.HasValue)
+                        {
+                            var availableEndDate = Model.EndTime.Value.Date.AddDays(-1);
+                            <div class="col-12 mb-2">
+                                <strong>Thời gian có thể thuê:</strong>
+                                <span class="text-info fw-bold">
+                                    Từ @DateTime.Today.ToString("dd/MM/yyyy") đến @availableEndDate.ToString("dd/MM/yyyy")
+                                </span>
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-info-circle"></i> Ngày trả tối đa: @availableEndDate.ToString("dd/MM/yyyy") (trước 1 ngày so với ngày student muốn nhận lại máy: @Model.EndTime.Value.Date.ToString("dd/MM/yyyy"))
+                                </small>
+                            </div>
+                        }
                     </div>
                     <div class="mt-3">
                         @{

@@ -14,6 +14,10 @@ namespace web_chothue_laptop.ViewModels
         [Display(Name = "Ngày nhận")]
         public DateTime StartDate { get; set; } = DateTime.Today;
 
+        [Required(ErrorMessage = "Giờ nhận là bắt buộc")]
+        [Display(Name = "Giờ nhận")]
+        public string StartTime { get; set; } = "09:00";
+
         [Required(ErrorMessage = "Ngày trả là bắt buộc")]
         [DataType(DataType.Date)]
         [Display(Name = "Ngày trả")]
@@ -32,6 +36,9 @@ namespace web_chothue_laptop.ViewModels
         public bool AgreeToTerms { get; set; }
     }
 }
+
+
+
 
 
 
