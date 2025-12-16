@@ -65,7 +65,7 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Status)
                 .FirstOrDefaultAsync(b => b.CustomerId == customer.Id 
                     && b.LaptopId == laptop.Id 
-                    && b.Status.StatusName.ToLower() == "pending");
+                    && b.StatusId == 1);
 
             if (pendingBooking != null)
             {
@@ -78,7 +78,7 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Status)
                 .Where(b => b.CustomerId == customer.Id 
                     && b.LaptopId == laptop.Id 
-                    && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                    && (b.StatusId == 2 || b.StatusId == 10)
                     && b.EndTime >= DateTime.Today)
                 .FirstOrDefaultAsync();
 
@@ -166,7 +166,7 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Status)
                 .FirstOrDefaultAsync(b => b.CustomerId == customer.Id 
                     && b.LaptopId == model.LaptopId 
-                    && b.Status.StatusName.ToLower() == "pending");
+                    && b.StatusId == 1);
 
             if (pendingBooking != null)
             {
@@ -181,7 +181,7 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Status)
                 .Where(b => b.CustomerId == customer.Id 
                     && b.LaptopId == model.LaptopId 
-                    && (b.Status.StatusName.ToLower() == "approved" || b.Status.StatusName.ToLower() == "rented")
+                    && (b.StatusId == 2 || b.StatusId == 10)
                     && b.EndTime >= DateTime.Today)
                 .FirstOrDefaultAsync();
 
@@ -245,6 +245,184 @@ namespace web_chothue_laptop.Controllers
                 totalPrice = totalPrice 
             });
         }
+
+        // GET: Booking/MyBookings - Trang theo dõi đơn thuê
+        public async Task<IActionResult> MyBookings()
+        {
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem đơn thuê của bạn.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy tất cả booking của customer này, sắp xếp theo ngày tạo mới nhất
+            var allBookings = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .Where(b => b.CustomerId == customer.Id)
+                .OrderByDescending(b => b.CreatedDate)
+                .ToListAsync();
+
+            // Phân loại booking theo trạng thái
+            var pendingBookings = allBookings
+                .Where(b => b.StatusId == 1)
+                .ToList();
+
+            var approvedBookings = allBookings
+                .Where(b => b.StatusId == 2)
+                .ToList();
+
+            var rentedBookings = allBookings
+                .Where(b => b.StatusId == 10)
+                .ToList();
+
+            var completedBookings = allBookings
+                .Where(b => b.StatusId == 8)
+                .ToList();
+
+            var cancelledBookings = allBookings
+                .Where(b => b.StatusId == 3)
+                .ToList();
+
+            ViewBag.PendingBookings = pendingBookings;
+            ViewBag.ApprovedBookings = approvedBookings;
+            ViewBag.RentedBookings = rentedBookings;
+            ViewBag.CompletedBookings = completedBookings;
+            ViewBag.CancelledBookings = cancelledBookings;
+            ViewBag.CustomerId = customer.Id;
+
+            return View();
+        }
+
+        // GET: Booking/Payment/5 - Trang thanh toán và Phiếu Hẹn Nhận Máy
+        public async Task<IActionResult> Payment(long? id)
+        {
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem thông tin thanh toán.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy booking với đầy đủ thông tin
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == id && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Kiểm tra booking phải ở trạng thái Approved (StatusId = 2)
+            if (booking.StatusId != 2)
+            {
+                if (booking.StatusId == 10)
+                {
+                    TempData["SuccessMessage"] = "Đơn hàng của bạn đã được xác nhận thanh toán và đang trong quá trình thuê. Cảm ơn quý khách!";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể thanh toán.";
+                }
+                return RedirectToAction("MyBookings");
+            }
+
+            ViewBag.Booking = booking;
+            ViewBag.CustomerId = customer.Id;
+
+            return View();
+        }
+
+        // GET: Booking/CheckPaymentStatus/5 - Kiểm tra trạng thái thanh toán
+        public async Task<IActionResult> CheckPaymentStatus(long? id)
+        {
+            if (id == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
+            }
+
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập." });
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy thông tin khách hàng." });
+            }
+
+            // Lấy booking
+            var booking = await _context.Bookings
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == id && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
+            }
+
+            // Kiểm tra nếu đã chuyển sang Rented (StatusId = 10)
+            if (booking.StatusId == 10)
+            {
+                return Json(new 
+                { 
+                    success = true, 
+                    status = "rented",
+                    message = "Đã xác nhận giao dịch thành công. Vui lòng trả máy đúng hạn. Cảm ơn quý khách!" 
+                });
+            }
+
+            // Vẫn còn ở trạng thái Approved
+            return Json(new 
+            { 
+                success = true, 
+                status = "approved",
+                message = "Đang chờ Staff xác nhận thanh toán..." 
+            });
+        }
+
 
         private async Task<long?> GetStatusIdAsync(string statusName)
         {

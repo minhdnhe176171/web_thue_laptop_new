@@ -11,7 +11,7 @@
                     <h3 class="mb-0"><i class="fas fa-laptop-code me-2"></i>Tạo laptop cho thuê</h3>
                 </div>
                 <div class="card-body">
-                    <form asp-action="Create" method="post" id="createLaptopForm">
+                    <form asp-action="Create" method="post" enctype="multipart/form-data" id="createLaptopForm">
                         @Html.AntiForgeryToken()
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                         
@@ -48,14 +48,14 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">
-                                Giá thuê/ngày <span class="text-danger">*</span>
+                                Giá mong muốn/ngày <span class="text-danger">*</span>
                             </label>
                             <div class="row g-2">
                                 <div class="col-md-4">
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="100000" class="form-check-input" id="price100k" />
                                         <label class="form-check-label" for="price100k">
-                                            <i class="fas fa-tag me-1"></i>70,000 đ
+                                            <i class="fas fa-tag me-1"></i>30,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -63,7 +63,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="200000" class="form-check-input" id="price200k" />
                                         <label class="form-check-label" for="price200k">
-                                            <i class="fas fa-tag me-1"></i>140,000 đ
+                                            <i class="fas fa-tag me-1"></i>70,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -71,7 +71,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="300000" class="form-check-input" id="price300k" />
                                         <label class="form-check-label" for="price300k">
-                                            <i class="fas fa-tag me-1"></i>210,000 đ
+                                            <i class="fas fa-tag me-1"></i>100,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -79,7 +79,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="400000" class="form-check-input" id="price400k" />
                                         <label class="form-check-label" for="price400k">
-                                            <i class="fas fa-tag me-1"></i>400,000 đ
+                                            <i class="fas fa-tag me-1"></i>140,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -87,7 +87,7 @@
                                     <div class="form-check">
                                         <input asp-for="Price" type="radio" value="500000" class="form-check-input" id="price500k" />
                                         <label class="form-check-label" for="price500k">
-                                            <i class="fas fa-tag me-1"></i>500,000 đ
+                                            <i class="fas fa-tag me-1"></i>180,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -105,6 +105,29 @@
                             <small class="form-text text-muted">
                                 <i class="fas fa-calendar-alt"></i> Thời gian đến hạn phải ít nhất 5 ngày kể từ hôm nay (từ @DateTime.Today.AddDays(5).ToString("dd/MM/yyyy") trở đi)
                             </small>
+                        </div>
+
+                        <!-- Upload ảnh -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-image"></i> Hình ảnh laptop
+                            </label>
+                            <input asp-for="ImageFile" type="file" class="form-control" id="imageInput" accept="image/*" />
+                            <span asp-validation-for="ImageFile" class="text-danger small"></span>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Chọn ảnh laptop (JPG, PNG, GIF - tối đa 5MB)
+                            </small>
+                            
+                            <!-- Preview ảnh -->
+                            <div id="imagePreview" class="mt-3" style="display: none;">
+                                <p class="fw-semibold mb-2">Xem trước:</p>
+                                <div class="position-relative d-inline-block">
+                                    <img id="previewImg" src="#" alt="Preview" class="img-thumbnail" style="max-width: 300px; max-height: 300px;" />
+                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2" id="removeImage">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Thông số kỹ thuật -->
@@ -195,33 +218,71 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+<partial name="_ValidationScriptsPartial" />
     
-    <script>
-        $(document).ready(function() {
-            // Handle brand selection
-            $('#brandSelect').on('change', function() {
-                var selectedBrand = $(this).find('option:selected').data('brand-name');
-                var $nameInput = $('#laptopName');
-                
-                if (selectedBrand) {
-                    // Update placeholder
-                    $nameInput.attr('placeholder', 'VD: ' + selectedBrand + ' Latitude 5420 i5 Gen 11');
-                    
-                    // Update hint
-                    $('#nameHint').html('<i class="fas fa-info-circle"></i> Tên laptop phải chứa "<strong>' + selectedBrand + '</strong>". Ví dụ: ' + selectedBrand + ' Latitude 5420');
-                    
-                    // Clear current name if it doesn't contain brand
-                    var currentName = $nameInput.val().trim();
-                    if (currentName && !currentName.toLowerCase().includes(selectedBrand.toLowerCase())) {
-                        $nameInput.val('');
-                    }
-                } else {
-                    $nameInput.attr('placeholder', 'Vui lòng chọn hãng trước');
-                 
-                    $('#nameHint').html('<i class="fas fa-info-circle"></i> Tên từ 5-200 ký tự, chỉ chữ cái, số, dấu cách và ký tự đặc biệt (-_.)');
+<script>
+    $(document).ready(function() {
+        // Image preview
+        $('#imageInput').on('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                // Validate file type
+                var validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Vui lòng chọn file ảnh (JPG, PNG, GIF)');
+                    $(this).val('');
+                    $('#imagePreview').hide();
+                    return;
                 }
-            });
+                    
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Kích thước ảnh không được vượt quá 5MB');
+                    $(this).val('');
+                    $('#imagePreview').hide();
+                    return;
+                }
+                    
+                // Show preview
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#previewImg').attr('src', e.target.result);
+                    $('#imagePreview').show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+            
+        // Remove image
+        $('#removeImage').on('click', function() {
+            $('#imageInput').val('');
+            $('#imagePreview').hide();
+            $('#previewImg').attr('src', '#');
+        });
+
+        // Handle brand selection
+        $('#brandSelect').on('change', function() {
+            var selectedBrand = $(this).find('option:selected').data('brand-name');
+            var $nameInput = $('#laptopName');
+                
+            if (selectedBrand) {
+                // Update placeholder
+                $nameInput.attr('placeholder', 'VD: ' + selectedBrand + ' Latitude 5420 i5 Gen 11');
+                    
+                // Update hint
+                $('#nameHint').html('<i class="fas fa-info-circle"></i> Tên laptop phải chứa "<strong>' + selectedBrand + '</strong>". Ví dụ: ' + selectedBrand + ' Latitude 5420');
+                    
+                // Clear current name if it doesn't contain brand
+                var currentName = $nameInput.val().trim();
+                if (currentName && !currentName.toLowerCase().includes(selectedBrand.toLowerCase())) {
+                    $nameInput.val('');
+                }
+            } else {
+                $nameInput.attr('placeholder', 'Vui lòng chọn hãng trước');
+                 
+                $('#nameHint').html('<i class="fas fa-info-circle"></i> Tên từ 5-200 ký tự, chỉ chữ cái, số, dấu cách và ký tự đặc biệt (-_.)');
+            }
+        });
 
             // Validate name contains brand
             $('#laptopName').on('blur', function() {

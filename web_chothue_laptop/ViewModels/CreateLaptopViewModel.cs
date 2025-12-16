@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace web_chothue_laptop.ViewModels
 {
@@ -26,6 +27,11 @@ namespace web_chothue_laptop.ViewModels
         [DataType(DataType.Date)]
         [Display(Name = "Thời gian đến hạn")]
         public DateTime? Deadline { get; set; }
+
+        [Display(Name = "Hình ảnh laptop")]
+        public IFormFile? ImageFile { get; set; }
+        
+        public string? ExistingImageUrl { get; set; }
 
         [StringLength(100, ErrorMessage = "CPU không được vượt quá 100 ký tự")]
         [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "CPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]

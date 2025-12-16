@@ -286,7 +286,11 @@ namespace web_chothue_laptop.Controllers
                                     else
                                     {
                                         var manager1 = user.Managers.FirstOrDefault();
+
                                         if (manager1!= null)
+
+                                        if (manager1 != null)
+
                                         {
                                             model.FirstName = manager1.FirstName;
                                             model.LastName = manager1.LastName;
@@ -390,9 +394,6 @@ namespace web_chothue_laptop.Controllers
                 // Nếu không tìm thấy bất kỳ record nào
                 ModelState.AddModelError("", "Không tìm thấy thông tin người dùng để cập nhật");
                 return View("Index", model);
-
-                TempData["SuccessMessage"] = "Cập nhật thông tin thành công";
-                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {

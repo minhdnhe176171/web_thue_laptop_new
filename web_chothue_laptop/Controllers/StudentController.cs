@@ -17,7 +17,7 @@ namespace web_chothue_laptop.Controllers
         }
 
         // Trang tổng quan - Tất cả laptop
-        public async Task<IActionResult> Index(string? search, int page = 1)
+        public async Task<IActionResult> Index(string? search, string? fromDate, string? toDate, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -36,6 +36,21 @@ namespace web_chothue_laptop.Controllers
                 ViewBag.Search = search;
             }
 
+            // Lọc theo ngày tạo
+            if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
+            {
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate >= from);
+                ViewBag.FromDate = fromDate;
+            }
+
+            if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
+            {
+                // Thêm 1 ngày để bao gồm cả ngày cuối
+                var toDateEnd = to.AddDays(1);
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate < toDateEnd);
+                ViewBag.ToDate = toDate;
+            }
+
             var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
 
             // Đếm số lượng theo từng trạng thái
@@ -47,7 +62,7 @@ namespace web_chothue_laptop.Controllers
         }
 
         // Trang Đang chờ xử lý
-        public async Task<IActionResult> Pending(string? search, int page = 1)
+        public async Task<IActionResult> Pending(string? search, string? fromDate, string? toDate, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -65,6 +80,19 @@ namespace web_chothue_laptop.Controllers
                 ViewBag.Search = search;
             }
 
+            if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
+            {
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate >= from);
+                ViewBag.FromDate = fromDate;
+            }
+
+            if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
+            {
+                var toDateEnd = to.AddDays(1);
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate < toDateEnd);
+                ViewBag.ToDate = toDate;
+            }
+
             var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
             await SetLaptopCountsAsync(student.Id);
 
@@ -74,7 +102,7 @@ namespace web_chothue_laptop.Controllers
         }
 
         // Trang Đã phê duyệt
-        public async Task<IActionResult> Approved(string? search, int page = 1)
+        public async Task<IActionResult> Approved(string? search, string? fromDate, string? toDate, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -92,6 +120,19 @@ namespace web_chothue_laptop.Controllers
                 ViewBag.Search = search;
             }
 
+            if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
+            {
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate >= from);
+                ViewBag.FromDate = fromDate;
+            }
+
+            if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
+            {
+                var toDateEnd = to.AddDays(1);
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate < toDateEnd);
+                ViewBag.ToDate = toDate;
+            }
+
             var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
             await SetLaptopCountsAsync(student.Id);
 
@@ -101,7 +142,7 @@ namespace web_chothue_laptop.Controllers
         }
 
         // Trang Bị từ chối
-        public async Task<IActionResult> Rejected(string? search, int page = 1)
+        public async Task<IActionResult> Rejected(string? search, string? fromDate, string? toDate, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
             if (student == null) return RedirectToLogin();
@@ -117,6 +158,19 @@ namespace web_chothue_laptop.Controllers
                     l.Name.Contains(search) || 
                     (l.Brand != null && l.Brand.BrandName.Contains(search)));
                 ViewBag.Search = search;
+            }
+
+            if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
+            {
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate >= from);
+                ViewBag.FromDate = fromDate;
+            }
+
+            if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
+            {
+                var toDateEnd = to.AddDays(1);
+                laptopsQuery = laptopsQuery.Where(l => l.CreatedDate < toDateEnd);
+                ViewBag.ToDate = toDate;
             }
 
             var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
@@ -223,6 +277,22 @@ namespace web_chothue_laptop.Controllers
                 ModelState.AddModelError(nameof(model.Deadline), "Vui lòng chọn thời gian đến hạn");
             }
 
+            // Validate image file nếu có
+            if (model.ImageFile != null)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(model.ImageFile.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(extension))
+                {
+                    ModelState.AddModelError(nameof(model.ImageFile), "Chỉ chấp nhận file ảnh (JPG, PNG, GIF)");
+                }
+                else if (model.ImageFile.Length > 5 * 1024 * 1024) // 5MB
+                {
+                    ModelState.AddModelError(nameof(model.ImageFile), "Kích thước ảnh không được vượt quá 5MB");
+                }
+            }
+
             // Validate thông số kỹ thuật (nếu có)
             if (!string.IsNullOrWhiteSpace(model.Cpu))
             {
@@ -287,16 +357,48 @@ namespace web_chothue_laptop.Controllers
                 return View(model);
             }
 
+            // Upload ảnh nếu có
+            string? imageUrl = null;
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
+            {
+                try
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.ImageFile.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await model.ImageFile.CopyToAsync(fileStream);
+                    }
+
+                    imageUrl = $"/images/laptops/{uniqueFileName}";
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error uploading image");
+                    ModelState.AddModelError(nameof(model.ImageFile), "Có lỗi khi upload ảnh. Vui lòng thử lại.");
+                    ViewBag.Brands = await _context.Brands.ToListAsync();
+                    return View(model);
+                }
+            }
+
             var laptop = new Laptop
             {
                 Name = model.Name,
-                BrandId = model.BrandId.Value,
+                BrandId = model.BrandId!.Value,
                 Price = model.Price,
                 StudentId = student.Id,
                 StatusId = pendingStatusId.Value,
                 CreatedDate = DateTime.Now,
                 UpdatedDate = DateTime.Now,
-                EndTime = model.Deadline  // Lưu deadline vào ENDTIME thay vì UPDATED_DATE
+                EndTime = model.Deadline,
+                ImageUrl = imageUrl
             };
 
             _context.Laptops.Add(laptop);
@@ -543,7 +645,7 @@ namespace web_chothue_laptop.Controllers
             }
 
             laptop.Name = model.Name;
-            laptop.BrandId = model.BrandId.Value;
+            laptop.BrandId = model.BrandId;
             laptop.Price = model.Price;
             laptop.UpdatedDate = DateTime.Now;  // Cập nhật thời gian sửa
             laptop.EndTime = model.Deadline;    // Lưu deadline vào ENDTIME
