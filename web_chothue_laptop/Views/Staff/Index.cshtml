@@ -4,7 +4,7 @@
 }
 
 <style>
-    /* Reset padding của container cha nếu có */
+    /* CSS Chung cho giao diện Staff */
     .container, .body-content {
         padding: 0 !important;
         margin: 0 !important;
@@ -13,13 +13,12 @@
 
     .staff-wrapper {
         display: flex;
-        min-height: calc(100vh - 60px); /* Trừ đi chiều cao ước lượng của header chính */
+        min-height: calc(100vh - 60px);
         background-color: #f8f9fa;
-        margin-top: -1.5rem; /* Kéo ngược lên để sát với header dịch vụ */
-        padding-top: 1.5rem; /* Bù lại padding bên trong */
+        margin-top: -1.5rem;
+        padding-top: 1.5rem;
     }
 
-    /* Sidebar Styles - MÀU XANH */
     .staff-sidebar {
         width: 260px;
         background: #fff;
@@ -30,7 +29,7 @@
     }
 
     .sidebar-header {
-        background-color: #0d6efd; /* Đổi sang MÀU XANH Bootstrap Primary */
+        background-color: #0d6efd;
         color: white;
         padding: 20px;
         font-weight: bold;
@@ -61,15 +60,13 @@
                 color: #0d6efd;
             }
 
-            /* Trạng thái Active - MÀU XANH */
             .sidebar-menu a.active {
-                background-color: #e7f1ff; /* Xanh nhạt */
-                color: #0d6efd; /* Chữ xanh đậm */
+                background-color: #e7f1ff;
+                color: #0d6efd;
                 font-weight: bold;
-                border-left-color: #0d6efd; /* Viền trái xanh */
+                border-left-color: #0d6efd;
             }
 
-    /* Nội dung chính */
     .staff-content {
         flex-grow: 1;
         padding: 30px;
@@ -86,17 +83,17 @@
             <a href="@Url.Action("Index", "Staff")" class="active">
                 <i class="fas fa-check-square"></i> Duyệt Đơn Thuê
             </a>
-
             <a href="@Url.Action("LaptopRequests", "Staff")">
                 <i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra
             </a>
-
             <a href="@Url.Action("RentedLaptops", "Staff")">
                 <i class="fas fa-list"></i> Máy Đang Thuê
             </a>
-
             <a href="@Url.Action("Deliveries", "Staff")">
                 <i class="fas fa-truck"></i> Quản lý Giao Máy
+            </a>
+            <a href="@Url.Action("QuickHandover", "Staff")">
+                <i class="fas fa-bolt"></i> Giao Máy Nhanh
             </a>
         </div>
     </div>

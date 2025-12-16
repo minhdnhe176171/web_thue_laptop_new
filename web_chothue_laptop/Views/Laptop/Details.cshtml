@@ -2,6 +2,7 @@
 @model web_chothue_laptop.Models.Laptop
 @{
     ViewData["Title"] = "Chi Tiết Laptop";
+    var isRentedByOthers = ViewBag.IsRentedByOthers as bool? ?? false;
 }
 
 <div class="container py-4">
@@ -39,7 +40,15 @@
                         </div>
                         <div class="col-md-6 mb-2">
                             <strong>Tình trạng:</strong> 
-                            @if (Model.Status != null)
+                            @if (isRentedByOthers)
+                            {
+                                <span class="badge bg-warning">Đang thuê</span>
+                            }
+                            else if (Model.Status != null && Model.Status.StatusName.ToLower() == "available")
+                            {
+                                <span class="badge bg-success">Có sẵn</span>
+                            }
+                            else if (Model.Status != null)
                             {
                                 var statusVi = StatusHelper.GetVietnameseStatus(Model.Status.StatusName);
                                 var badgeClass = StatusHelper.GetStatusBadgeClass(Model.Status.StatusName);
@@ -105,6 +114,15 @@
                                         <small>Bạn đang thuê laptop này từ @activeBooking.StartTime.ToString("dd/MM/yyyy") đến @activeBooking.EndTime.ToString("dd/MM/yyyy")</small>
                                     </p>
                                 }
+                                else if (isRentedByOthers)
+                                {
+                                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                                        <i class="bi bi-x-circle"></i> Đang Được Thuê
+                                    </button>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Laptop này hiện đang được thuê bởi người khác</small>
+                                    </p>
+                                }
                                 else
                                 {
                                     <a asp-controller="Booking" asp-action="Create" asp-route-id="@Model.Id" class="btn btn-primary btn-lg w-100">
@@ -114,12 +132,24 @@
                             }
                             else
                             {
-                                <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
-                                    <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập Để Đặt Thuê
-                                </a>
-                                <p class="text-muted text-center mt-2 mb-0">
-                                    <small>Vui lòng đăng nhập để đặt thuê laptop này</small>
-                                </p>
+                                @if (isRentedByOthers)
+                                {
+                                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                                        <i class="bi bi-x-circle"></i> Đang Được Thuê
+                                    </button>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Laptop này hiện đang được thuê bởi người khác</small>
+                                    </p>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
+                                        <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập Để Đặt Thuê
+                                    </a>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Vui lòng đăng nhập để đặt thuê laptop này</small>
+                                    </p>
+                                }
                             }
                         }
                         else

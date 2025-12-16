@@ -3,12 +3,17 @@
 
 @{
     ViewData["Title"] = "Technical Dashboard";
+
+    // Lấy dữ liệu riêng cho Tab Inspection (vì tab này dùng ViewBag chứ không dùng Model chính)
     var inspectionList = ViewBag.InspectionList as web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.TechnicalTicket>;
     var inspectionTotalCount = ViewBag.InspectionTotalCount != null ? (int)ViewBag.InspectionTotalCount : 0;
+
+    // Xác định Tab đang active
     string activeTab = ViewBag.ActiveTab as string ?? "inspection";
 }
 
 <style>
+    /* CSS Cấu trúc Layout */
     .container, .container-fluid, .body-content {
         padding: 0 !important;
         margin: 0 !important;
@@ -23,6 +28,7 @@
         padding-top: 1.5rem;
     }
 
+    /* Sidebar Styles */
     .tech-sidebar {
         width: 260px;
         background: #fff;
@@ -72,6 +78,7 @@
                 border-left-color: #0d6efd;
             }
 
+    /* Content Styles */
     .tech-content {
         flex-grow: 1;
         padding: 30px;
@@ -106,8 +113,18 @@
                     <span class="badge bg-danger ms-auto">@inspectionTotalCount</span>
                 }
             </a>
-            <a href="@Url.Action("Index", new { activeTab = "repair" })" class="@(activeTab == "repair" ? "active" : "")"><i class="fas fa-screwdriver"></i> Danh Sách Sửa Chữa</a>
-            <a href="@Url.Action("Index", new { activeTab = "report" })" class="@(activeTab == "report" ? "active" : "")"><i class="fas fa-file-invoice"></i> Báo Cáo Sửa Chữa</a>
+
+            <a href="@Url.Action("Index", new { activeTab = "repair" })" class="@(activeTab == "repair" ? "active" : "")">
+                <i class="fas fa-screwdriver"></i> Danh Sách Sửa Chữa 
+            </a>
+
+            <a href="@Url.Action("Index", new { activeTab = "support" })" class="@(activeTab == "support" ? "active" : "")">
+                <i class="fas fa-headset"></i> Hỗ Trợ Khách Hàng
+            </a>
+
+            <a href="@Url.Action("Index", new { activeTab = "report" })" class="@(activeTab == "report" ? "active" : "")">
+                <i class="fas fa-file-invoice"></i> Báo Cáo Sửa Chữa
+            </a>
         </div>
     </div>
 
@@ -118,31 +135,45 @@
                 {
                     <h3 class="fw-bold text-primary mb-1">Yêu Cầu Kiểm Tra</h3>
                     <p class="text-muted mb-0">Danh sách máy mới nhập kho cần kiểm tra chất lượng</p>
- }
+                }
                 else if (activeTab == "repair")
                 {
                     <h3 class="fw-bold text-primary mb-1">Danh Sách Sửa Chữa</h3>
-                    <p class="text-muted mb-0">Quản lý tiến độ sửa chữa thiết bị</p>
- }
+                    <p class="text-muted mb-0">Quản lý sửa chữa máy trong kho</p>
+                }
+                else if (activeTab == "support")
+                {
+                    <h3 class="fw-bold text-primary mb-1">Hỗ Trợ Khách Hàng</h3>
+                    <p class="text-muted mb-0">Xử lý sự cố máy đang cho thuê</p>
+                }
                 else if (activeTab == "report")
                 {
                     <h3 class="fw-bold text-primary mb-1">Báo Cáo Sửa Chữa</h3>
                     <p class="text-muted mb-0">Lịch sử và thống kê thiết bị hoàn thành</p>
- }
+                }
             </div>
         </div>
 
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         }
         @if (TempData["WarningMessage"] != null)
         {
-            <div class="alert alert-warning alert-dismissible fade show"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            <div class="alert alert-warning alert-dismissible fade show">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         }
         @if (TempData["ErrorMessage"] != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show"><i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         }
 
         @if (activeTab == "inspection")
@@ -152,6 +183,10 @@
         else if (activeTab == "repair")
         {
             <partial name="RepairList" model="Model" />
+        }
+        else if (activeTab == "support")
+        {
+            <partial name="SupportList" model="Model" />
         }
         else if (activeTab == "report")
         {

@@ -30,12 +30,11 @@ namespace web_chothue_laptop.Controllers
                 .Distinct()
                 .ToListAsync();
             
-            // Lấy laptop có sẵn và KHÔNG có người đang thuê (bất kỳ ai)
+            // Lấy TẤT CẢ laptop có status "available" (không lọc bỏ laptop đang thuê)
             var allLaptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
-                .Where(l => l.Status != null && l.Status.StatusName.ToLower() == "available"
-                    && !rentedLaptopIds.Contains(l.Id))
+                .Where(l => l.Status != null && l.Status.StatusName.ToLower() == "available")
                 .OrderByDescending(l => l.CreatedDate) // Sắp xếp theo ngày tạo mới nhất
                 .ThenBy(l => l.Id);
 
@@ -51,6 +50,8 @@ namespace web_chothue_laptop.Controllers
                 .OrderByDescending(b => b.StartTime)
                 .ToListAsync();
 
+            // Truyền danh sách laptop ID đang thuê vào ViewBag để view có thể hiển thị status
+            ViewBag.RentedLaptopIds = rentedLaptopIds;
             ViewBag.CurrentBookings = currentBookings;
             ViewBag.PageIndex = paginatedLaptops.PageIndex;
             ViewBag.TotalPages = paginatedLaptops.TotalPages;

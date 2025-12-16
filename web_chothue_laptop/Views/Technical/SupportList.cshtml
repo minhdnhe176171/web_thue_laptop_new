@@ -1,0 +1,142 @@
+﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.TechnicalTicket>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-secondary">
+                <tr>
+                    <th class="ps-4">Ticket ID</th>
+                    <th>Thiết Bị / Khách Hàng</th>
+                    <th>Mô Tả Lỗi (KH)</th>
+                    <th>Ngày Tạo</th>
+                    <th>Trạng Thái</th>
+                    <th width="250">Xử Lý & Phản Hồi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold">#@item.Id</td>
+                            <td>
+                                <span class="fw-bold text-dark">@item.Laptop?.Name</span> <br />
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i> @(item.Booking?.Customer?.FirstName) @(item.Booking?.Customer?.LastName)
+                                </small>
+                            </td>
+                            <td>
+                                <div class="text-wrap" style="max-width: 200px;">
+                                    <small>@item.Description</small>
+                                </div>
+                            </td>
+                            <td>@item.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @if (item.StatusId == 1)
+                                {
+                                    <span class="badge bg-warning text-dark">Mới tạo (Pending)</span>
+                                }
+                                else if (item.StatusId == 2)
+                                {
+                                    <span class="badge bg-info text-white">Đã nhận (Approved)</span>
+                                }
+                                else if (item.StatusId == 4)
+                                {
+                                    <span class="badge bg-primary">Đang sửa (Fixing)</span>
+                                }
+                                else if (item.StatusId == 5)
+                                {
+                                    <span class="badge bg-success">Đã xong (Fixed)</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.StatusId == 1)
+                                {
+                                    <form asp-action="UpdateCustomerTicket" method="post">
+                                        <input type="hidden" name="ticketId" value="@item.Id" />
+                                        <input type="hidden" name="statusId" value="2" />
+                                        <button class="btn btn-sm btn-outline-primary w-100">
+                                            <i class="fas fa-check"></i> Tiếp nhận
+                                        </button>
+                                    </form>
+                                }
+                                else if (item.StatusId == 2)
+                                {
+                                    <form asp-action="UpdateCustomerTicket" method="post">
+                                        <input type="hidden" name="ticketId" value="@item.Id" />
+                                        <input type="hidden" name="statusId" value="4" />
+                                        <button class="btn btn-sm btn-primary w-100">
+                                            <i class="fas fa-tools"></i> Bắt đầu sửa
+                                        </button>
+                                    </form>
+                                }
+                                else if (item.StatusId == 4)
+                                {
+                                    <form asp-action="UpdateCustomerTicket" method="post">
+                                        <input type="hidden" name="ticketId" value="@item.Id" />
+                                        <input type="hidden" name="statusId" value="5" />
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="technicalResponse" class="form-control" placeholder="Ghi chú sửa chữa..." required />
+                                            <button class="btn btn-success">
+                                                <i class="fas fa-check-double"></i> Xong
+                                            </button>
+                                        </div>
+                                    </form>
+                                }
+                                else if (item.StatusId == 5)
+                                {
+                                    <small class="text-success"><i class="fas fa-check"></i> Đã hoàn tất</small>
+                                    <br />
+                                    <small class="text-muted text-wrap">Note: @item.TechnicalResponse</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center py-5 text-muted">Không có yêu cầu hỗ trợ nào từ khách hàng.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* --- PHẦN PHÂN TRANG MỚI (Đã sửa giống Repair List) --- *@
+
+    @{
+        var pageIndex = Model?.PageIndex ?? 1;
+        var totalPages = Model?.TotalPages ?? 1;
+        var prevDis = !(Model?.HasPreviousPage ?? false) ? "disabled" : "";
+        var nextDis = !(Model?.HasNextPage ?? false) ? "disabled" : "";
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="d-flex justify-content-between p-3 border-top">
+            @* Bên trái: Hiển thị số trang *@
+            <span class="text-muted small">Trang @pageIndex / @totalPages</span>
+
+            @* Bên phải: Các nút điều hướng *@
+            <div>
+                @* Nút TRƯỚC *@
+                <a asp-action="Index"
+                   asp-route-activeTab="support"
+                   asp-route-pageNumber="@(pageIndex - 1)"
+                   asp-route-searchString="@ViewData["CurrentFilter"]"
+                   class="btn btn-sm btn-outline-secondary @prevDis">
+                    Trước
+                </a>
+
+                @* Nút SAU *@
+                <a asp-action="Index"
+                   asp-route-activeTab="support"
+                   asp-route-pageNumber="@(pageIndex + 1)"
+                   asp-route-searchString="@ViewData["CurrentFilter"]"
+                   class="btn btn-sm btn-outline-secondary @nextDis">
+                    Sau
+                </a>
+            </div>
+        </div>
+    }
+</div>

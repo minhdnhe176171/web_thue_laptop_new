@@ -72,10 +72,18 @@ namespace web_chothue_laptop.Controllers
                 }
             }
 
+            // Kiểm tra xem laptop có đang được người khác thuê không (bất kỳ ai)
+            var isRentedByOthers = await _context.Bookings
+                .AnyAsync(b => b.LaptopId == laptop.Id
+                    && (b.StatusId == 2 || b.StatusId == 10)
+                    && b.StartTime <= DateTime.Now
+                    && b.EndTime >= DateTime.Today);
+
             ViewBag.HasPendingBooking = hasPendingBooking;
             ViewBag.HasActiveBooking = hasActiveBooking;
             ViewBag.ActiveBooking = activeBooking;
             ViewBag.CurrentUserId = userId;
+            ViewBag.IsRentedByOthers = isRentedByOthers;
 
             return View(laptop);
         }

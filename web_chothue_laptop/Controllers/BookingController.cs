@@ -49,6 +49,19 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Details", "Laptop", new { id = id });
             }
 
+            // Kiểm tra xem laptop có đang được người khác thuê không (bất kỳ ai)
+            var isRentedByOthers = await _context.Bookings
+                .AnyAsync(b => b.LaptopId == laptop.Id
+                    && (b.StatusId == 2 || b.StatusId == 10)
+                    && b.StartTime <= DateTime.Now
+                    && b.EndTime >= DateTime.Today);
+
+            if (isRentedByOthers)
+            {
+                TempData["ErrorMessage"] = "Laptop này hiện đang được thuê bởi người khác. Vui lòng chọn laptop khác hoặc thử lại sau.";
+                return RedirectToAction("Details", "Laptop", new { id = id });
+            }
+
             // Lấy Customer từ UserId
             var userIdLong = long.Parse(userId);
             var customer = await _context.Customers
@@ -186,6 +199,31 @@ namespace web_chothue_laptop.Controllers
 
             if (!ModelState.IsValid)
             {
+                model.PricePerDay = model.Laptop.Price;
+                
+                // Tính lại thời gian có thể thuê
+                DateTime? availableStartDate = DateTime.Today;
+                DateTime? availableEndDate = null;
+                if (model.Laptop.EndTime.HasValue)
+                {
+                    availableEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
+                }
+                ViewBag.AvailableStartDate = availableStartDate;
+                ViewBag.AvailableEndDate = availableEndDate;
+                
+                return View(model);
+            }
+
+            // Kiểm tra lại xem laptop có đang được người khác thuê không (double check trước khi tạo booking)
+            var isRentedByOthers = await _context.Bookings
+                .AnyAsync(b => b.LaptopId == model.LaptopId
+                    && (b.StatusId == 2 || b.StatusId == 10)
+                    && b.StartTime <= DateTime.Now
+                    && b.EndTime >= DateTime.Today);
+
+            if (isRentedByOthers)
+            {
+                ModelState.AddModelError("", "Laptop này hiện đang được thuê bởi người khác. Vui lòng chọn laptop khác hoặc thử lại sau.");
                 model.PricePerDay = model.Laptop.Price;
                 
                 // Tính lại thời gian có thể thuê

@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Trang Chủ - Dịch Vụ Thuê Laptop";
     var currentBookings = ViewBag.CurrentBookings as List<Booking>;
+    var rentedLaptopIds = ViewBag.RentedLaptopIds as List<long> ?? new List<long>();
     var pageIndex = (int)ViewBag.PageIndex;
     var totalPages = (int)ViewBag.TotalPages;
     var hasPreviousPage = (bool)ViewBag.HasPreviousPage;
@@ -49,15 +50,17 @@
 
                             <p class="mb-3">
                                 <strong>Trạng thái:</strong>
-                                @if (laptop.Status != null)
-                                {
-                                    var statusVi = StatusHelper.GetVietnameseStatus(laptop.Status.StatusName);
-                                    var badgeClass = StatusHelper.GetStatusBadgeClass(laptop.Status.StatusName);
-                                    <span class="badge @badgeClass">@statusVi</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">Chưa xác định</span>
+                                @{
+                                    // Kiểm tra xem laptop có đang thuê không
+                                    var isRented = rentedLaptopIds.Contains(laptop.Id);
+                                    if (isRented)
+                                    {
+                                        <span class="badge bg-warning">Đang thuê</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Có sẵn</span>
+                                    }
                                 }
                             </p>
 
