@@ -58,7 +58,7 @@ public partial class Swp391LaptopContext : DbContext
     {
         modelBuilder.Entity<Booking>(entity =>
         {
-
+            entity.Property(e => e.RejectReason).HasColumnName("REJECT_REASON");
             entity.HasKey(e => e.Id).HasName("PK__BOOKING__3214EC27887C744A");
 
             entity.HasKey(e => e.Id).HasName("PK__BOOKING__3214EC275D19D412");
