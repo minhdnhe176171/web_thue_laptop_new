@@ -50,10 +50,9 @@ public partial class Swp391LaptopContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
     {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
-        }
+
+        optionsBuilder.UseSqlServer("Server=HA-DONG-GIANG\\MSSQLSERVER01;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -260,6 +259,9 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("UPDATED_DATE");
+            entity.Property(e => e.EndTime)
+                .HasColumnType("datetime")
+                .HasColumnName("END_TIME");
 
             entity.HasOne(d => d.Brand).WithMany(p => p.Laptops)
                 .HasForeignKey(d => d.BrandId)
