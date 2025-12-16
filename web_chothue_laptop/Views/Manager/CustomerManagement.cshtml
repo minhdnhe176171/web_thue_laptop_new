@@ -1,0 +1,113 @@
+@model IEnumerable<web_chothue_laptop.Models.Customer>
+@{
+    ViewData["Title"] = "Quản Lý Customer";
+}
+
+<style>
+    .container, .body-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .manager-wrapper {
+        display: flex;
+        min-height: calc(100vh - 60px);
+        background-color: #f8f9fa;
+        margin-top: -1.5rem;
+        padding-top: 1.5rem;
+    }
+
+    .manager-content {
+        flex-grow: 1;
+        padding: 30px;
+        overflow-x: auto;
+    }
+
+    .blacklist-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+</style>
+
+<div class="manager-wrapper">
+    <div class="manager-content">
+        <h3 class="fw-bold text-primary mb-4">
+            <i class="fas fa-users"></i> Quản Lý Customer (@(Model != null ? Model.Count() : 0))
+        </h3>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]</div>
+        }
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4 py-3">ID</th>
+                            <th>Họ và Tên</th>
+                            <th>Email</th>
+                            <th>Số Điện Thoại</th>
+                            <th>CMND/CCCD</th>
+                            <th>Ngày Tạo</th>
+                            <th>Trạng Thái</th>
+                            <th>Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var customer in Model)
+                            {
+                                <tr class="@((customer.BlackList == true) ? "table-danger" : "")">
+                                    <td class="ps-4 fw-bold text-primary">#@customer.Id</td>
+                                    <td>@customer.LastName @customer.FirstName</td>
+                                    <td>@customer.Email</td>
+                                    <td>@(customer.Phone ?? "N/A")</td>
+                                    <td>@(customer.IdNo ?? "N/A")</td>
+                                    <td>@(customer.CreatedDate?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                    <td>
+                                        @if (customer.BlackList == true)
+                                        {
+                                            <span class="blacklist-badge">
+                                                <i class="fas fa-ban"></i> BLACKLIST
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Bình Thường</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-action="RentalHistory" asp-route-id="@customer.Id" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-history"></i> Xem Lịch Sử
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">Không có customer nào.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
