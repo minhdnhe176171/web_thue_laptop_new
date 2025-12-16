@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Booking>
 @{
     ViewData["Title"] = "Duyệt Đơn Thuê";
 }
@@ -99,7 +99,7 @@
     </div>
 
     <div class="staff-content">
-        <h3 class="fw-bold text-primary mb-4">Quản Lý Đơn Thuê (@(Model != null ? Model.Count() : 0))</h3>
+        <h3 class="fw-bold text-primary mb-4">Quản Lý Đơn Thuê (@ViewData["TotalCount"])</h3>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -109,7 +109,20 @@
         {
             <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]</div>
         }
+        <form asp-action="Index" method="get" class="mb-3">
+            <div class="input-group" style="max-width: 500px;">
+                <input type="text" name="searchString" class="form-control"
+                       placeholder="Tìm tên khách, mã đơn..." value="@ViewData["CurrentFilter"]">
+                <button class="btn btn-primary text-nowrap" type="submit">
+                    <i class="fas fa-search"></i> Tìm kiếm
+                </button>
 
+                @if (ViewData["CurrentFilter"] != null)
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">Xóa</a>
+                }
+            </div>
+        </form>
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -133,16 +146,9 @@
                                     <td>@item.Laptop?.Name</td>
                                     <td>@item.StartTime.ToString("dd/MM") - @item.EndTime.ToString("dd/MM")</td>
                                     <td>
-                                        <div class="d-flex gap-2">
-                                            <form asp-action="ApproveBooking" method="post">
-                                                <input type="hidden" name="bookingId" value="@item.Id" />
-                                                <button class="btn btn-success btn-sm">Duyệt</button>
-                                            </form>
-                                            <form asp-action="RejectBooking" method="post">
-                                                <input type="hidden" name="bookingId" value="@item.Id" />
-                                                <button class="btn btn-outline-danger btn-sm">Hủy</button>
-                                            </form>
-                                        </div>
+                                        <a asp-action="BookingDetails" asp-route-id="@item.Id" class="btn btn-info btn-sm text-white">
+                                            <i class="fas fa-eye"></i> Chi tiết
+                                        </a>
                                     </td>
                                 </tr>
                             }
@@ -155,6 +161,15 @@
                         }
                     </tbody>
                 </table>
+                <div class="p-3 d-flex justify-content-end">
+                    @{
+                        var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                        var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+                    }
+                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm me-2 @prevDisabled">Trước</a>
+                    <span class="align-self-center mx-2">Trang @Model.PageIndex / @Model.TotalPages</span>
+                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm ms-2 @nextDisabled">Sau</a>
+                </div>
             </div>
         </div>
     </div>
