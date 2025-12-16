@@ -86,30 +86,30 @@
 }
 else
 {
-    <table class="table">
-        <thead>
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-light">
             <tr>
                 <th>Tên</th>
                 <th>Hãng</th>
-                <th>Giá</th>
-                <th>Ngày tạo</th>
-                <th>Đến hạn</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th class="text-end">Giá</th>
+                <th class="text-center">Ngày tạo</th>
+                <th class="text-center">Đến hạn</th>
+                <th class="text-center">Trạng thái</th>
+                <th class="text-center">Thao tác</th>
             </tr>
         </thead>
         <tbody>
     @foreach(var l in Model)
     {
         <tr>
-            <td class="align-middle">@l.Name</td>
-            <td class="align-middle">@l.Brand?.BrandName</td>
-            <td class="align-middle">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
-            <td class="align-middle">@(l.CreatedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
-            <td class="align-middle">
+            <td>@l.Name</td>
+            <td>@l.Brand?.BrandName</td>
+            <td class="text-end">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
+            <td class="text-center">@(l.CreatedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+            <td class="text-center">
                 @if (l.UpdatedDate.HasValue)
                 {
-                    <span class="@(l.UpdatedDate.Value < DateTime.Today ? "text-danger" : "")">
+                    <span class="@(l.UpdatedDate.Value < DateTime.Today ? "text-danger fw-bold" : "")">
                         @l.UpdatedDate.Value.ToString("dd/MM/yyyy")
                         @if (l.UpdatedDate.Value < DateTime.Today)
                         {
@@ -122,7 +122,7 @@ else
                     <span>-</span>
                 }
             </td>
-            <td class="align-middle">
+            <td class="text-center">
                 <span class="badge 
                     @(l.Status?.StatusName?.ToLower() switch 
                     {
@@ -134,7 +134,7 @@ else
                     @TranslateStatus(l.Status?.StatusName)
                 </span>
             </td>
-            <td class="align-middle">
+            <td class="text-center">
                 <a class="btn btn-sm btn-info me-1" asp-controller="Student" asp-action="Details" asp-route-id="@l.Id">
                     <i class="bi bi-eye"></i> Xem chi tiết
                 </a>
