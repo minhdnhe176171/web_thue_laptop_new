@@ -17,12 +17,54 @@ namespace web_chothue_laptop.Controllers
 
         // GET: Manager/CustomerManagement
         // Màn hình 1: Danh sách Customer
-        public async Task<IActionResult> CustomerManagement()
+        public async Task<IActionResult> CustomerManagement(string? search, string? filterStatus, int page = 1)
         {
-            var customers = await _context.Customers
+            var query = _context.Customers
                 .Include(c => c.CustomerNavigation)
+                .AsQueryable();
+
+            // Filter by blacklist status
+            if (!string.IsNullOrEmpty(filterStatus))
+            {
+                if (filterStatus.ToLower() == "blacklist")
+                {
+                    query = query.Where(c => c.BlackList == true);
+                }
+                else if (filterStatus.ToLower() == "normal")
+                {
+                    query = query.Where(c => c.BlackList == null || c.BlackList == false);
+                }
+            }
+
+            // Search by phone, email, or name
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.Trim();
+                query = query.Where(c => 
+                    c.Email.Contains(search) ||
+                    (c.Phone != null && c.Phone.Contains(search)) ||
+                    c.FirstName.Contains(search) ||
+                    c.LastName.Contains(search));
+            }
+
+            // Get total count before pagination
+            int totalItems = await query.CountAsync();
+
+            // Pagination
+            int pageSize = 6;
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var customers = await query
                 .OrderByDescending(c => c.CreatedDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
+
+            ViewBag.Search = search;
+            ViewBag.FilterStatus = filterStatus;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
 
             return View(customers);
         }
