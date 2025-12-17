@@ -3,71 +3,167 @@
     ViewData["Title"] = "Đơn từ Sinh viên";
     Layout = "_ManagerLayout";
 }
+
 <h2 class="mb-4">Đơn từ Sinh viên gửi lên cho thuê</h2>
-<form method="get" asp-action="LaptopRequests" class="mb-3">
-    <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm kiếm tên máy..." class="form-control d-inline-block w-auto" />
-    <select name="statusId" class="form-select d-inline-block w-auto">
+
+<form method="get" asp-action="LaptopRequests" class="mb-3 d-flex gap-2">
+    <input type="text"
+           name="searchString"
+           value="@ViewBag.SearchString"
+           placeholder="Tìm kiếm tên máy..."
+           class="form-control w-auto" />
+
+    <select name="statusId" class="form-select w-auto">
         <option value="0">Tất cả trạng thái</option>
         @foreach (var status in ViewBag.StatusList)
         {
-            if (ViewBag.SelectedStatus == status.Id)
-            {
-                <option value="@status.Id" selected>@status.StatusName</option>
-            }
-            else
-            {
-                <option value="@status.Id">@status.StatusName</option>
-            }
+            <option value="@status.Id"
+                    selected="@(ViewBag.SelectedStatus == status.Id)">
+                @status.StatusName
+            </option>
         }
     </select>
+
     <button type="submit" class="btn btn-primary">Lọc</button>
 </form>
-<table class="table table-bordered">
-    <thead>
+
+<table class="table table-bordered align-middle">
+    <thead class="table-light">
         <tr>
             <th>Tên máy</th>
             <th>Hãng</th>
             <th>Trạng thái</th>
             <th>Sinh viên gửi</th>
             <th>Ngày gửi</th>
-            <th>Thao tác</th>
+            <th width="180">Thao tác</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @if (!Model.Any())
         {
             <tr>
-                <td>
-                    <a asp-action="LaptopDetail" asp-route-id="@item.Id">@item.Name</a>
-                </td>
-                <td>@item.Brand?.BrandName</td>
-                <td>@item.Status?.StatusName</td>
-                <td>@item.Price?.ToString("N0") VNĐ</td>
-                <td>@item.Student?.Email</td>
-                <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
-                <td>
-                    @if (item.StatusId == 1)
-                    {
-                          <!-- Pending -->
-                        <form method="post" asp-action="Approve" class="d-inline">
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button class="btn btn-success btn-sm">Duyệt</button>
-                        </form>
-                        <form method="post" asp-action="Reject" class="d-inline">
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button class="btn btn-danger btn-sm">Từ chối</button>
-                        </form>
-                    }
-                    else if (item.StatusId == 2)
-                    {
-                        <span class="text-success">Đã duyệt</span>
-                    }
-                    else if (item.StatusId == 3)
-                    {
-                        <span class="text-danger">Đã từ chối</span>
-                    }
+                <td colspan="6" class="text-center text-muted">
+                    Không có dữ liệu
                 </td>
             </tr>
         }
+        else
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a asp-action="LaptopDetail"
+                           asp-route-id="@item.Id">
+                            @item.Name
+                        </a>
+                    </td>
+                    <td>@item.Brand?.BrandName</td>
+                    <td>
+                        @switch (item.StatusId)
+                        {
+                            case 1:
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                break;
+                            case 2:
+                                <span class="badge bg-success">Approved</span>
+                                break;
+                            case 3:
+                                <span class="badge bg-danger">Rejected</span>
+                                break;
+                            case 4:
+                                <span class="badge bg-orange">Fixing</span>
+                                break;
+                            case 5:
+                                <span class="badge bg-purple">Fixed</span>
+                                break;
+                            case 6:
+                                <span class="badge bg-primary">Active</span>
+                                break;
+                            case 7:
+                                <span class="badge bg-secondary">Inactive</span>
+                                break;
+                            case 8:
+                                <span class="badge bg-dark">Close</span>
+                                break;
+                            case 9:
+                                <span class="badge bg-teal">Available</span>
+                                break;
+                            case 10:
+                                <span class="badge bg-purple">Rented</span>
+                                break;
+                            default:
+                                <span class="badge bg-light text-dark">Unknown</span>
+                                break;
+                        }
+                    </td>
+
+                    <td>@item.Student?.Email</td>
+                    <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @if (item.StatusId == 1)
+                        {
+                            <form method="post" asp-action="Approve" class="d-inline">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button class="btn btn-success btn-sm">Duyệt</button>
+                            </form>
+
+                            <form method="post" asp-action="Reject" class="d-inline">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button class="btn btn-danger btn-sm">Từ chối</button>
+                            </form>
+                        }
+                        else if (item.StatusId == 2)
+                        {
+                            <span class="badge bg-success">Đã duyệt</span>
+                        }
+                        else if (item.StatusId == 3)
+                        {
+                            <span class="badge bg-danger">Đã từ chối</span>
+                        }
+                    </td>
+                </tr>
+            }
+        }
     </tbody>
 </table>
+
+<!-- PAGING -->
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+
+        <li class="page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+            <a class="page-link"
+               asp-action="LaptopRequests"
+               asp-route-page="@(ViewBag.CurrentPage - 1)"
+               asp-route-searchString="@ViewBag.SearchString"
+               asp-route-statusId="@ViewBag.SelectedStatus">
+                Trước
+            </a>
+        </li>
+
+        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                <a class="page-link"
+                   asp-action="LaptopRequests"
+                   asp-route-page="@i"
+                   asp-route-searchString="@ViewBag.SearchString"
+                   asp-route-statusId="@ViewBag.SelectedStatus">
+                    @i
+                </a>
+            </li>
+        }
+
+        <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+            <a class="page-link"
+               asp-action="LaptopRequests"
+               asp-route-page="@(ViewBag.CurrentPage + 1)"
+               asp-route-searchString="@ViewBag.SearchString"
+               asp-route-statusId="@ViewBag.SelectedStatus">
+                Sau
+            </a>
+        </li>
+
+    </ul>
+</nav>

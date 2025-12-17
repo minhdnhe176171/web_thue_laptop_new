@@ -64,6 +64,35 @@
     @String.Format("{0:N0} đ", ViewBag.TotalRevenue)
 </div>
 <h2 class="mb-4">Đơn thuê từ Khách hàng</h2>
+<form method="get" asp-action="CustomerBookings" class="mb-3">
+    <input type="text"
+           name="searchString"
+           value="@ViewBag.SearchString"
+           placeholder="Tìm email khách hàng hoặc laptop..."
+           class="form-control d-inline-block w-auto" />
+
+    <select name="statusId" class="form-select d-inline-block w-auto">
+        <option value="0">Tất cả trạng thái</option>
+
+        @foreach (var status in ViewBag.StatusList)
+        {
+            if (ViewBag.SelectedStatus == status.Id)
+            {
+                <option value="@status.Id" selected="selected">
+                    @status.StatusName
+                </option>
+            }
+            else
+            {
+                <option value="@status.Id">
+                    @status.StatusName
+                </option>
+            }
+        }
+    </select>
+
+    <button type="submit" class="btn btn-primary">Lọc</button>
+</form>
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -81,46 +110,80 @@
                 <td>RENTAL-@item.Id</td>
                 <td>@item.Customer?.Email</td>
                 <td>@item.Laptop?.Name</td>
-                <td>@item.Status?.StatusName</td>
+                <td>
+                    @switch (item.StatusId)
+                    {
+                        case 1:
+                            <span class="badge bg-warning text-dark">Đang chờ</span>
+                            break;
+                        case 2:
+                            <span class="badge bg-success">Đã phê duyệt</span>
+                            break;
+                        case 3:
+                            <span class="badge bg-danger">Đã từ chối</span>
+                            break;
+                        case 4:
+                            <span class="badge bg-orange">Đang sửa chữa</span>
+                            break;
+                        case 5:
+                            <span class="badge bg-purple">Đã sửa chữa</span>
+                            break;
+                        case 6:
+                            <span class="badge bg-primary">Đang hoạt động</span>
+                            break;
+                        case 7:
+                            <span class="badge bg-secondary">Ngừng hoạt động</span>
+                            break;
+                        case 8:
+                            <span class="badge bg-dark">Đã đóng</span>
+                            break;
+                        case 9:
+                            <span class="badge bg-teal">Có sẵn</span>
+                            break;
+                        case 10:
+                            <span class="badge bg-purple">Đang thuê</span>
+                            break;
+                        default:
+                            <span class="badge bg-light text-dark">Unknown</span>
+                            break;
+                    }
+                </td>
                 <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
             </tr>
         }
     </tbody>
 </table>
-@if (ViewBag.TotalPages > 1)
-{
-    <nav>
-        <ul class="pagination justify-content-center">
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
 
-            <!-- Previous -->
-            <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+        <!-- Previous -->
+        <li class="page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+            <a class="page-link"
+               asp-action="CustomerBookings"
+               asp-route-page="@(ViewBag.CurrentPage - 1)">
+                Trước
+            </a>
+        </li>
+
+        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
                 <a class="page-link"
                    asp-action="CustomerBookings"
-                   asp-route-page="@(ViewBag.CurrentPage - 1)">
-                    Trước
+                   asp-route-page="@i">
+                    @i
                 </a>
             </li>
+        }
 
-            @for (int i = 1; i <= ViewBag.TotalPages; i++)
-            {
-                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
-                    <a class="page-link"
-                       asp-action="CustomerBookings"
-                       asp-route-page="@i">
-                        @i
-                    </a>
-                </li>
-            }
+        <!-- Next -->
+        <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+            <a class="page-link"
+               asp-action="CustomerBookings"
+               asp-route-page="@(ViewBag.CurrentPage + 1)">
+                Sau
+            </a>
+        </li>
 
-            <!-- Next -->
-            <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-                <a class="page-link"
-                   asp-action="CustomerBookings"
-                   asp-route-page="@(ViewBag.CurrentPage + 1)">
-                    Sau
-                </a>
-            </li>
-
-        </ul>
-    </nav>
-}
+    </ul>
+</nav>

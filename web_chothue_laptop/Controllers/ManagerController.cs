@@ -13,9 +13,16 @@ public class ManagerController : Controller
         _context = context;
     }
 
-    // 1. Quản lý toàn bộ Laptop
-    public IActionResult LaptopManagement(string searchString, int? statusId, int page = 1, int pageSize = 10)
+    public IActionResult Index()
     {
+        // Có thể để trống hoặc truyền số liệu dashboard sau
+        return View();
+    }
+    // 1. Quản lý toàn bộ Laptop
+    public IActionResult LaptopManagement(string searchString, int? statusId, int page = 1)
+    {
+        int pageSize = 5;
+
         var query = _context.Laptops
             .Include(l => l.Brand)
             .Include(l => l.Status)
@@ -36,37 +43,40 @@ public class ManagerController : Controller
         int totalItems = query.Count();
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-        var laptops = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var laptops = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
+        // Paging
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
         ViewBag.SearchString = searchString;
         ViewBag.SelectedStatus = statusId ?? 0;
+
+        // Status filter
         ViewBag.StatusList = _context.Statuses
             .Where(s => s.Id == 4 || s.Id == 8 || s.Id == 9 || s.Id == 10)
             .Select(s => new { s.Id, s.StatusName })
             .ToList();
-        // tổng laptop thuộc quản lý
+
+        // Thống kê
         ViewBag.TotalLaptop = _context.Laptops
-            .Count(l => l.StatusId == 4 || l.StatusId == 5 || l.StatusId == 8 || l.StatusId == 9 || l.StatusId == 10);
+            .Count(l => l.StatusId == 4 || l.StatusId == 8 || l.StatusId == 9 || l.StatusId == 10);
 
-        // đang cho thuê
-        ViewBag.RentingLaptop = _context.Laptops
-            .Count(l => l.StatusId == 5);
+        ViewBag.RentingLaptop = _context.Laptops.Count(l => l.StatusId == 10);
+        ViewBag.MaintenanceLaptop = _context.Laptops.Count(l => l.StatusId == 4);
+        ViewBag.AvailableLaptop = _context.Laptops.Count(l => l.StatusId == 9);
 
-        // đang sửa chữa
-        ViewBag.MaintenanceLaptop = _context.Laptops
-            .Count(l => l.StatusId == 8);
-
-        // đang có sẵn
-        ViewBag.AvailableLaptop = _context.Laptops
-            .Count(l => l.StatusId == 4);
         return View(laptops);
     }
 
+
     // 2. Quản lý đơn từ Student
-    public IActionResult LaptopRequests(string searchString, int? statusId, int page = 1, int pageSize = 5)
+    public IActionResult LaptopRequests(string searchString, int? statusId, int page = 1)
     {
+        int pageSize = 5; // 👈 cố định 5 bản ghi / trang
+
         var query = _context.Laptops
             .Include(l => l.Brand)
             .Include(l => l.Status)
@@ -85,12 +95,16 @@ public class ManagerController : Controller
         int totalItems = query.Count();
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-        var laptops = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var laptops = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
         ViewBag.SearchString = searchString;
         ViewBag.SelectedStatus = statusId ?? 0;
+
         ViewBag.StatusList = _context.Statuses
             .Where(s => s.Id == 1 || s.Id == 2 || s.Id == 3)
             .Select(s => new { s.Id, s.StatusName })
@@ -98,6 +112,7 @@ public class ManagerController : Controller
 
         return View(laptops);
     }
+
 
     // Duyệt đơn từ Student
     [HttpPost]
@@ -132,7 +147,7 @@ public class ManagerController : Controller
     }
 
     // 3. Quản lý đơn từ Customer
-    public IActionResult CustomerBookings(int page = 1, int pageSize = 10)
+    public IActionResult CustomerBookings(string searchString, int? statusId, int page = 1, int pageSize = 5)
     {
         var query = _context.Bookings
             .Include(b => b.Customer)
@@ -146,13 +161,38 @@ public class ManagerController : Controller
             .OrderByDescending(b => b.CreatedDate)
             .AsQueryable();
 
+        // 🔍 tìm theo email khách hàng hoặc tên laptop
+        if (!string.IsNullOrEmpty(searchString))
+        {
+            query = query.Where(b =>
+                b.Customer.Email.Contains(searchString) ||
+                b.Laptop.Name.Contains(searchString));
+        }
+
+        // 🔽 lọc trạng thái
+        if (statusId.HasValue && statusId.Value != 0)
+            query = query.Where(b => b.StatusId == statusId.Value);
+
         int totalItems = query.Count();
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-        var bookings = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var bookings = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
+        ViewBag.SearchString = searchString;
+        ViewBag.SelectedStatus = statusId ?? 0;
+
+        // danh sách status cho dropdown
+        ViewBag.StatusList = _context.Statuses
+            .Where(s => s.Id == 1 || s.Id == 2 || s.Id == 3 || s.Id == 8 || s.Id == 10)
+            .Select(s => new { s.Id, s.StatusName })
+            .ToList();
+
+        // các thống kê GIỮ NGUYÊN
         ViewBag.TotalBooking = _context.Bookings
             .Count(b => b.StatusId == 1 || b.StatusId == 2 || b.StatusId == 3 || b.StatusId == 8 || b.StatusId == 10);
         ViewBag.PendingBooking = _context.Bookings.Count(b => b.StatusId == 1);
