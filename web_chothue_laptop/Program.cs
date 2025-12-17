@@ -61,6 +61,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
+builder.Services.AddScoped<VnpayService>();
 
 var app = builder.Build();
 

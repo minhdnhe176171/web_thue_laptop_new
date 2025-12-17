@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
+using web_chothue_laptop.Helpers;
 
 namespace web_chothue_laptop.Controllers
 {
@@ -16,27 +17,35 @@ namespace web_chothue_laptop.Controllers
         }
 
         // GET: Laptop/Details/5
-        public async Task<IActionResult> Details(long? id)
+        public async Task<IActionResult> Details(long? id, int? page)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
+            const int PageSize = 6;
+            int pageIndex = page ?? 1;
+
             var laptop = await _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
                 .Include(l => l.LaptopDetails)
-                .Include(l => l.Bookings)
-                    .ThenInclude(b => b.Customer)
-                .Include(l => l.Bookings)
-                    .ThenInclude(b => b.Status)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (laptop == null)
             {
                 return NotFound();
             }
+
+            // Phân trang cho lịch sử sử dụng (bookings)
+            var bookingsQuery = _context.Bookings
+                .Include(b => b.Customer)
+                .Include(b => b.Status)
+                .Where(b => b.LaptopId == laptop.Id)
+                .OrderByDescending(b => b.StartTime);
+
+            var paginatedBookings = await PaginatedList<Booking>.CreateAsync(bookingsQuery, pageIndex, PageSize);
 
             // Kiểm tra booking của user hiện tại (nếu đã đăng nhập)
             var userId = HttpContext.Session.GetString("UserId");
@@ -77,13 +86,18 @@ namespace web_chothue_laptop.Controllers
                 .AnyAsync(b => b.LaptopId == laptop.Id
                     && (b.StatusId == 2 || b.StatusId == 10)
                     && b.StartTime <= DateTime.Now
-                    && b.EndTime >= DateTime.Today);
+                    && b.EndTime >= DateTime.Now);
 
             ViewBag.HasPendingBooking = hasPendingBooking;
             ViewBag.HasActiveBooking = hasActiveBooking;
             ViewBag.ActiveBooking = activeBooking;
             ViewBag.CurrentUserId = userId;
             ViewBag.IsRentedByOthers = isRentedByOthers;
+            ViewBag.PaginatedBookings = paginatedBookings;
+            ViewBag.PageIndex = paginatedBookings.PageIndex;
+            ViewBag.TotalPages = paginatedBookings.TotalPages;
+            ViewBag.HasPreviousPage = paginatedBookings.HasPreviousPage;
+            ViewBag.HasNextPage = paginatedBookings.HasNextPage;
 
             return View(laptop);
         }

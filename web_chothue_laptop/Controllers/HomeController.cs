@@ -16,16 +16,16 @@ namespace web_chothue_laptop.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index(int? page)
+        public async Task<IActionResult> Index(int? page, string? search, string? brand)
         {
             int pageIndex = page ?? 1;
             
             // Lấy TẤT CẢ laptop ID đang có người thuê (bất kỳ user nào) - StatusId = 2 (Approved) hoặc 10 (Rented)
-            // Điều kiện: StartTime <= hiện tại và EndTime >= hôm nay (đang trong thời gian thuê)
+            // Điều kiện: StartTime <= hiện tại và EndTime >= hiện tại (đang trong thời gian thuê)
             var rentedLaptopIds = await _context.Bookings
                 .Where(b => (b.StatusId == 2 || b.StatusId == 10)
                     && b.StartTime <= DateTime.Now 
-                    && b.EndTime >= DateTime.Today)
+                    && b.EndTime >= DateTime.Now)
                 .Select(b => b.LaptopId)
                 .Distinct()
                 .ToListAsync();
@@ -34,7 +34,24 @@ namespace web_chothue_laptop.Controllers
             var allLaptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
-                .Where(l => l.Status != null && l.Status.StatusName.ToLower() == "available")
+                .Where(l => l.Status != null && l.Status.StatusName.ToLower() == "available");
+
+            // Filter theo tìm kiếm
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                allLaptopsQuery = allLaptopsQuery.Where(l => 
+                    l.Name.Contains(search) || 
+                    (l.Brand != null && l.Brand.BrandName.Contains(search)));
+            }
+
+            // Filter theo brand
+            if (!string.IsNullOrWhiteSpace(brand))
+            {
+                allLaptopsQuery = allLaptopsQuery.Where(l => 
+                    l.Brand != null && l.Brand.BrandName.ToLower() == brand.ToLower());
+            }
+
+            allLaptopsQuery = allLaptopsQuery
                 .OrderByDescending(l => l.CreatedDate) // Sắp xếp theo ngày tạo mới nhất
                 .ThenBy(l => l.Id);
 
@@ -50,6 +67,11 @@ namespace web_chothue_laptop.Controllers
                 .OrderByDescending(b => b.StartTime)
                 .ToListAsync();
 
+            // Lấy danh sách brands để hiển thị filter
+            var brands = await _context.Brands
+                .OrderBy(b => b.BrandName)
+                .ToListAsync();
+
             // Truyền danh sách laptop ID đang thuê vào ViewBag để view có thể hiển thị status
             ViewBag.RentedLaptopIds = rentedLaptopIds;
             ViewBag.CurrentBookings = currentBookings;
@@ -57,6 +79,9 @@ namespace web_chothue_laptop.Controllers
             ViewBag.TotalPages = paginatedLaptops.TotalPages;
             ViewBag.HasPreviousPage = paginatedLaptops.HasPreviousPage;
             ViewBag.HasNextPage = paginatedLaptops.HasNextPage;
+            ViewBag.Search = search;
+            ViewBag.Brand = brand;
+            ViewBag.Brands = brands;
 
             return View(paginatedLaptops);
         }

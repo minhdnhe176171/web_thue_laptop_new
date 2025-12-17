@@ -221,7 +221,14 @@
                     <h5 class="mb-0">Lịch Sử Sử Dụng</h5>
                 </div>
                 <div class="card-body">
-                    @if (Model.Bookings != null && Model.Bookings.Any())
+                    @{
+                        var paginatedBookings = ViewBag.PaginatedBookings as PaginatedList<Booking>;
+                        var pageIndex = paginatedBookings?.PageIndex ?? 1;
+                        var totalPages = paginatedBookings?.TotalPages ?? 1;
+                        var hasPreviousPage = paginatedBookings?.HasPreviousPage ?? false;
+                        var hasNextPage = paginatedBookings?.HasNextPage ?? false;
+                    }
+                    @if (paginatedBookings != null && paginatedBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table">
@@ -235,7 +242,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in Model.Bookings.OrderByDescending(b => b.StartTime))
+                                    @foreach (var booking in paginatedBookings)
                                     {
                                         <tr>
                                             <td>
@@ -281,6 +288,34 @@
                     else
                     {
                         <p class="text-muted mb-0">Chưa có lịch sử thuê.</p>
+                    }
+                    
+                    <!-- Phân trang - Luôn hiển thị -->
+                    @if (paginatedBookings != null)
+                    {
+                        var displayPages = Math.Max(totalPages, 3);
+                        var hasPreviousDisplay = pageIndex > 1;
+                        var hasNextDisplay = pageIndex < displayPages;
+                        <nav aria-label="Page navigation" class="p-3">
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item @(!hasPreviousDisplay ? "disabled" : "")">
+                                    <a class="page-link" href="@Url.Action("Details", new { id = Model.Id, page = pageIndex - 1 })" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                @for (int i = 1; i <= displayPages; i++)
+                                {
+                                    <li class="page-item @(i == pageIndex ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Details", new { id = Model.Id, page = i })">@i</a>
+                                    </li>
+                                }
+                                <li class="page-item @(!hasNextDisplay ? "disabled" : "")">
+                                    <a class="page-link" href="@Url.Action("Details", new { id = Model.Id, page = pageIndex + 1 })" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
                     }
                 </div>
             </div>
