@@ -23,6 +23,8 @@ public partial class Customer
 
     public DateTime? CreatedDate { get; set; }
 
+    public bool BlackList { get; set; }
+
     public virtual ICollection<BookingReceipt> BookingReceipts { get; set; } = new List<BookingReceipt>();
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
