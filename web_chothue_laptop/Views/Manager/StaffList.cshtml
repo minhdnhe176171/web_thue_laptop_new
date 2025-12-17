@@ -1,0 +1,49 @@
+﻿@model Tuple<IEnumerable<web_chothue_laptop.Models.Staff>, IEnumerable<web_chothue_laptop.Models.Technical>>
+@{
+    ViewData["Title"] = "Nhân viên";
+    Layout = "_ManagerLayout";
+    var staffList = Model.Item1;
+    var technicalList = Model.Item2;
+}
+<h2>Danh sách nhân viên Staff</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>ID No</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in staffList)
+        {
+            <tr>
+                <td>@item.Email</td>
+                <td>@item.Phone</td>
+                <td>@item.IdNo</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<h2>Danh sách nhân viên Technical</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>ID No</th>
+            <th>Đang làm việc</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in technicalList)
+        {
+            <tr>
+                <td>@item.Email</td>
+                <td>@item.Phone</td>
+                <td>@item.IdNo</td>
+                <td>@(item.IsWorking == 1 ? "Có" : "Không")</td>
+            </tr>
+        }
+    </tbody>
+</table>

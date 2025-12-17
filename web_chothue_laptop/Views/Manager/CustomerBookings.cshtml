@@ -1,0 +1,126 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+@{
+    ViewData["Title"] = "Đơn từ Khách hàng";
+    Layout = "_ManagerLayout";
+}
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <small>Tổng số đơn</small>
+                <h5 class="text-primary">@ViewBag.TotalBooking</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <small>Đang chờ</small>
+                <h5 class="text-warning">@ViewBag.PendingBooking</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <small>Đã phê duyệt</small>
+                <h5 class="text-success">@ViewBag.ApprovedBooking</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <small>Đã từ chối</small>
+                <h5 class="text-danger">@ViewBag.RejectedBooking</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <small>Đang thuê</small>
+                <h5 class="text-info">@ViewBag.RentingBooking</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <small>Đã đóng</small>
+                <h5 class="text-secondary">@ViewBag.ClosedBooking</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-success text-end">
+    <strong>Doanh thu:</strong>
+    @String.Format("{0:N0} đ", ViewBag.TotalRevenue)
+</div>
+<h2 class="mb-4">Đơn thuê từ Khách hàng</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Mã đơn</th>
+            <th>Khách hàng</th>
+            <th>Laptop</th>
+            <th>Trạng thái</th>
+            <th>Ngày tạo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>RENTAL-@item.Id</td>
+                <td>@item.Customer?.Email</td>
+                <td>@item.Laptop?.Name</td>
+                <td>@item.Status?.StatusName</td>
+                <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+@if (ViewBag.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination justify-content-center">
+
+            <!-- Previous -->
+            <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="CustomerBookings"
+                   asp-route-page="@(ViewBag.CurrentPage - 1)">
+                    Trước
+                </a>
+            </li>
+
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="CustomerBookings"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+
+            <!-- Next -->
+            <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="CustomerBookings"
+                   asp-route-page="@(ViewBag.CurrentPage + 1)">
+                    Sau
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+}
