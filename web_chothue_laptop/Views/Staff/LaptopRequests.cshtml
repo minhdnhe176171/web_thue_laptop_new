@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Máy Chờ Kiểm Tra";
 }
@@ -86,7 +86,7 @@
     </div>
 
     <div class="staff-content">
-        <h3 class="fw-bold text-primary mb-4">Máy Chờ Kiểm Tra (@(Model?.Count() ?? 0))</h3>
+        <h3 class="fw-bold text-primary mb-4">Máy Chờ Kiểm Tra (@ViewData["TotalCount"])</h3>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -96,7 +96,20 @@
         {
             <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]</div>
         }
+        <form asp-action="LaptopRequests" method="get" class="mb-3">
+            <div class="input-group" style="max-width: 500px;">
+                <input type="text" name="searchString" class="form-control" placeholder="Tìm tên máy, sinh viên..." value="@ViewData["CurrentFilter"]">
 
+                <button type="submit" class="btn btn-primary text-nowrap">
+                    <i class="fas fa-search"></i> Tìm kiếm
+                </button>
+
+                @if (ViewData["CurrentFilter"] != null)
+                {
+                    <a asp-action="LaptopRequests" class="btn btn-outline-secondary">X</a>
+                }
+            </div>
+        </form>
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -157,6 +170,15 @@
                         }
                     </tbody>
                 </table>
+                <div class="p-3 d-flex justify-content-end">
+                    @{
+                        var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                        var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+                    }
+                    <a asp-action="LaptopRequests" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm me-2 @prevDisabled">Trước</a>
+                    <span class="align-self-center mx-2">Trang @Model.PageIndex / @Model.TotalPages</span>
+                    <a asp-action="LaptopRequests" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm ms-2 @nextDisabled">Sau</a>
+                </div>
             </div>
         </div>
     </div>

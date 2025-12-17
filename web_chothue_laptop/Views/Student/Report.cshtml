@@ -1,8 +1,19 @@
 ﻿@model IEnumerable<web_chothue_laptop.Models.TechnicalTicket>
 @{
-    ViewData["Title"] = "Báo Cáo Thu Nhập & Lịch Sử Cho Thuê";
+    ViewData["Title"] = "Báo Cáo Thu Nhập & Lịch Sử";
     var completedBookings = ViewBag.CompletedBookings as IEnumerable<web_chothue_laptop.Models.BookingReceipt>;
     var rentedBookings = ViewBag.RentedBookings as IEnumerable<web_chothue_laptop.Models.Booking>;
+    
+    // Pagination settings
+    int pageSize = 5;
+    int completedPage = ViewBag.CompletedPage ?? 1;
+    int ticketsPage = ViewBag.TicketsPage ?? 1;
+    
+    var completedPaged = completedBookings?.Skip((completedPage - 1) * pageSize).Take(pageSize).ToList() ?? new List<web_chothue_laptop.Models.BookingReceipt>();
+    var ticketsPaged = Model?.Skip((ticketsPage - 1) * pageSize).Take(pageSize).ToList() ?? new List<web_chothue_laptop.Models.TechnicalTicket>();
+    
+    int totalCompletedPages = (int)Math.Ceiling((completedBookings?.Count() ?? 0) / (double)pageSize);
+    int totalTicketsPages = (int)Math.Ceiling((Model?.Count() ?? 0) / (double)pageSize);
 }
 
 @functions {
@@ -19,24 +30,24 @@
         _ => name ?? "Không xác định"
     };
 
-    private static string GetStatusBadgeClass(string? name) => name?.ToLower() switch
+    private static string GetStatusTextClass(string? name) => name?.ToLower() switch
     {
-        "pending" => "bg-warning text-dark",
-        "approved" => "bg-success",
-        "rejected" => "bg-danger",
-        "fixed" => "bg-success",
-        "processing" => "bg-info",
-        "broken" => "bg-danger",
-        "rented" => "bg-primary",
-        "completed" => "bg-success",
-        _ => "bg-secondary"
+        "pending" => "text-black fw-bold",
+        "approved" => "text-black fw-bold",
+        "rejected" => "text-black fw-bold",
+        "fixed" => "text-black fw-bold",
+        "processing" => "text-black fw-bold",
+        "broken" => "text-black fw-bold",
+        "rented" => "text-black fw-bold",
+        "completed" => "text-black fw-bold",
+        _ => "text-secondary fw-bold"
     };
 }
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-primary fw-bold">
-            <i class="fas fa-chart-line me-2"></i>Báo Cáo Thu Nhập & Lịch Sử Cho Thuê
+            <i class="fas fa-chart-line me-2"></i>Báo Cáo Thu Nhập & Lịch Sử
         </h2>
         <a asp-action="Index" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left"></i> Quay lại
@@ -45,49 +56,21 @@
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-6">
             <div class="card bg-success text-white shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-uppercase mb-1 opacity-75">Tổng Thu Nhập</h6>
                             <h2 class="mb-0">@(ViewBag.Income ?? "0 VNĐ")</h2>
-                            <small class="opacity-75">Đã hoàn thành</small>
+                            <small class="opacity-75">Từ @(completedBookings?.Count() ?? 0) đơn hoàn thành</small>
                         </div>
                         <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1 opacity-75">Tổng Booking</h6>
-                            <h2 class="mb-0">@(ViewBag.TotalBookings ?? 0)</h2>
-                            <small class="opacity-75">Lượt thuê</small>
-                        </div>
-                        <i class="fas fa-shopping-cart fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-primary text-white shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1 opacity-75">Đang Cho Thuê</h6>
-                            <h2 class="mb-0">@(ViewBag.TotalRented ?? 0)</h2>
-                            <small class="opacity-75">Máy đang thuê</small>
-                        </div>
-                        <i class="fas fa-laptop fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-6">
             <div class="card bg-warning text-dark shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -106,77 +89,28 @@
     <!-- Tabs Navigation -->
     <ul class="nav nav-tabs mb-3" id="reportTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="rented-tab" data-bs-toggle="tab" data-bs-target="#rented" type="button">
-                <i class="fas fa-laptop me-1"></i>Đang Cho Thuê
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button">
-                <i class="fas fa-check-circle me-1"></i>Đã Hoàn Thành
+            <button class="nav-link active" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button">
+                <i class="fas fa-check-circle me-1"></i>Đã Hoàn Thành 
+                <span class="badge bg-success ms-1">@(completedBookings?.Count() ?? 0)</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets" type="button">
-                <i class="fas fa-tools me-1"></i>Phiếu Kỹ Thuật
+                <i class="fas fa-tools me-1"></i>Phiếu Kỹ Thuật 
+                <span class="badge bg-warning ms-1">@(Model?.Count() ?? 0)</span>
             </button>
         </li>
     </ul>
 
     <!-- Tabs Content -->
     <div class="tab-content" id="reportTabContent">
-        <!-- Tab: Đang cho thuê -->
-        <div class="tab-pane fade show active" id="rented" role="tabpanel">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-primary">Laptop Đang Được Khách Thuê</h5>
-                </div>
-                <div class="card-body p-0">
-                    @if (rentedBookings != null && rentedBookings.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="text-center">Mã Booking</th>
-                                        <th>Laptop</th>
-                                        <th>Khách Hàng</th>
-                                        <th class="text-center">Ngày Thuê</th>
-                                        <th class="text-center">Ngày Trả</th>
-                                        <th class="text-end">Giá Thuê</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var booking in rentedBookings)
-                                    {
-                                        <tr>
-                                            <td class="text-center"><span class="badge bg-primary">#@booking.Id</span></td>
-                                            <td>@booking.Laptop?.Name</td>
-                                            <td>@(booking.Customer?.LastName) @(booking.Customer?.FirstName)</td>
-                                            <td class="text-center">@booking.StartTime.ToString("dd/MM/yyyy")</td>
-                                            <td class="text-center">@booking.EndTime.ToString("dd/MM/yyyy")</td>
-                                            <td class="text-end fw-bold text-success">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                            <p class="mb-0">Không có laptop nào đang được thuê</p>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
         <!-- Tab: Đã hoàn thành -->
-        <div class="tab-pane fade" id="completed" role="tabpanel">
+        <div class="tab-pane fade show active" id="completed" role="tabpanel">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-success">Lịch Sử Cho Thuê Đã Hoàn Thành</h5>
+                    <h5 class="mb-0 text-success">
+                        <i class="fas fa-check-circle me-2"></i>Lịch Sử Cho Thuê Đã Hoàn Thành
+                    </h5>
                 </div>
                 <div class="card-body p-0">
                     @if (completedBookings != null && completedBookings.Any())
@@ -194,7 +128,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var receipt in completedBookings)
+                                    @foreach (var receipt in completedPaged)
                                     {
                                         <tr>
                                             <td class="text-center"><span class="badge bg-success">#@receipt.Id</span></td>
@@ -208,6 +142,30 @@
                                 </tbody>
                             </table>
                         </div>
+                        
+                        @if (totalCompletedPages > 1)
+                        {
+                            <div class="card-footer">
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                        <li class="page-item @(completedPage == 1 ? "disabled" : "")">
+                                            <a class="page-link" href="?tab=completed&page=@(completedPage - 1)">Trước</a>
+                                        </li>
+                                        
+                                        @for (int i = 1; i <= totalCompletedPages; i++)
+                                        {
+                                            <li class="page-item @(i == completedPage ? "active" : "")">
+                                                <a class="page-link" href="?tab=completed&page=@i">@i</a>
+                                            </li>
+                                        }
+                                        
+                                        <li class="page-item @(completedPage == totalCompletedPages ? "disabled" : "")">
+                                            <a class="page-link" href="?tab=completed&page=@(completedPage + 1)">Sau</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -224,7 +182,9 @@
         <div class="tab-pane fade" id="tickets" role="tabpanel">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-warning">Phiếu Kỹ Thuật</h5>
+                    <h5 class="mb-0 text-warning">
+                        <i class="fas fa-tools me-2"></i>Phiếu Kỹ Thuật
+                    </h5>
                 </div>
                 <div class="card-body p-0">
                     @if (Model != null && Model.Any())
@@ -241,7 +201,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var ticket in Model)
+                                    @foreach (var ticket in ticketsPaged)
                                     {
                                         <tr>
                                             <td class="text-center"><span class="badge bg-primary">#@ticket.Id</span></td>
@@ -249,7 +209,7 @@
                                             <td>@ticket.Laptop?.Name</td>
                                             <td>@ticket.Description</td>
                                             <td class="text-center">
-                                                <span class="badge @GetStatusBadgeClass(ticket.Status?.StatusName)">
+                                                <span class="@GetStatusTextClass(ticket.Status?.StatusName)">
                                                     @TranslateStatus(ticket.Status?.StatusName)
                                                 </span>
                                             </td>
@@ -258,6 +218,30 @@
                                 </tbody>
                             </table>
                         </div>
+                        
+                        @if (totalTicketsPages > 1)
+                        {
+                            <div class="card-footer">
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                        <li class="page-item @(ticketsPage == 1 ? "disabled" : "")">
+                                            <a class="page-link" href="?tab=tickets&page=@(ticketsPage - 1)">Trước</a>
+                                        </li>
+                                        
+                                        @for (int i = 1; i <= totalTicketsPages; i++)
+                                        {
+                                            <li class="page-item @(i == ticketsPage ? "active" : "")">
+                                                <a class="page-link" href="?tab=tickets&page=@i">@i</a>
+                                            </li>
+                                        }
+                                        
+                                        <li class="page-item @(ticketsPage == totalTicketsPages ? "disabled" : "")">
+                                            <a class="page-link" href="?tab=tickets&page=@(ticketsPage + 1)">Sau</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -272,3 +256,30 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Check URL parameter for active tab
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeTab = urlParams.get('tab');
+            
+            if (activeTab === 'tickets') {
+                $('#tickets-tab').tab('show');
+            } else {
+                $('#completed-tab').tab('show');
+            }
+            
+            // Update URL when tab changes
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const targetTab = $(e.target).attr('data-bs-target');
+                const tabName = targetTab === '#tickets' ? 'tickets' : 'completed';
+                
+                const newUrl = window.location.pathname + '?tab=' + tabName;
+                window.history.pushState({path: newUrl}, '', newUrl);
+            });
+        });
+    </script>
+}
+
+
