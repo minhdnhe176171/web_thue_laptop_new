@@ -15,27 +15,42 @@ public class ManagerController : Controller
 
     public IActionResult Index()
     {
-        // Có thể để trống hoặc truyền số liệu dashboard sau
         return View();
     }
+
     // 1. Quản lý toàn bộ Laptop
     public IActionResult LaptopManagement(string searchString, int? statusId, int page = 1)
     {
         int pageSize = 5;
 
+        if (!statusId.HasValue)
+        {
+            statusId = 9;
+        }
+
         var query = _context.Laptops
             .Include(l => l.Brand)
             .Include(l => l.Status)
             .Include(l => l.Student)
-            .Where(l => l.StatusId == 4
-                     || l.StatusId == 8
-                     || l.StatusId == 9
-                     || l.StatusId == 10)
-            .OrderByDescending(l => l.CreatedDate)
             .AsQueryable();
 
-        if (!string.IsNullOrEmpty(searchString))
-            query = query.Where(l => l.Name.Contains(searchString));
+        if (!string.IsNullOrWhiteSpace(searchString))
+        {
+            searchString = searchString.Trim();
+
+            query = query.Where(l =>
+                l.Id.ToString().Contains(searchString) ||
+
+                l.Name.Contains(searchString) ||
+
+                (l.Brand != null && l.Brand.BrandName.Contains(searchString)) ||
+
+                (l.Student != null && l.Student.Email.Contains(searchString)) ||
+                (l.Student != null && l.Student.FirstName.Contains(searchString)) ||
+                (l.Student != null && l.Student.LastName.Contains(searchString)
+            )
+            );
+        }
 
         if (statusId.HasValue && statusId.Value != 0)
             query = query.Where(l => l.StatusId == statusId.Value);
@@ -44,25 +59,42 @@ public class ManagerController : Controller
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
         var laptops = query
+            .OrderByDescending(l => l.CreatedDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .ToList();
+        var statusFromDb = _context.Statuses
+            .Where(s => s.Id == 4 ||s.Id == 9 || s.Id == 10)
             .ToList();
 
         // Paging
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
         ViewBag.SearchString = searchString;
-        ViewBag.SelectedStatus = statusId ?? 0;
+        ViewBag.SelectedStatus = statusId;
 
         // Status filter
-        ViewBag.StatusList = _context.Statuses
-            .Where(s => s.Id == 4 || s.Id == 8 || s.Id == 9 || s.Id == 10)
-            .Select(s => new { s.Id, s.StatusName })
+        var StatusViMap = new Dictionary<string, string>
+            {
+                { "Available", "Có sẵn" },
+                { "Rented", "Đang thuê" },
+                { "Fixing", "Đang sửa chữa" }
+               
+            };
+
+        ViewBag.StatusList = statusFromDb
+            .Select(s => new
+            {
+                s.Id,
+                StatusName = StatusViMap.ContainsKey(s.StatusName)
+                    ? StatusViMap[s.StatusName]
+                    : s.StatusName
+            })
             .ToList();
 
-        // Thống kê
+        // Thống kê (GIỮ NGUYÊN)
         ViewBag.TotalLaptop = _context.Laptops
-            .Count(l => l.StatusId == 4 || l.StatusId == 8 || l.StatusId == 9 || l.StatusId == 10);
+            .Count(l => l.StatusId == 4 ||l.StatusId == 9 || l.StatusId == 10);
 
         ViewBag.RentingLaptop = _context.Laptops.Count(l => l.StatusId == 10);
         ViewBag.MaintenanceLaptop = _context.Laptops.Count(l => l.StatusId == 4);
@@ -72,10 +104,16 @@ public class ManagerController : Controller
     }
 
 
+
     // 2. Quản lý đơn từ Student
     public IActionResult LaptopRequests(string searchString, int? statusId, int page = 1)
     {
-        int pageSize = 5; // 👈 cố định 5 bản ghi / trang
+        int pageSize = 5;
+
+        if (!statusId.HasValue)
+        {
+            statusId = 1;
+        }
 
         var query = _context.Laptops
             .Include(l => l.Brand)
@@ -86,8 +124,24 @@ public class ManagerController : Controller
             .OrderByDescending(l => l.CreatedDate)
             .AsQueryable();
 
-        if (!string.IsNullOrEmpty(searchString))
-            query = query.Where(l => l.Name.Contains(searchString));
+        if (!string.IsNullOrWhiteSpace(searchString))
+        {
+            searchString = searchString.Trim();
+
+            query = query.Where(l =>
+                l.Id.ToString().Contains(searchString) ||
+
+                l.Name.Contains(searchString) ||
+
+                (l.Brand != null && l.Brand.BrandName.Contains(searchString)) ||
+
+                (l.Student != null && l.Student.Email.Contains(searchString)) ||
+                (l.Student != null && l.Student.FirstName.Contains(searchString)) ||
+                (l.Student != null && l.Student.LastName.Contains(searchString)
+                )
+                );
+
+        }
 
         if (statusId.HasValue && statusId.Value != 0)
             query = query.Where(l => l.StatusId == statusId.Value);
@@ -99,15 +153,30 @@ public class ManagerController : Controller
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
+        var statusFromDb = _context.Statuses
+            .Where(s => s.Id == 1 || s.Id == 2 || s.Id == 3)
+            .ToList();
 
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
         ViewBag.SearchString = searchString;
         ViewBag.SelectedStatus = statusId ?? 0;
 
-        ViewBag.StatusList = _context.Statuses
-            .Where(s => s.Id == 1 || s.Id == 2 || s.Id == 3)
-            .Select(s => new { s.Id, s.StatusName })
+        var StatusViMap = new Dictionary<string, string>
+            {
+                { "Pending", "Đang chờ" },
+                { "Approved", "Đã phê duyêt" },
+                { "Rejected", "Đã từ chối" }
+            };
+
+        ViewBag.StatusList = statusFromDb
+            .Select(s => new
+            {
+                s.Id,
+                StatusName = StatusViMap.ContainsKey(s.StatusName)
+                    ? StatusViMap[s.StatusName]
+                    : s.StatusName
+            })
             .ToList();
 
         return View(laptops);
@@ -149,6 +218,12 @@ public class ManagerController : Controller
     // 3. Quản lý đơn từ Customer
     public IActionResult CustomerBookings(string searchString, int? statusId, int page = 1, int pageSize = 5)
     {
+
+        if (!statusId.HasValue)
+        {
+            statusId = 1;
+        }
+
         var query = _context.Bookings
             .Include(b => b.Customer)
             .Include(b => b.Laptop)
@@ -161,10 +236,11 @@ public class ManagerController : Controller
             .OrderByDescending(b => b.CreatedDate)
             .AsQueryable();
 
-        // 🔍 tìm theo email khách hàng hoặc tên laptop
         if (!string.IsNullOrEmpty(searchString))
         {
             query = query.Where(b =>
+                b.Customer.LastName.Contains(searchString) ||
+                b.Customer.FirstName.Contains(searchString) ||
                 b.Customer.Email.Contains(searchString) ||
                 b.Laptop.Name.Contains(searchString));
         }
@@ -178,6 +254,7 @@ public class ManagerController : Controller
 
         var bookings = query
             .Skip((page - 1) * pageSize)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
 
@@ -186,10 +263,27 @@ public class ManagerController : Controller
         ViewBag.SearchString = searchString;
         ViewBag.SelectedStatus = statusId ?? 0;
 
-        // danh sách status cho dropdown
-        ViewBag.StatusList = _context.Statuses
+        var statusFromDb = _context.Statuses
             .Where(s => s.Id == 1 || s.Id == 2 || s.Id == 3 || s.Id == 8 || s.Id == 10)
-            .Select(s => new { s.Id, s.StatusName })
+            .ToList();
+
+        var StatusViMap = new Dictionary<string, string>
+            {
+                { "Pending", "Đang chờ" },
+                { "Approved", "Đã phê duyêt" },
+                { "Rejected", "Đã từ chối" },
+                { "Close", "Đã đóng"},
+                { "Rented", "Đang thuê"}
+            };
+
+        ViewBag.StatusList = statusFromDb
+            .Select(s => new
+            {
+                s.Id,
+                StatusName = StatusViMap.ContainsKey(s.StatusName)
+                    ? StatusViMap[s.StatusName]
+                    : s.StatusName
+            })
             .ToList();
 
         // các thống kê GIỮ NGUYÊN
@@ -212,7 +306,33 @@ public class ManagerController : Controller
     {
         var staff = _context.Staff.ToList();
         var technical = _context.Technicals.ToList();
+
         return View(Tuple.Create(staff, technical));
+    }
+
+    // ===== CHI TIẾT STAFF =====
+    public IActionResult StaffDetail(long id)
+    {
+        var staff = _context.Staff
+            .Include(s => s.Bookings)
+            .Include(s => s.BookingReceipts)
+            .FirstOrDefault(s => s.Id == id);
+
+        if (staff == null) return NotFound();
+
+        return View(staff);
+    }
+
+    // ===== CHI TIẾT TECHNICAL =====
+    public IActionResult TechnicalDetail(long id)
+    {
+        var tech = _context.Technicals
+            .Include(t => t.TechnicalTickets)
+            .FirstOrDefault(t => t.Id == id);
+
+        if (tech == null) return NotFound();
+
+        return View(tech);
     }
 
     // Chi tiết Laptop

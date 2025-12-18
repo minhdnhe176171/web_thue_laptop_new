@@ -1,48 +1,87 @@
-﻿@model Tuple<IEnumerable<web_chothue_laptop.Models.Staff>, IEnumerable<web_chothue_laptop.Models.Technical>>
+﻿@model Tuple<
+    List<web_chothue_laptop.Models.Staff>,
+    List<web_chothue_laptop.Models.Technical>
+>
+
 @{
-    ViewData["Title"] = "Nhân viên";
+    ViewData["Title"] = "Danh sách nhân viên";
     Layout = "_ManagerLayout";
-    var staffList = Model.Item1;
-    var technicalList = Model.Item2;
 }
-<h2>Danh sách nhân viên Staff</h2>
-<table class="table table-bordered">
-    <thead>
+
+<h2 class="mb-4">Quản lý nhân viên</h2>
+
+<!-- STAFF -->
+<h4 class="mb-3">Nhân viên Staff</h4>
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
         <tr>
+            <th>Họ tên</th>
             <th>Email</th>
-            <th>Phone</th>
-            <th>ID No</th>
+            <th>SĐT</th>
+            <th>Ngày sinh</th>
+            <th>Ngày tạo</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in staffList)
+        @foreach (var s in Model.Item1)
         {
             <tr>
-                <td>@item.Email</td>
-                <td>@item.Phone</td>
-                <td>@item.IdNo</td>
+                <td>@s.FirstName @s.LastName</td>
+                <td>@s.Email</td>
+                <td>@s.Phone</td>
+                <td>@s.Dob?.ToString("dd/MM/yyyy")</td>
+                <td>@s.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                <td>
+                    <a asp-action="StaffDetail"
+                       asp-route-id="@s.Id"
+                       class="btn btn-sm btn-info">
+                        Xem chi tiết
+                    </a>
+                </td>
             </tr>
         }
     </tbody>
 </table>
-<h2>Danh sách nhân viên Technical</h2>
-<table class="table table-bordered">
-    <thead>
+
+<!-- TECHNICAL -->
+<h4 class="mb-3 mt-5">Nhân viên Technical</h4>
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
         <tr>
+            <th>Họ tên</th>
             <th>Email</th>
-            <th>Phone</th>
-            <th>ID No</th>
-            <th>Đang làm việc</th>
+            <th>SĐT</th>
+            <th>Trạng thái</th>
+            <th>Ngày tạo</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in technicalList)
+        @foreach (var t in Model.Item2)
         {
             <tr>
-                <td>@item.Email</td>
-                <td>@item.Phone</td>
-                <td>@item.IdNo</td>
-                <td>@(item.IsWorking == 1 ? "Có" : "Không")</td>
+                <td>@t.FirstName @t.LastName</td>
+                <td>@t.Email</td>
+                <td>@t.Phone</td>
+                <td>
+                    @if (t.IsWorking == 1)
+                    {
+                        <span class="badge bg-success">Đang làm</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Nghỉ</span>
+                    }
+                </td>
+                <td>@t.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                <td>
+                    <a asp-action="TechnicalDetail"
+                       asp-route-id="@t.Id"
+                       class="btn btn-sm btn-info">
+                        Xem chi tiết
+                    </a>
+                </td>
             </tr>
         }
     </tbody>

@@ -100,7 +100,7 @@ namespace web_chothue_laptop.Controllers
 
                 case "admin":
                 case "manager":
-                    return RedirectToAction("Index", "Manager");
+                    return RedirectToAction("LaptopManagement", "Manager");
 
                 default:
                     return RedirectToAction("Index", "Home"); // Customer/Student về Home

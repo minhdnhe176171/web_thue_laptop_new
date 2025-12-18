@@ -43,7 +43,7 @@
 </div>
 <form method="get" asp-action="LaptopManagement" class="mb-3">
     <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm kiếm tên máy..." class="form-control d-inline-block w-auto" />
-    <select name="statusId" class="form-select d-inline-block w-auto">
+    <select name="statusId" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
         <option value="0">Tất cả trạng thái</option>
         @foreach (var status in ViewBag.StatusList)
         {
@@ -66,6 +66,7 @@
             <th>Hãng</th>
             <th>Trạng thái</th>
             <th>Sinh viên</th>
+            <th>Email</th>
             <th>Ngày tạo</th>
             <th>Thao tác</th>
         </tr>
@@ -115,6 +116,7 @@
                     }
                 </td>
 
+                <td>@item.Student?.FirstName @item.Student?.LastName</td>
                 <td>@item.Student?.Email</td>
                 <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
                 <td>

@@ -34,6 +34,7 @@
             <th>Hãng</th>
             <th>Trạng thái</th>
             <th>Sinh viên gửi</th>
+            <th>Emai</th>
             <th>Ngày gửi</th>
             <th width="180">Thao tác</th>
         </tr>
@@ -97,7 +98,7 @@
                                 break;
                         }
                     </td>
-
+                    <td>@item.Student?.FirstName @item.Student?.LastName</td>
                     <td>@item.Student?.Email</td>
                     <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
                     <td>
