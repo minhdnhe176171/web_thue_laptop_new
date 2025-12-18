@@ -102,8 +102,14 @@ namespace web_chothue_laptop.Controllers
                 case "manager":
                     return RedirectToAction("Index", "Admin");
 
+                case "student":
+                    return RedirectToAction("Index", "Student"); // Student vào Student Dashboard
+
+                case "customer":
+                    return RedirectToAction("Index", "Home"); // Customer về Home
+
                 default:
-                    return RedirectToAction("Index", "Home"); // Customer/Student về Home
+                    return RedirectToAction("Index", "Home"); // Mặc định về Home
             }
         }
         // GET: Account/Register

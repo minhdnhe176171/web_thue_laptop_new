@@ -87,6 +87,14 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("UPDATED_DATE");
+            entity.Property(e => e.IdNoUrl)
+                .HasMaxLength(255)
+                .HasColumnName("ID_NO_URL");
+            entity.Property(e => e.StudentUrl)
+                .HasMaxLength(255)
+                .HasColumnName("STUDENT_URL");
+            entity.Property(e => e.RejectReason)
+                .HasColumnName("REJECT_REASON");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.CustomerId)
@@ -221,6 +229,9 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("PHONE");
+            entity.Property(e => e.BlackList)
+                .HasDefaultValue(false)
+                .HasColumnName("BLACK_LIST");
 
             entity.HasOne(d => d.CustomerNavigation).WithMany(p => p.Customers)
                 .HasForeignKey(d => d.CustomerId)

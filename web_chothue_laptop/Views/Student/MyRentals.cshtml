@@ -8,20 +8,41 @@
                              b.Status?.StatusName?.ToLower() == "approved")
     ).ToList();
     
-    var rentedLaptops = Model.Where(l => 
-        l.Bookings.Any(b => b.Status?.StatusName?.ToLower() == "rented")
+    // Tách laptop đang thuê và quá hạn
+    var allRentedLaptops = Model.Where(l => 
+        l.Bookings.Any(b => b.Status?.StatusName?.ToLower() == "rented" || 
+                           b.Status?.StatusName?.ToLower() == "late")
     ).ToList();
+    
+    var rentedLaptops = allRentedLaptops.Where(l => {
+        var activeBooking = l.Bookings?
+            .Where(b => b.Status?.StatusName?.ToLower() == "rented")
+            .OrderByDescending(b => b.StartTime)
+            .FirstOrDefault();
+        return activeBooking != null;
+    }).ToList();
+    
+    var overdueLaptops = allRentedLaptops.Where(l => {
+        var activeBooking = l.Bookings?
+            .Where(b => b.Status?.StatusName?.ToLower() == "late")
+            .OrderByDescending(b => b.StartTime)
+            .FirstOrDefault();
+        return activeBooking != null;
+    }).ToList();
     
     // Pagination settings
     int pageSize = 5;
     int availablePage = ViewBag.AvailablePage ?? 1;
     int rentedPage = ViewBag.RentedPage ?? 1;
+    int overduePage = ViewBag.OverduePage ?? 1;
     
     var availablePaged = availableLaptops.Skip((availablePage - 1) * pageSize).Take(pageSize).ToList();
     var rentedPaged = rentedLaptops.Skip((rentedPage - 1) * pageSize).Take(pageSize).ToList();
+    var overduePaged = overdueLaptops.Skip((overduePage - 1) * pageSize).Take(pageSize).ToList();
     
     int totalAvailablePages = (int)Math.Ceiling(availableLaptops.Count / (double)pageSize);
     int totalRentedPages = (int)Math.Ceiling(rentedLaptops.Count / (double)pageSize);
+    int totalOverduePages = (int)Math.Ceiling(overdueLaptops.Count / (double)pageSize);
 }
 
 <style>
@@ -66,12 +87,12 @@
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-success text-white shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-1 opacity-75">Đang Chờ Thuê</h6>
+                            <h6 class="text-uppercase mb-1 opacity-75">Laptop đang Chờ Thuê</h6>
                             <h2 class="mb-0">@availableLaptops.Count</h2>
                             <small>Laptop đã được duyệt, chưa có ai thuê</small>
                         </div>
@@ -80,16 +101,30 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-info text-white shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-1 opacity-75">Đang Được Thuê</h6>
+                            <h6 class="text-uppercase mb-1 opacity-75">Laptop đang được Thuê</h6>
                             <h2 class="mb-0">@rentedLaptops.Count</h2>
                             <small>Laptop hiện có người đang thuê</small>
                         </div>
                         <i class="fas fa-laptop fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">Laptop đã quá Hạn</h6>
+                            <h2 class="mb-0">@overdueLaptops.Count</h2>
+                            <small>Laptop đã hết hạn thuê</small>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -113,14 +148,20 @@
         <ul class="nav nav-tabs mb-4" id="rentalTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="available-tab" data-bs-toggle="tab" data-bs-target="#available-panel" type="button" role="tab">
-                    <i class="fas fa-clock"></i> Đang Chờ Thuê 
-                    
+                    <i class="fas fa-clock"></i> Laptop đang chờ thuê 
+                    <span class="badge bg-success ms-1">@availableLaptops.Count</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="rented-tab" data-bs-toggle="tab" data-bs-target="#rented-panel" type="button" role="tab">
-                    <i class="fas fa-user-check"></i> Đang Được Thuê 
-                    
+                    <i class="fas fa-user-check"></i> Laptop đang được thuê 
+                    <span class="badge bg-info ms-1">@rentedLaptops.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="overdue-tab" data-bs-toggle="tab" data-bs-target="#overdue-panel" type="button" role="tab">
+                    <i class="fas fa-exclamation-triangle"></i> Laptop đã quá hạn 
+                    <span class="badge bg-danger ms-1">@overdueLaptops.Count</span>
                 </button>
             </li>
         </ul>
@@ -166,7 +207,7 @@
                                             <tr>
                                                 <td class="ps-4">
                                                     <div>
-                                                        <strong class="text-success">@laptop.Name</strong>
+                                                        <strong class="text-black">@laptop.Name</strong>
                                                         <br />
                                                         <small class="text-muted">
                                                             <i class="fas fa-tag"></i> @laptop.Brand?.BrandName
@@ -193,7 +234,7 @@
                                                     }
                                                 </td>
                                                 <td>
-                                                    <span class="text-success fw-bold">
+                                                    <span class="text-black fw-bold">
                                                         @(laptop.Price?.ToString("#,##0") ?? "0") đ
                                                     </span>
                                                 </td>
@@ -212,29 +253,26 @@
                             </div>
                         </div>
                         
-                        @if (totalAvailablePages > 1)
-                        {
-                            <div class="card-footer">
-                                <nav>
-                                    <ul class="pagination pagination-sm mb-0 justify-content-center">
-                                        <li class="page-item @(availablePage == 1 ? "disabled" : "")">
-                                            <a class="page-link" href="?tab=available&page=@(availablePage - 1)">Trước</a>
+                        <div class="card-footer">
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                    <li class="page-item @(availablePage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?tab=available&page=@(availablePage - 1)">Trước</a>
+                                    </li>
+                                    
+                                    @for (int i = 1; i <= Math.Max(1, totalAvailablePages); i++)
+                                    {
+                                        <li class="page-item @(i == availablePage ? "active" : "")">
+                                            <a class="page-link" href="?tab=available&page=@i">@i</a>
                                         </li>
-                                        
-                                        @for (int i = 1; i <= totalAvailablePages; i++)
-                                        {
-                                            <li class="page-item @(i == availablePage ? "active" : "")">
-                                                <a class="page-link" href="?tab=available&page=@i">@i</a>
-                                            </li>
-                                        }
-                                        
-                                        <li class="page-item @(availablePage == totalAvailablePages ? "disabled" : "")">
-                                            <a class="page-link" href="?tab=available&page=@(availablePage + 1)">Sau</a>
-                                        </li>
-                                    </ul>
-                                </nav>
-                            </div>
-                        }
+                                    }
+                                    
+                                    <li class="page-item @(availablePage >= totalAvailablePages || totalAvailablePages <= 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?tab=available&page=@(availablePage + 1)">Sau</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
                     </div>
                 }
             </div>
@@ -283,7 +321,7 @@
                                             <tr>
                                                 <td class="ps-4">
                                                     <div>
-                                                        <strong class="text-info">@laptop.Name</strong>
+                                                        <strong class="text-black">@laptop.Name</strong>
                                                         <br />
                                                         <small class="text-muted">
                                                             <i class="fas fa-tag"></i> @laptop.Brand?.BrandName
@@ -340,11 +378,7 @@
                                                                 @activeBooking.EndTime.ToString("dd/MM/yyyy")
                                                             </small>
                                                             <br />
-                                                            @if (daysLeft < 0)
-                                                            {
-                                                                <span class="badge bg-danger">Quá hạn @Math.Abs(daysLeft) ngày</span>
-                                                            }
-                                                            else if (daysLeft == 0)
+                                                            @if (daysLeft == 0)
                                                             {
                                                                 <span class="badge bg-warning text-dark">Hết hạn hôm nay</span>
                                                             }
@@ -366,7 +400,7 @@
                                                 <td>
                                                     @if (activeBooking != null)
                                                     {
-                                                        <span class="text-success fw-bold">
+                                                        <span class="text-black fw-bold">
                                                             @(activeBooking.TotalPrice?.ToString("#,##0") ?? "0") đ
                                                         </span>
                                                     }
@@ -387,29 +421,185 @@
                             </div>
                         </div>
                         
-                        @if (totalRentedPages > 1)
-                        {
-                            <div class="card-footer">
-                                <nav>
-                                    <ul class="pagination pagination-sm mb-0 justify-content-center">
-                                        <li class="page-item @(rentedPage == 1 ? "disabled" : "")">
-                                            <a class="page-link" href="?tab=rented&page=@(rentedPage - 1)">Trước</a>
+                        <div class="card-footer">
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                    <li class="page-item @(rentedPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?tab=rented&page=@(rentedPage - 1)">Trước</a>
+                                    </li>
+                                    
+                                    @for (int i = 1; i <= Math.Max(1, totalRentedPages); i++)
+                                    {
+                                        <li class="page-item @(i == rentedPage ? "active" : "")">
+                                            <a class="page-link" href="?tab=rented&page=@i">@i</a>
                                         </li>
-                                        
-                                        @for (int i = 1; i <= totalRentedPages; i++)
+                                    }
+                                    
+                                    <li class="page-item @(rentedPage >= totalRentedPages || totalRentedPages <= 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?tab=rented&page=@(rentedPage + 1)">Sau</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Overdue Laptops Tab -->
+            <div class="tab-pane fade" id="overdue-panel" role="tabpanel">
+                @if (!overdueLaptops.Any())
+                {
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Không có laptop nào quá hạn. Tất cả đều đang trong thời gian thuê hợp lệ!
+                    </div>
+                }
+                else
+                {
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                Laptop Quá Hạn
+                            </h5>
+                            <small>Laptop đã quá thời gian thuê, cần liên hệ đến quản trị viên</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-4">Laptop</th>
+                                            <th>Người Thuê</th>
+                                            <th>Thông Số</th>
+                                            <th>Thời Gian Thuê</th>
+                                            <th>Tổng Tiền</th>
+                                            <th class="text-center">Thao Tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var laptop in overduePaged)
                                         {
-                                            <li class="page-item @(i == rentedPage ? "active" : "")">
-                                                <a class="page-link" href="?tab=rented&page=@i">@i</a>
-                                            </li>
+                                            var detail = laptop.LaptopDetails?.FirstOrDefault();
+                                            var activeBooking = laptop.Bookings?
+                                                .Where(b => b.Status?.StatusName?.ToLower() == "late")
+                                                .OrderByDescending(b => b.StartTime)
+                                                .FirstOrDefault();
+                                            
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div>
+                                                        <strong class="text-black">@laptop.Name</strong>
+                                                        <br />
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-tag"></i> @laptop.Brand?.BrandName
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    @if (activeBooking?.Customer != null)
+                                                    {
+                                                        <div>
+                                                            <strong>@(activeBooking.Customer.LastName) @(activeBooking.Customer.FirstName)</strong>
+                                                            <br />
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-envelope"></i> @activeBooking.Customer.Email
+                                                            </small>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="text-muted">N/A</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (detail != null)
+                                                    {
+                                                        <small>
+                                                            @if (!string.IsNullOrEmpty(detail.Cpu))
+                                                            {
+                                                                <div><i class="fas fa-microchip"></i> @detail.Cpu</div>
+                                                            }
+                                                            @if (!string.IsNullOrEmpty(detail.RamSize))
+                                                            {
+                                                                <div><i class="fas fa-memory"></i> RAM: @detail.RamSize</div>
+                                                            }
+                                                        </small>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="text-muted">Chưa có thông số</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (activeBooking != null)
+                                                    {
+                                                        var daysOverdue = Math.Abs((activeBooking.EndTime - DateTime.Today).Days);
+                                                        <div>
+                                                            <small>
+                                                                <i class="fas fa-calendar-check text-success"></i> 
+                                                                @activeBooking.StartTime.ToString("dd/MM/yyyy")
+                                                            </small>
+                                                            <br />
+                                                            <small>
+                                                                <i class="fas fa-calendar-times text-danger"></i> 
+                                                                @activeBooking.EndTime.ToString("dd/MM/yyyy")
+                                                            </small>
+                                                            <br />
+                                                            <span class="badge bg-danger">
+                                                                <i class="fas fa-exclamation-circle"></i> Quá hạn @daysOverdue ngày
+                                                            </span>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="text-muted">N/A</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (activeBooking != null)
+                                                    {
+                                                        <span class="text-black fw-bold">
+                                                            @(activeBooking.TotalPrice?.ToString("#,##0") ?? "0") đ
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <small class="text-muted">N/A</small>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    <a asp-action="Details" asp-route-id="@laptop.Id" class="btn btn-sm btn-info">
+                                                        <i class="fas fa-eye"></i> Xem
+                                                    </a>
+                                                </td>
+                                            </tr>
                                         }
-                                        
-                                        <li class="page-item @(rentedPage == totalRentedPages ? "disabled" : "")">
-                                            <a class="page-link" href="?tab=rented&page=@(rentedPage + 1)">Sau</a>
-                                        </li>
-                                    </ul>
-                                </nav>
+                                    </tbody>
+                                </table>
                             </div>
-                        }
+                        </div>
+                        
+                        <div class="card-footer">
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                    <li class="page-item @(overduePage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?tab=overdue&page=@(overduePage - 1)">Trước</a>
+                                    </li>
+                                    
+                                    @for (int i = 1; i <= Math.Max(1, totalOverduePages); i++)
+                                    {
+                                        <li class="page-item @(i == overduePage ? "active" : "")">
+                                            <a class="page-link" href="?tab=overdue&page=@i">@i</a>
+                                        </li>
+                                    }
+                                    
+                                    <li class="page-item @(overduePage >= totalOverduePages || totalOverduePages <= 1 ? "disabled" : "")">
+                                        <a class="page-link" href="?tab=overdue&page=@(overduePage + 1)">Sau</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
                     </div>
                 }
             </div>
@@ -426,12 +616,20 @@
             
             if (activeTab === 'rented') {
                 $('#rented-tab').tab('show');
+            } else if (activeTab === 'overdue') {
+                $('#overdue-tab').tab('show');
             }
             
             // Update URL when tab changes
             $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
                 const targetTab = $(e.target).attr('data-bs-target');
-                const tabName = targetTab === '#rented-panel' ? 'rented' : 'available';
+                let tabName = 'available';
+                
+                if (targetTab === '#rented-panel') {
+                    tabName = 'rented';
+                } else if (targetTab === '#overdue-panel') {
+                    tabName = 'overdue';
+                }
                 
                 const newUrl = window.location.pathname + '?tab=' + tabName;
                 window.history.pushState({path: newUrl}, '', newUrl);

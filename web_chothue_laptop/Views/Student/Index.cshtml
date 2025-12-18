@@ -282,7 +282,7 @@
                                     {
                                         "pending" => "text-black fw-bold",
                                         "approved" => "text-black fw-bold",
-                                        "rejected" => "text-black fw-bold",
+                                        "rejected" => "text-danger fw-bold",
                                         _ => "text-secondary fw-bold"
                                     })">
                                     @TranslateStatus(l.Status?.StatusName)
@@ -309,42 +309,25 @@
                 </div>
             </div>
             
-            @* Pagination *@
-            @if (totalPages > 1)
-            {
-                var searchParam = string.IsNullOrEmpty(ViewBag.Search) ? "" : $"&search={ViewBag.Search}";
-                var fromDateParam = string.IsNullOrEmpty(ViewBag.FromDate) ? "" : $"&fromDate={ViewBag.FromDate}";
-                var toDateParam = string.IsNullOrEmpty(ViewBag.ToDate) ? "" : $"&toDate={ViewBag.ToDate}";
-                var filterParams = searchParam + fromDateParam + toDateParam;
-                
-                // Xác định action name dựa vào currentPage
-                var actionName = currentPage switch
-                {
-                    "Pending" => "Pending",
-                    "Approved" => "Approved",
-                    "Rejected" => "Rejected",
-                    _ => "Index"
-                };
-                
-                <nav class="mt-3">
-                    <ul class="pagination pagination-sm justify-content-center">
-                        <li class="page-item @(page == 1 ? "disabled" : "")">
-                            <a class="page-link" href="@Url.Action(actionName, "Student", new { page = page - 1, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">Trước</a>
+            @* Pagination - Luôn hiển thị *@
+            <nav class="mt-3">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <li class="page-item @(page == 1 ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action(currentPage switch { "Pending" => "Pending", "Approved" => "Approved", "Rejected" => "Rejected", _ => "Index" }, "Student", new { page = page - 1, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">Trước</a>
+                    </li>
+                    
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == page ? "active" : "")">
+                            <a class="page-link" href="@Url.Action(currentPage switch { "Pending" => "Pending", "Approved" => "Approved", "Rejected" => "Rejected", _ => "Index" }, "Student", new { page = i, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">@i</a>
                         </li>
-                        
-                        @for (int i = 1; i <= totalPages; i++)
-                        {
-                            <li class="page-item @(i == page ? "active" : "")">
-                                <a class="page-link" href="@Url.Action(actionName, "Student", new { page = i, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">@i</a>
-                            </li>
-                        }
-                        
-                        <li class="page-item @(page == totalPages ? "disabled" : "")">
-                            <a class="page-link" href="@Url.Action(actionName, "Student", new { page = page + 1, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">Sau</a>
-                        </li>
-                    </ul>
-                </nav>
-            }
+                    }
+                    
+                    <li class="page-item @(page == totalPages ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action(currentPage switch { "Pending" => "Pending", "Approved" => "Approved", "Rejected" => "Rejected", _ => "Index" }, "Student", new { page = page + 1, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">Sau</a>
+                    </li>
+                </ul>
+            </nav>
         }
     </div>
 </div>
