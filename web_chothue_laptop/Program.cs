@@ -27,7 +27,7 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -69,21 +69,18 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
-app.UseStaticFiles();
 
+app.UseStaticFiles();
 app.UseRouting();
 
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map SignalR Hubs
 app.MapHub<ChatHub>("/chathub");
 app.MapHub<BookingHub>("/bookinghub");
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+
 
 app.MapControllerRoute(
     name: "createAccount",
@@ -100,5 +97,9 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+//app.MapControllerRoute(
+//    name: "manager",
+//    pattern: "{controller=Manager}/{action=LaptopRequests}/{id?}");
 
 app.Run();

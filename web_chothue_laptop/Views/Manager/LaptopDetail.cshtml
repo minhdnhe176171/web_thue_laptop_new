@@ -1,0 +1,95 @@
+﻿@model web_chothue_laptop.Models.Laptop
+@{
+    ViewData["Title"] = "Chi tiết Laptop";
+    Layout = "_ManagerLayout";
+}
+<h2 class="mb-4">Chi tiết Laptop</h2>
+
+<div class="row">
+    <!-- CỘT ẢNH -->
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-body text-center">
+
+                @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl"
+                         class="img-fluid rounded"
+                         style="max-height:300px; object-fit:contain;"
+                         alt="Ảnh laptop" />
+                }
+                else
+                {
+                    <img src="~/images/no-image.png"
+                         class="img-fluid rounded"
+                         style="max-height:300px;"
+                         alt="Không có ảnh" />
+                }
+
+            </div>
+        </div>
+    </div>
+
+    <!-- CỘT THÔNG TIN -->
+    <div class="col-md-8">
+        <table class="table table-bordered">
+            <tr>
+                <th>Tên máy</th>
+                <td>@Model.Name</td>
+            </tr>
+            <tr>
+                <th>Hãng</th>
+                <td>@Model.Brand?.BrandName</td>
+            </tr>
+            <tr>
+                <th>Trạng thái</th>
+                <td>@Model.Status?.StatusName</td>
+            </tr>
+            <tr>
+                <th>Sinh viên gửi</th>
+                <td>@Model.Student?.FirstName @Model.Student?.LastName</td>
+            </tr>
+            <tr>
+                <th>Email</th>
+                <td>@Model.Student?.Email</td>
+            </tr>
+            <tr>
+                <th>Ngày tạo</th>
+                <td>@Model.CreatedDate?.ToString("dd/MM/yyyy")</td>
+            </tr>
+            <tr>
+                <th>Giá</th>
+                <td>@Model.Price?.ToString("N0") VNĐ</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+@if (Model.LaptopDetails != null && Model.LaptopDetails.Any())
+{
+    <h4 class="mt-4">Thông số kỹ thuật</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>CPU</th>
+                <th>GPU</th>
+                <th>RAM</th>
+                <th>Ổ cứng</th>
+                <th>Hệ điều hành</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var detail in Model.LaptopDetails)
+            {
+                <tr>
+                    <td>@detail.Cpu</td>
+                    <td>@detail.Gpu</td>
+                    <td>@detail.RamSize</td>
+                    <td>@detail.Storage</td>
+                    <td>@detail.Os</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
