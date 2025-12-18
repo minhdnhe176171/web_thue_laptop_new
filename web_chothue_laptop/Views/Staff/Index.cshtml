@@ -140,9 +140,15 @@
                         {
                             foreach (var item in Model)
                             {
-                                <tr>
+                                <tr class="@((item.Customer?.BlackList == true) ? "table-danger" : "")">
                                     <td class="ps-4 fw-bold text-primary">#@item.Id</td>
-                                    <td>@(item.Customer?.LastName + " " + item.Customer?.FirstName)</td>
+                                    <td>
+                                        @(item.Customer?.LastName + " " + item.Customer?.FirstName)
+                                        @if (item.Customer?.BlackList == true)
+                                        {
+                                            <span class="badge bg-danger ms-2">BLACKLIST</span>
+                                        }
+                                    </td>
                                     <td>@item.Laptop?.Name</td>
                                     <td>@item.StartTime.ToString("dd/MM") - @item.EndTime.ToString("dd/MM")</td>
                                     <td>

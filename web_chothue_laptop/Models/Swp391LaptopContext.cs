@@ -47,9 +47,15 @@ public partial class Swp391LaptopContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+  
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("server=DESKTOP-OOP8VNF;database=swp391_laptop;uid=sa;pwd=123456;TrustServerCertificate=true");
 
+{
+    if (!optionsBuilder.IsConfigured)
+    {
+        optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
+    }
+}
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Booking>(entity =>
@@ -201,6 +207,8 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("PHONE");
+            entity.Property(e => e.BlackList)
+                .HasColumnName("BLACK_LIST");
 
             entity.HasOne(d => d.CustomerNavigation).WithMany(p => p.Customers)
                 .HasForeignKey(d => d.CustomerId)

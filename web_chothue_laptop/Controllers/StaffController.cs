@@ -86,9 +86,18 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveBooking(long bookingId)
         {
-            var booking = await _context.Bookings.FindAsync(bookingId);
+            var booking = await _context.Bookings
+                .Include(b => b.Customer)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+                
             if (booking != null)
             {
+                // Kiểm tra blacklist
+                if (booking.Customer?.BlackList == true)
+                {
+                    TempData["WarningMessage"] = $"Cảnh báo: Customer này đang trong blacklist. Đơn thuê đã được duyệt nhưng vui lòng cẩn thận!";
+                }
+                
                 booking.StatusId = 2; // Approved
                 booking.UpdatedDate = DateTime.Now;
                 await _context.SaveChangesAsync();

@@ -161,6 +161,14 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Kiểm tra blacklist
+            if (customer.BlackList == true)
+            {
+                ModelState.AddModelError("", "Tài khoản của bạn đã bị đưa vào blacklist. Vui lòng liên hệ quản lý để được hỗ trợ.");
+                model.PricePerDay = model.Laptop.Price;
+                return View(model);
+            }
+
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
             var pendingBooking = await _context.Bookings
                 .Include(b => b.Status)
