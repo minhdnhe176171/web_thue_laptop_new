@@ -1,0 +1,279 @@
+﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Laptop>
+
+@{
+    ViewData["Title"] = "Trả Máy Cho Sinh Viên";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+}
+
+<style>
+    /* 1. Reset khung chứa của Layout chính để nội dung tràn viền 100% */
+    .container, .container-fluid, .body-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+
+    /* 2. Thiết lập bố cục Flex cho trang Staff */
+    .staff-wrapper {
+        display: flex;
+        width: 100%;
+        min-height: calc(100vh - 60px); /* Trừ đi chiều cao Header nếu có */
+        background-color: #f8f9fa; /* Màu nền xám nhạt giống trang Index */
+    }
+
+    /* 3. Sidebar bên trái */
+    .staff-sidebar {
+        width: 260px;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .sidebar-header {
+        background-color: #0d6efd;
+        color: white;
+        padding: 20px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sidebar-menu {
+        padding-top: 10px;
+    }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            color: #495057;
+            text-decoration: none;
+            transition: 0.2s;
+            border-left: 5px solid transparent;
+            font-weight: 500;
+        }
+
+            .sidebar-menu a:hover {
+                background-color: #f1f4f9;
+                color: #0d6efd;
+            }
+
+            .sidebar-menu a.active {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+                font-weight: bold;
+                border-left-color: #0d6efd;
+            }
+
+    /* 4. Nội dung chính bên phải */
+    .staff-content {
+        flex-grow: 1;
+        padding: 30px;
+        background-color: #f8f9fa;
+        overflow-x: auto;
+    }
+</style>
+
+<div class="staff-wrapper">
+    <div class="staff-sidebar">
+        <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
+        <div class="sidebar-menu">
+            <a href="@Url.Action("Index", "Staff")" class="@(currentAction == "Index" ? "active" : "")">
+                <i class="fas fa-check-square"></i> Duyệt Đơn Thuê
+            </a>
+            <a href="@Url.Action("LaptopRequests", "Staff")" class="@(currentAction == "LaptopRequests" ? "active" : "")">
+                <i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra
+            </a>
+            <a href="@Url.Action("RentedLaptops", "Staff")" class="@(currentAction == "RentedLaptops" ? "active" : "")">
+                <i class="fas fa-list"></i> Máy Đang Thuê
+            </a>
+
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")" class="@(currentAction == "DueForReturnLaptops" ? "active" : "")">
+                <i class="fas fa-undo"></i> Trả Máy Về SV
+            </a>
+
+            <a href="@Url.Action("Deliveries", "Staff")" class="@(currentAction == "Deliveries" ? "active" : "")">
+                <i class="fas fa-truck"></i> Quản lý Giao Máy
+            </a>
+            <a href="@Url.Action("QuickHandover", "Staff")" class="@(currentAction == "QuickHandover" ? "active" : "")">
+                <i class="fas fa-bolt"></i> Thanh toán
+            </a>
+        </div>
+    </div>
+
+    <div class="staff-content">
+        <h3 class="fw-bold text-primary mb-4">Danh Sách Máy Hết Hạn Ký Gửi</h3>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success shadow-sm"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]</div>
+        }
+
+        <form asp-action="DueForReturnLaptops" method="get" class="mb-3">
+            <div class="input-group" style="max-width: 500px;">
+                <input type="text" name="searchString" class="form-control" placeholder="Tìm tên máy, tên sinh viên..." value="@ViewData["CurrentFilter"]">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Tìm kiếm</button>
+                @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"] as string))
+                {
+                    <a asp-action="DueForReturnLaptops" class="btn btn-outline-secondary">Xóa</a>
+                }
+            </div>
+        </form>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-secondary">
+                            <tr>
+                                <th class="ps-4 py-3">Tên Laptop</th>
+                                <th>Chủ Máy</th>
+                                <th>Ngày Hết Hạn</th>
+                                <th>Trạng Thái</th>
+                                <th>Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Count > 0)
+                            {
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="fw-bold text-dark">@item.Name</span><br />
+                                            <small class="text-muted">ID: @item.Id</small>
+                                        </td>
+                                        <td>
+                                            @if (item.Student != null)
+                                            {
+                                                <span class="fw-bold">@item.Student.LastName @item.Student.FirstName</span>
+                                    
+                                                <br />
+                                                <small class="text-muted">@item.Student.Email</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-danger">Không xác định</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">@item.EndTime?.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </td>
+                                        <td>
+    <span class="badge bg-danger">Đã hết hạn</span>
+</td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-outline-primary btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#returnModal"
+                                                    onclick="setModalData('@item.Id', '@item.Name', '@item.Student?.LastName @item.Student?.FirstName')">
+                                                <i class="fas fa-calendar-check me-1"></i> Tạo Lịch Trả
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-muted">
+                                        <i class="fas fa-box-open fa-2x mb-3"></i><br />
+                                        Không có máy nào đến hạn trả.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-3 d-flex justify-content-end border-top">
+                    @{
+                        var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                        var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+                    }
+                    <a asp-action="DueForReturnLaptops"
+                       asp-route-pageNumber="@(Model.PageIndex - 1)"
+                       asp-route-searchString="@ViewData["CurrentFilter"]"
+                       class="btn btn-outline-secondary btn-sm me-2 @prevDisabled">
+                        <i class="fas fa-chevron-left"></i> Trước
+                    </a>
+                    <span class="align-self-center mx-2 text-muted">Trang @Model.PageIndex / @Model.TotalPages</span>
+                    <a asp-action="DueForReturnLaptops"
+                       asp-route-pageNumber="@(Model.PageIndex + 1)"
+                       asp-route-searchString="@ViewData["CurrentFilter"]"
+                       class="btn btn-outline-secondary btn-sm ms-2 @nextDisabled">
+                        Sau <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="CreateReturnSchedule" method="post">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-clock me-2"></i>Tạo Lịch Hẹn Trả Máy</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="LaptopId" id="modalLaptopId" />
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold">Máy cần trả</label>
+                        <input type="text" class="form-control bg-light fw-bold" id="modalLaptopName" readonly disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold">Chủ sở hữu (Student)</label>
+                        <input type="text" class="form-control bg-light" id="modalStudentName" readonly disabled />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Địa điểm nhận (Cố định)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-map-marker-alt text-danger"></i></span>
+                                <input type="text" class="form-control" name="PickupLocation" value="Toà Alpha, L300" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Thời gian hẹn</label>
+                            <input type="datetime-local" class="form-control border-primary" name="AppointmentTime" required
+                                   value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                        </div>
+                    </div>
+                    <div class="alert alert-info small mb-0">
+                        <i class="fas fa-info-circle me-1"></i> Hệ thống sẽ gửi thông báo đến sinh viên ngay sau khi xác nhận.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary px-4">Xác Nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setModalData(id, laptopName, studentName) {
+        document.getElementById('modalLaptopId').value = id;
+        document.getElementById('modalLaptopName').value = laptopName;
+        document.getElementById('modalStudentName').value = studentName;
+    }
+</script>
