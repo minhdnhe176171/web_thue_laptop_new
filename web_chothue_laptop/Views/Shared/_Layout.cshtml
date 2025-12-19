@@ -38,12 +38,13 @@
                             @* Hiển thị nút Thông báo cho Student *@
                             @if (isStudent)
                             {
-                                <li class="nav-item d-flex align-items-center">
+                                <li class="nav-item d-flex align-items-center position-relative">
                                     <a class="nav-link text-white fw-semibold d-flex align-items-center" 
                                        asp-controller="Student" 
                                        asp-action="Notifications"
                                        style="line-height: 1.5;">
-                                        <i class="bi bi-bell me-1"></i> Thông báo
+                                        <i class="bi bi-bell me-1"></i> Thông báo nhận máy
+                                        @await Component.InvokeAsync("NotificationBadge")
                                     </a>
                                 </li>
                             }
@@ -127,7 +128,6 @@
             </a>
         }
     }
-
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

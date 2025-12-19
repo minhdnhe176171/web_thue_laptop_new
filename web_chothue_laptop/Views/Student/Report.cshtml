@@ -370,7 +370,7 @@
         <!-- Search Section -->
         <div class="search-card">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-lg-4 col-md-6">
+                <div class="col-lg-10 col-md-8">
                     <label class="form-label">
                         <i class="fas fa-search me-1"></i>Tìm kiếm
                     </label>
@@ -378,27 +378,9 @@
                            name="search" 
                            value="@(ViewBag.Search ?? "")" 
                            class="form-control" 
-                           placeholder="Tìm theo tên laptop, khách hàng..." />
+                           placeholder="Tìm theo tên laptop..." />
                 </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label">
-                        <i class="fas fa-calendar-alt me-1"></i>Từ ngày
-                    </label>
-                    <input type="date" 
-                           name="fromDate" 
-                           value="@(ViewBag.FromDate ?? "")" 
-                           class="form-control" />
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label">
-                        <i class="fas fa-calendar-alt me-1"></i>Đến ngày
-                    </label>
-                    <input type="date" 
-                           name="toDate" 
-                           value="@(ViewBag.ToDate ?? "")" 
-                           class="form-control" />
-                </div>
-                <div class="col-lg-2 col-md-6">
+                <div class="col-lg-2 col-md-4">
                     <button class="btn btn-search w-100" type="submit">
                         <i class="fas fa-search me-2"></i>Tìm kiếm
                     </button>
@@ -424,15 +406,6 @@
                                 <th>
                                     <i class="fas fa-laptop me-1"></i>Laptop
                                 </th>
-                                <th>
-                                    <i class="fas fa-user me-1"></i>Khách Hàng
-                                </th>
-                                <th class="text-center">
-                                    <i class="fas fa-calendar-check me-1"></i>Ngày Thuê
-                                </th>
-                                <th class="text-center">
-                                    <i class="fas fa-calendar-times me-1"></i>Ngày Trả
-                                </th>
                                 <th class="text-center">
                                     <i class="fas fa-clock me-1"></i>Số Ngày
                                 </th>
@@ -452,22 +425,6 @@
                                     <td>
                                         <div class="laptop-name">@receipt.Booking?.Laptop?.Name</div>
                                         <div class="laptop-brand">@receipt.Booking?.Laptop?.Brand?.BrandName</div>
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold">
-                                            @(receipt.Booking?.Customer?.LastName) @(receipt.Booking?.Customer?.FirstName)
-                                        </div>
-                                        <div class="customer-email">@receipt.Booking?.Customer?.Email</div>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge-date-start">
-                                            @receipt.StartTime.ToString("dd/MM/yyyy")
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge-date-end">
-                                            @receipt.EndTime.ToString("dd/MM/yyyy")
-                                        </span>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge-days">@days ngày</span>
@@ -489,7 +446,7 @@
                     <nav>
                         <ul class="pagination mb-0">
                             <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                                <a class="page-link" href="?page=@(currentPage - 1)&search=@(ViewBag.Search ?? "")&fromDate=@(ViewBag.FromDate ?? "")&toDate=@(ViewBag.ToDate ?? "")">
+                                <a class="page-link" href="?page=@(currentPage - 1)&search=@(ViewBag.Search ?? "")">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
                             </li>
@@ -497,12 +454,12 @@
                             @for (int i = 1; i <= Math.Max(1, totalPages); i++)
                             {
                                 <li class="page-item @(i == currentPage ? "active" : "")">
-                                    <a class="page-link" href="?page=@i&search=@(ViewBag.Search ?? "")&fromDate=@(ViewBag.FromDate ?? "")&toDate=@(ViewBag.ToDate ?? "")">@i</a>
+                                    <a class="page-link" href="?page=@i&search=@(ViewBag.Search ?? "")">@i</a>
                                 </li>
                             }
                             
                             <li class="page-item @(currentPage >= totalPages || totalPages <= 1 ? "disabled" : "")">
-                                <a class="page-link" href="?page=@(currentPage + 1)&search=@(ViewBag.Search ?? "")&fromDate=@(ViewBag.FromDate ?? "")&toDate=@(ViewBag.ToDate ?? "")">
+                                <a class="page-link" href="?page=@(currentPage + 1)&search=@(ViewBag.Search ?? "")">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>
                             </li>

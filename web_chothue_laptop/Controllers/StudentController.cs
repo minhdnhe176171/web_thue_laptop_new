@@ -141,7 +141,7 @@ namespace web_chothue_laptop.Controllers
             return View("Index", laptops);
         }
 
-        // Trang Bị từ chối - Hiển thị Laptop bị từ chối
+        // Trang Bị từ chối - Hiển thị Laptop bị từ chối HOẶC đang sửa
         public async Task<IActionResult> Rejected(string? search, string? fromDate, string? toDate, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
@@ -150,7 +150,9 @@ namespace web_chothue_laptop.Controllers
             var laptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
-                .Where(l => l.StudentId == student.Id && l.Status.StatusName.ToLower() == "rejected");
+                .Where(l => l.StudentId == student.Id && 
+                           (l.Status.StatusName.ToLower() == "rejected" || 
+                            l.Status.StatusName.ToLower() == "fixing"));
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -753,7 +755,7 @@ namespace web_chothue_laptop.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Report(string? search, string? fromDate, string? toDate, int page = 1)
+        public async Task<IActionResult> Report(string? search, int page = 1)
         {
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -789,36 +791,15 @@ namespace web_chothue_laptop.Controllers
                 .Where(br => laptopIds.Contains(br.Booking.LaptopId))
                 .AsQueryable();
 
-            // Tìm kiếm theo tên laptop hoặc khách hàng
+            // Tìm kiếm theo tên laptop
             if (!string.IsNullOrWhiteSpace(search))
             {
                 search = search.Trim().ToLower();
                 completedQuery = completedQuery.Where(br =>
                     (br.Booking.Laptop != null && br.Booking.Laptop.Name.ToLower().Contains(search)) ||
-                    (br.Booking.Laptop != null && br.Booking.Laptop.Brand != null && br.Booking.Laptop.Brand.BrandName.ToLower().Contains(search)) ||
-                    (br.Booking.Customer != null && (
-                        br.Booking.Customer.FirstName.ToLower().Contains(search) ||
-                        br.Booking.Customer.LastName.ToLower().Contains(search) ||
-                        br.Booking.Customer.Email.ToLower().Contains(search) ||
-                        (br.Booking.Customer.FirstName + " " + br.Booking.Customer.LastName).ToLower().Contains(search)
-                    ))
+                    (br.Booking.Laptop != null && br.Booking.Laptop.Brand != null && br.Booking.Laptop.Brand.BrandName.ToLower().Contains(search))
                 );
                 ViewBag.Search = search;
-            }
-
-            // Lọc theo từ ngày
-            if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
-            {
-                completedQuery = completedQuery.Where(br => br.StartTime >= from);
-                ViewBag.FromDate = fromDate;
-            }
-
-            // Lọc theo đến ngày
-            if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
-            {
-                var toDateEnd = to.AddDays(1);
-                completedQuery = completedQuery.Where(br => br.EndTime < toDateEnd);
-                ViewBag.ToDate = toDate;
             }
 
             var completedBookings = await completedQuery
@@ -886,7 +867,7 @@ namespace web_chothue_laptop.Controllers
             return View(myLaptops);
         }
 
-        // Action: Trang thông báo
+        // Action: Trang thông báo trả máy
         public async Task<IActionResult> Notifications(string? search)
         {
             var userId = HttpContext.Session.GetString("UserId");
@@ -906,7 +887,7 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // CHỈ lấy các laptop có booking APPROVED (chờ tạo lịch hẹn nhận máy)
+            // Lấy các laptop có booking Close (StatusId = 8) với thông báo trả máy
             var query = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.LaptopDetails)
@@ -915,9 +896,11 @@ namespace web_chothue_laptop.Controllers
                 .Include(l => l.Bookings)
                     .ThenInclude(b => b.Status)
                 .Where(l => l.StudentId == student.Id && 
-                           l.Bookings.Any(b => b.Status.StatusName.ToLower() == "approved"));
+                           l.Bookings.Any(b => b.StatusId == 8 && 
+                                              !string.IsNullOrEmpty(b.RejectReason) && 
+                                              b.RejectReason.StartsWith("RETURN_SCHEDULE|")));
 
-            // Tìm kiếm theo tên laptop, khách hàng, hoặc email
+            // Tìm kiếm theo tên laptop hoặc khách hàng
             if (!string.IsNullOrWhiteSpace(search))
             {
                 search = search.Trim().ToLower();
@@ -925,7 +908,7 @@ namespace web_chothue_laptop.Controllers
                     l.Name.ToLower().Contains(search) ||
                     (l.Brand != null && l.Brand.BrandName.ToLower().Contains(search)) ||
                     l.Bookings.Any(b => 
-                        b.Status.StatusName.ToLower() == "approved" &&
+                        b.StatusId == 8 &&
                         (b.Customer != null && (
                             b.Customer.FirstName.ToLower().Contains(search) ||
                             b.Customer.LastName.ToLower().Contains(search) ||
@@ -943,8 +926,78 @@ namespace web_chothue_laptop.Controllers
 
             return View(notifications);
         }
+        
+        // Action: Student xác nhận đã nhận máy
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmReturnReceived(long bookingId)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
+                return RedirectToAction("Login", "Account");
+            }
 
-        // Action: Đồng ý với giá (chuyển Laptop từ Rejected -> Approved)
+            var userIdLong = long.Parse(userId);
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentId == userIdLong);
+
+            if (student == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin sinh viên.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.Laptop.StudentId == student.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn thuê hoặc bạn không có quyền thực hiện thao tác này.";
+                return RedirectToAction(nameof(Notifications));
+            }
+
+            // Kiểm tra trạng thái
+            if (booking.StatusId != 8)
+            {
+                TempData["ErrorMessage"] = "Đơn này không ở trạng thái chờ trả máy.";
+                return RedirectToAction(nameof(Notifications));
+            }
+
+            // Kiểm tra phải có thông báo trước
+            if (string.IsNullOrEmpty(booking.RejectReason) || !booking.RejectReason.StartsWith("RETURN_SCHEDULE|"))
+            {
+                TempData["ErrorMessage"] = "Đơn này chưa có thông báo trả máy.";
+                return RedirectToAction(nameof(Notifications));
+            }
+
+            try
+            {
+                // Parse thông tin cũ và thêm flag CONFIRMED
+                var parts = booking.RejectReason.Split('|');
+                var pickupLocation = parts.Length > 1 ? parts[1] : "Tòa Alpha, L300";
+                var appointmentTime = parts.Length > 2 ? parts[2] : DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+                
+                // Đánh dấu đã xác nhận: RETURN_SCHEDULE|location|time|CONFIRMED|confirmDate
+                booking.RejectReason = $"RETURN_SCHEDULE|{pickupLocation}|{appointmentTime}|CONFIRMED|{DateTime.Now:yyyy-MM-dd HH:mm}";
+                booking.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Đã xác nhận nhận máy thành công cho đơn #{bookingId}. Cảm ơn bạn!";
+                return RedirectToAction(nameof(Notifications));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi xác nhận nhận máy");
+                TempData["ErrorMessage"] = "Lỗi hệ thống. Vui lòng thử lại.";
+                return RedirectToAction(nameof(Notifications));
+            }
+        }
+
+        // Action: Đồng ý với giá (xử lý theo StatusId)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AcceptPrice(long id)
@@ -967,6 +1020,8 @@ namespace web_chothue_laptop.Controllers
             }
 
             var laptop = await _context.Laptops
+                .Include(l => l.Status)
+                .Include(l => l.TechnicalTickets) // ✅ THÊM Include để lấy ticket
                 .FirstOrDefaultAsync(l => l.Id == id && l.StudentId == student.Id);
 
             if (laptop == null)
@@ -975,30 +1030,55 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction(nameof(Rejected));
             }
 
-            // Kiểm tra laptop có đang ở trạng thái Rejected không
-            var rejectedStatusId = await GetStatusIdAsync("rejected");
-            if (laptop.StatusId != rejectedStatusId)
+            var statusName = laptop.Status?.StatusName?.ToLower();
+
+            // Xử lý theo trạng thái
+            if (statusName == "fixing")
             {
-                TempData["ErrorMessage"] = "Laptop này không ở trạng thái bị từ chối.";
+                // Nếu đang Fixing → Cập nhật Ticket sang StatusId = 4 (Processing)
+                laptop.UpdatedDate = DateTime.Now;
+                
+                // Tìm ticket liên quan (StatusId = 1 và BookingId = null)
+                var relatedTicket = laptop.TechnicalTickets
+                    .FirstOrDefault(t => t.StatusId == 1 && t.BookingId == null);
+                
+                if (relatedTicket != null)
+                {
+                    relatedTicket.StatusId = 4; // Processing - Chuyển sang tab Sửa Chữa
+                    relatedTicket.TechnicalResponse += "\n[STUDENT ĐỒNG Ý]: Đã xác nhận cho phép sửa chữa.";
+                    relatedTicket.UpdatedDate = DateTime.Now;
+                }
+                
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Đã đồng ý cho sửa chữa! Laptop đang được sửa, vui lòng chờ thông báo.";
+                
+                // Quay lại trang Rejected để thấy trạng thái cập nhật (nút sẽ biến mất)
                 return RedirectToAction(nameof(Rejected));
             }
-
-            // Chuyển laptop sang trạng thái Approved
-            var approvedStatusId = await GetStatusIdAsync("approved");
-            if (approvedStatusId == null)
+            else if (statusName == "rejected")
             {
-                TempData["ErrorMessage"] = "Lỗi hệ thống. Vui lòng thử lại sau.";
+                // Nếu Rejected hoàn toàn → Chuyển sang Approved
+                var approvedStatusId = await GetStatusIdAsync("approved");
+                if (approvedStatusId == null)
+                {
+                    TempData["ErrorMessage"] = "Lỗi hệ thống. Vui lòng thử lại sau.";
+                    return RedirectToAction(nameof(Rejected));
+                }
+
+                laptop.StatusId = approvedStatusId.Value;
+                laptop.UpdatedDate = DateTime.Now;
+                laptop.RejectReason = null; // Xóa lý do từ chối
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Đã đồng ý! Laptop của bạn đã được chuyển sang trạng thái Đã phê duyệt.";
+                return RedirectToAction(nameof(Approved));
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Laptop này không ở trạng thái hợp lệ.";
                 return RedirectToAction(nameof(Rejected));
             }
-
-            laptop.StatusId = approvedStatusId.Value;
-            laptop.UpdatedDate = DateTime.Now;
-            laptop.RejectReason = null; // Xóa lý do từ chối
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Đã đồng ý! Laptop của bạn đã được chuyển sang trạng thái Đã phê duyệt và đang chờ thuê.";
-            return RedirectToAction(nameof(Approved));
         }
 
         // Action: Hủy laptop bị từ chối

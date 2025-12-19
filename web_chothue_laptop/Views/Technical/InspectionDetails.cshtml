@@ -27,7 +27,7 @@
 
                         <div class="mb-3">
                             <label for="imageInput" style="cursor: pointer;" title="Nhấn để tải ảnh mới">
-                                <img src="@(Model.Laptop?.ImageUrl ?? "https://res.cloudinary.com/drzc5ulxv/image/upload/v1765469106/tickets/bi1hujemmwiffwp2ffwc.png")"
+                                <img src="@(Model.Laptop?.ImageUrl ?? "https://res.cloudinary.com/drzc5ulxv/image/upload/v1765469106/tickets/bi1hujemmwiffwp2ffwc.png")"...id="previewImage")"
                                      class="img-fluid rounded shadow-sm mb-2"
                                      style="max-height: 250px; object-fit: contain;"
                                      id="previewImage">
@@ -66,6 +66,7 @@
                                         <span class="fw-bold fs-5">@specs.RamSize @specs.RamType</span>
                                     </div>
                                 </div>
+
                                 <div class="col-sm-6">
                                     <div class="p-3 bg-light rounded h-100">
                                         <small class="text-muted d-block text-uppercase">Ổ Cứng</small>
@@ -76,6 +77,19 @@
                                     <div class="p-3 bg-light rounded h-100">
                                         <small class="text-muted d-block text-uppercase">Card Đồ Họa</small>
                                         <span class="fw-bold fs-5">@specs.Gpu</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div class="p-3 bg-light rounded h-100">
+                                        <small class="text-muted d-block text-uppercase">Màn hình</small>
+                                        <span class="fw-bold fs-5">@specs.ScreenSize</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-3 bg-light rounded h-100">
+                                        <small class="text-muted d-block text-uppercase">Hệ điều hành</small>
+                                        <span class="fw-bold fs-5">@specs.Os</span>
                                     </div>
                                 </div>
                             </div>
@@ -125,12 +139,29 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="ticketId" value="@Model.Id" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chọn loại từ chối:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="rejectType" id="rejectType1" value="rejected" checked>
+                            <label class="form-check-label" for="rejectType1">
+                                <strong class="text-danger">Từ chối hoàn toàn</strong> <small class="text-muted">(Máy không đạt tiêu chuẩn, báo về Student)</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="rejectType" id="rejectType2" value="fixing">
+                            <label class="form-check-label" for="rejectType2">
+                                <strong class="text-warning">Cần sửa chữa</strong> <small class="text-muted">(Chuyển sang trạng thái Fixing, Student có thể đồng ý)</small>
+                            </label>
+                        </div>
+                    </div>
+                    
                     <label class="form-label fw-bold">Lý do từ chối:</label>
                     <textarea name="reason" class="form-control" rows="4" placeholder="Nhập lý do chi tiết..." required></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-danger">Xác Nhận Loại</button>
+                    <button type="submit" class="btn btn-danger">Xác Nhận</button>
                 </div>
             </div>
         </form>

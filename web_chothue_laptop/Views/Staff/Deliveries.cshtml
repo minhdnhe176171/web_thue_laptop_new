@@ -80,8 +80,11 @@
             <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
             <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
             <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
-            <a href="@Url.Action("Deliveries", "Staff")" class="active"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
+
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
+
+            <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
+            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Thanh toán</a>
         </div>
     </div>
 
@@ -123,6 +126,7 @@
                             <th>Laptop</th>
                             <th>Thời Gian Thuê</th>
                             <th>Tổng Tiền</th>
+                            <th class="text-center">Thanh Toán</th>
                             <th class="text-center">Thao Tác</th>
                         </tr>
                     </thead>
@@ -133,44 +137,54 @@
                             {
                                 var isToday = booking.StartTime.Date == DateTime.Today;
                                 var isPast = booking.StartTime.Date < DateTime.Today;
+
+                                // [LOGIC MỚI] Kiểm tra đã thanh toán chưa
+                                // Lưu ý: booking.BookingReceipts cần được Include ở Controller
+                                bool isPaid = booking.BookingReceipts != null && booking.BookingReceipts.Any();
+
                                 <tr class="@(isPast ? "table-danger" : (isToday ? "table-warning" : ""))">
-                                    <td class="ps-4">
-                                        <span class="badge bg-primary">#@booking.Id</span>
-                                        @if (isPast)
-                                        {
-                                            <br />
-                                            <small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Quá hạn nhận</small>
-         }
-                                        else if (isToday)
-                                        {
-                                            <br />
-                                            <small class="fw-bold"><i class="fas fa-clock"></i> Hôm nay</small>
-         }
-                                    </td>
+                                    <td class="ps-4"><span class="badge bg-primary">#@booking.Id</span></td>
                                     <td>
                                         <span class="fw-semibold">@(booking.Customer?.LastName) @(booking.Customer?.FirstName)</span><br />
                                         <small class="text-muted"><i class="fas fa-phone"></i> @booking.Customer?.Phone</small>
                                     </td>
+                                    <td><span class="fw-bold">@booking.Laptop?.Name</span></td>
                                     <td>
-                                        <span class="fw-bold">@booking.Laptop?.Name</span><br />
-                                        <small class="text-muted">@booking.Laptop?.Brand?.BrandName</small>
+                                        @booking.StartTime.ToString("dd/MM") - @booking.EndTime.ToString("dd/MM")
                                     </td>
-                                    <td>
-                                        <i class="fas fa-calendar-check text-success"></i> @booking.StartTime.ToString("dd/MM/yyyy") <br />
-                                        <i class="fas fa-calendar-times text-danger"></i> @booking.EndTime.ToString("dd/MM/yyyy")
+                                    <td class="text-success fw-bold">
+                                        @(booking.TotalPrice?.ToString("#,##0") ?? "0") đ
                                     </td>
-                                    <td class="text-success fw-bold">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</td>
+
                                     <td class="text-center">
-                                        <a asp-action="CreateDelivery" asp-route-id="@booking.Id" class="btn btn-success btn-sm">
-                                            <i class="fas fa-truck"></i> Giao Máy
-                                        </a>
+                                        @if (isPaid)
+                                        {
+                                            <span class="badge bg-success"><i class="fas fa-check"></i> Đã thanh toán</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger"><i class="fas fa-times"></i> Chưa thanh toán</span>
+                                        }
+                                    </td>
+
+                                    <td class="text-center">
+                                        @if (isPaid)
+                                        {
+                                            // Nếu ĐÃ THANH TOÁN -> Hiện nút Giao Máy (CreateDelivery)
+                                            <a asp-action="CreateDelivery" asp-route-id="@booking.Id" class="btn btn-primary btn-sm text-white">
+                                                <i class="fas fa-box-open"></i> Giao Máy
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            // Nếu CHƯA THANH TOÁN -> Hiện nút Thanh Toán (QuickHandover)
+                                            <a asp-action="QuickHandover" asp-route-searchBookingId="@booking.Id" class="btn btn-warning btn-sm text-dark">
+                                                <i class="fas fa-money-bill-wave"></i> Thu Tiền
+                                            </a>
+                                        }
                                     </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr><td colspan="6" class="text-center py-5 text-muted"><i class="fas fa-inbox fa-3x mb-3 d-block"></i>Không có booking nào cần giao máy</td></tr>
                         }
                     </tbody>
                 </table>

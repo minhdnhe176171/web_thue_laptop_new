@@ -294,7 +294,7 @@
                                 <i class="fas fa-user-check"></i> 
                                 Laptop Đang Được Thuê
                             </h5>
-                            <small>Laptop hiện đang có khách hàng thuê và sử dụng</small>
+                            <small>Laptop hiện đang được sử dụng</small>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -302,7 +302,6 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th class="ps-4">Laptop</th>
-                                            <th>Người Thuê</th>
                                             <th>Thông Số</th>
                                             <th>Thời Gian Thuê</th>
                                             <th>Tổng Tiền</th>
@@ -327,22 +326,6 @@
                                                             <i class="fas fa-tag"></i> @laptop.Brand?.BrandName
                                                         </small>
                                                     </div>
-                                                </td>
-                                                <td>
-                                                    @if (activeBooking?.Customer != null)
-                                                    {
-                                                        <div>
-                                                            <strong>@(activeBooking.Customer.LastName) @(activeBooking.Customer.FirstName)</strong>
-                                                            <br />
-                                                            <small class="text-muted">
-                                                                <i class="fas fa-envelope"></i> @activeBooking.Customer.Email
-                                                            </small>
-                                                        </div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <small class="text-muted">N/A</small>
-                                                    }
                                                 </td>
                                                 <td>
                                                     @if (detail != null)
@@ -470,7 +453,6 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th class="ps-4">Laptop</th>
-                                            <th>Người Thuê</th>
                                             <th>Thông Số</th>
                                             <th>Thời Gian Thuê</th>
                                             <th>Tổng Tiền</th>
@@ -495,22 +477,6 @@
                                                             <i class="fas fa-tag"></i> @laptop.Brand?.BrandName
                                                         </small>
                                                     </div>
-                                                </td>
-                                                <td>
-                                                    @if (activeBooking?.Customer != null)
-                                                    {
-                                                        <div>
-                                                            <strong>@(activeBooking.Customer.LastName) @(activeBooking.Customer.FirstName)</strong>
-                                                            <br />
-                                                            <small class="text-muted">
-                                                                <i class="fas fa-envelope"></i> @activeBooking.Customer.Email
-                                                            </small>
-                                                        </div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <small class="text-muted">N/A</small>
-                                                    }
                                                 </td>
                                                 <td>
                                                     @if (detail != null)

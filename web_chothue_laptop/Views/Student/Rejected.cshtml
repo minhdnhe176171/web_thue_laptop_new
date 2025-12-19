@@ -208,6 +208,7 @@
                                 <th>Hãng</th>
                                 <th class="text-end">Giá</th>
                                 <th class="text-center">Ngày tạo</th>
+                                <th class="text-center">Trạng thái</th>
                                 <th>Lý do từ chối</th>
                                 <th class="text-center">Thao tác</th>
                             </tr>
@@ -215,6 +216,10 @@
                         <tbody>
                     @foreach(var l in laptopsPaged)
                     {
+                        // Kiểm tra xem Student đã đồng ý chưa (UpdatedDate trong vòng 24 giờ)
+                        bool isRecentlyUpdated = l.UpdatedDate.HasValue && 
+                                                 (DateTime.Now - l.UpdatedDate.Value).TotalHours <= 24;
+                        
                         <tr>
                             <td class="ps-4">
                                 <strong>@l.Name</strong>
@@ -222,6 +227,20 @@
                             <td>@l.Brand?.BrandName</td>
                             <td class="text-end">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
                             <td class="text-center">@(l.CreatedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-center">
+                                @if (l.Status?.StatusName?.ToLower() == "rejected")
+                                {
+                                    <span class="badge bg-danger">Từ chối</span>
+                                }
+                                else if (l.Status?.StatusName?.ToLower() == "fixing")
+                                {
+                                    <span class="badge bg-warning text-dark">Đang sửa</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@l.Status?.StatusName</span>
+                                }
+                            </td>
                             <td>
                                 @if (!string.IsNullOrEmpty(l.RejectReason))
                                 {
@@ -235,18 +254,32 @@
                                 }
                             </td>
                             <td class="text-center">
-                                <form asp-action="AcceptPrice" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có đồng ý với giá được đề xuất không?');">
-                                    @Html.AntiForgeryToken()
-                                    <button class="btn btn-sm btn-success me-1" type="submit">
-                                        <i class="bi bi-check-circle"></i> Đồng ý
-                                    </button>
-                                </form>
-                                <form asp-action="CancelRejectedLaptop" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn hủy laptop này không?');">
-                                    @Html.AntiForgeryToken()
-                                    <button class="btn btn-sm btn-warning" type="submit">
-                                        <i class="bi bi-x-circle"></i> Hủy
-                                    </button>
-                                </form>
+                                @* Chỉ hiển thị nút khi StatusId = 4 (Fixing) VÀ chưa đồng ý trong 24 giờ gần đây *@
+                                @if (l.Status?.StatusName?.ToLower() == "fixing" && !isRecentlyUpdated)
+                                {
+                                    <form asp-action="AcceptPrice" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có đồng ý cho sửa chữa không?');">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-success me-1" type="submit">
+                                            <i class="bi bi-check-circle"></i> Đồng ý
+                                        </button>
+                                    </form>
+                                    <form asp-action="CancelRejectedLaptop" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn hủy laptop này không?');">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-warning" type="submit">
+                                            <i class="bi bi-x-circle"></i> Hủy
+                                        </button>
+                                    </form>
+                                }
+                                else if (l.Status?.StatusName?.ToLower() == "fixing" && isRecentlyUpdated)
+                                {
+                                    <small class="text-success fw-bold">
+                                        <i class="bi bi-check-circle-fill"></i> Đã đồng ý
+                                    </small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">Không có thao tác</small>
+                                }
                             </td>
                         </tr>
                     }

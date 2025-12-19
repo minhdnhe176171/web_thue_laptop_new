@@ -64,8 +64,9 @@ namespace web_chothue_laptop.Controllers
 
             var query = _context.Laptops
                 .Include(l => l.Student)
-                .Include(l => l.Brand)
-                .Where(l => l.StatusId == 1 && approvedTicketLaptopIds.Contains(l.Id)); // Chỉ lấy laptop Pending có ticket đã duyệt
+
+                .Include(l => l.TechnicalTickets)
+                .Where(l => l.StatusId == 1 || l.StatusId == 2 || l.StatusId == 4); // Mới hoặc Tech đã duyệt
 
             // --- FILTER ---
             if (!string.IsNullOrEmpty(searchString))
@@ -108,7 +109,10 @@ namespace web_chothue_laptop.Controllers
                 booking.StatusId = 2; // Approved
                 booking.UpdatedDate = DateTime.Now;
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Đã duyệt đơn thuê thành công!";
+                TempData["SuccessMessage"] = "Đã duyệt đơn! Vui lòng thực hiện thanh toán.";
+
+                // [THAY ĐỔI]: Chuyển hướng sang trang Thanh toán (QuickHandover) thay vì về Index
+                return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
             }
             return RedirectToAction(nameof(Index));
         }
@@ -131,7 +135,6 @@ namespace web_chothue_laptop.Controllers
         // ==========================================
         // CÁC HÀM XỬ LÝ LAPTOP (Quay về LaptopRequests)
         // ==========================================
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendToTechnical(long laptopId)
@@ -139,33 +142,46 @@ namespace web_chothue_laptop.Controllers
             var laptop = await _context.Laptops.FindAsync(laptopId);
             if (laptop != null)
             {
+                // Kiểm tra xem đã có phiếu Pending (Status=1) chưa
                 var existingTicket = await _context.TechnicalTickets
                     .FirstOrDefaultAsync(t => t.LaptopId == laptopId && t.StatusId == 1);
 
                 if (existingTicket == null)
                 {
+                    // NẾU CHƯA CÓ PHIẾU (Hoặc phiếu cũ đã đóng/xong) -> TẠO MỚI
                     var newTicket = new TechnicalTicket
                     {
                         LaptopId = laptopId,
-                        StaffId = 1, // Tạm fix cứng, sau này lấy từ User.Identity
-                        StatusId = 1,
-                        Description = "Yêu cầu kiểm tra chất lượng máy nhập kho mới.",
+                        StaffId = 1,
+                        StatusId = 1, // Tạo ticket Pending để hiện bên Tech
+                        Description = "Yêu cầu kiểm tra (Gửi lại).",
                         CreatedDate = DateTime.Now,
                         UpdatedDate = DateTime.Now
                     };
+
+                    // ❌ XÓA DÒNG NÀY - KHÔNG SET Laptop.StatusId = 4 ở đây
+                    // laptop.StatusId = 4;
+
                     _context.TechnicalTickets.Add(newTicket);
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Đã gửi yêu cầu kiểm tra cho Technical!";
+                    TempData["SuccessMessage"] = $"Đã tạo phiếu kiểm tra mới cho máy {laptop.Name}!";
                 }
                 else
                 {
-                    TempData["WarningMessage"] = "Máy này đã được gửi đi rồi!";
+                    // Nếu đã có phiếu rồi thì chỉ thông báo
+                    TempData["WarningMessage"] = "Máy này đã có phiếu chờ bên Technical rồi (Ticket #" + existingTicket.Id + ")";
+
+                    // ❌ XÓA ĐOẠN NÀY - KHÔNG CẦN UPDATE Laptop.StatusId
+                    // Fix phụ: Nếu Laptop chưa phải status 4 thì update luôn
+                    // if (laptop.StatusId != 4)
+                    // {
+                    //     laptop.StatusId = 4;
+                    //     await _context.SaveChangesAsync();
+                    // }
                 }
             }
-            // QUAN TRỌNG: Quay lại trang LaptopRequests thay vì Index
             return RedirectToAction(nameof(LaptopRequests));
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PublishLaptop(long laptopId)
@@ -202,10 +218,10 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Laptop).ThenInclude(l => l.Brand)
                 .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Include(b => b.Status)
-                .Where(b => b.Status.StatusName.ToLower() == "approved" &&
-                           b.StartTime <= DateTime.Today.AddDays(7));
+                .Include(b => b.BookingReceipts) // [THÊM]: Để kiểm tra đã thanh toán chưa
+                .Where(b => b.Status.StatusName.ToLower() == "approved" && // Chỉ lấy đơn Approved
+                            b.StartTime <= DateTime.Today.AddDays(7));
 
-            // --- FILTER ---
             if (!string.IsNullOrEmpty(searchString))
             {
                 query = query.Where(b => b.Customer.LastName.Contains(searchString)
@@ -214,8 +230,6 @@ namespace web_chothue_laptop.Controllers
             }
 
             query = query.OrderBy(b => b.StartTime);
-
-            // --- PHÂN TRANG ---
             int pageSize = 5;
             return View(await PaginatedList<Booking>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
@@ -223,22 +237,23 @@ namespace web_chothue_laptop.Controllers
         /// <summary>
         /// Hiển thị form tạo phiếu giao máy
         /// </summary>
-        [HttpGet]
+        // [HttpGet]
         public async Task<IActionResult> CreateDelivery(long? id)
         {
+            // 1. Kiểm tra ID
             if (id == null)
             {
                 TempData["ErrorMessage"] = "Không tìm thấy booking.";
                 return RedirectToAction(nameof(Deliveries));
             }
 
+            // 2. Load dữ liệu Booking + Receipt
             var booking = await _context.Bookings
                 .Include(b => b.Customer)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.Brand)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.LaptopDetails)
+                .Include(b => b.Laptop).ThenInclude(l => l.Brand)
+                .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Include(b => b.Status)
+                .Include(b => b.BookingReceipts) // QUAN TRỌNG: Để kiểm tra đã thanh toán chưa
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (booking == null)
@@ -247,23 +262,31 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction(nameof(Deliveries));
             }
 
-            // Kiểm tra booking đã được approve chưa
-            if (booking.Status?.StatusName?.ToLower() != "approved")
+            // =========================================================
+            // 3. LOGIC KIỂM TRA MỚI (SỬA Ở ĐÂY)
+            // =========================================================
+
+            // A. Nếu trạng thái là 'Rented' (ID 10) => Tức là đã giao xong rồi => CHẶN
+            if (booking.StatusId == 10)
             {
-                TempData["ErrorMessage"] = "Booking này chưa được approve hoặc đã giao máy rồi!";
+                TempData["ErrorMessage"] = "Booking này đã hoàn tất giao nhận (Đang thuê).";
                 return RedirectToAction(nameof(Deliveries));
             }
 
-            // Kiểm tra xem đã có phiếu giao máy cho booking này chưa
-            var existingReceipt = await _context.BookingReceipts
-                .FirstOrDefaultAsync(br => br.BookingId == booking.Id);
-
-            if (existingReceipt != null)
+            // B. Nếu CHƯA có phiếu thu (Receipt) => Tức là chưa thanh toán => CHUYỂN ĐI THANH TOÁN
+            var existingReceipt = booking.BookingReceipts.FirstOrDefault();
+            if (existingReceipt == null)
             {
-                TempData["ErrorMessage"] = "Booking này đã được giao máy rồi!";
-                return RedirectToAction(nameof(Deliveries));
+                TempData["WarningMessage"] = "Đơn này chưa thanh toán. Vui lòng thu tiền trước!";
+                return RedirectToAction("QuickHandover", "Staff", new { searchBookingId = booking.Id });
             }
 
+            // C. Nếu ĐÃ có phiếu thu + Status là Approved (2) => HỢP LỆ => HIỂN THỊ MÀN HÌNH CHECK MÁY
+            // (Code cũ của bạn bị sai ở chỗ nó chặn dòng này)
+
+            // =========================================================
+
+            // 4. Chuẩn bị dữ liệu hiển thị lên View (Checklist)
             var detail = booking.Laptop?.LaptopDetails?.FirstOrDefault();
 
             var model = new DeliveryViewModel
@@ -274,13 +297,25 @@ namespace web_chothue_laptop.Controllers
                 StartDate = booking.StartTime,
                 EndDate = booking.EndTime,
                 TotalPrice = booking.TotalPrice,
+
+                // Thông số kỹ thuật
                 Cpu = detail?.Cpu,
                 RamSize = detail?.RamSize,
                 Storage = detail?.Storage,
                 Gpu = detail?.Gpu,
                 ScreenSize = detail?.ScreenSize,
                 Os = detail?.Os,
-                // Mặc định tất cả điều kiện đều OK
+                LaptopImageUrl = booking.Laptop?.ImageUrl,
+
+                // [MỚI] Map dữ liệu ảnh giấy tờ từ Database sang ViewModel
+                // Lưu ý: Tên property bên phải (booking.IdNoUrl) phải khớp với Model Entity của bạn
+                IdCardUrl = booking.IdNoUrl,       // Map với cột ID_NO_URL
+                StudentCardUrl = booking.StudentUrl, // Map với cột STUDENT_URL
+
+                // [MỚI] Mặc định là chưa xác nhận (bắt buộc phải tick thủ công)
+                IsIdentityVerified = false,
+
+                // Các checkbox mặc định tích chọn
                 ScreenCondition = true,
                 KeyboardCondition = true,
                 MouseCondition = true,
@@ -299,109 +334,177 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateDelivery(DeliveryViewModel model)
         {
+            // 1. Validate: Kiểm tra checkbox xác nhận danh tính
+            if (!model.IsIdentityVerified)
+            {
+                ModelState.AddModelError("IsIdentityVerified", "Bạn chưa xác nhận thông tin giấy tờ tùy thân của khách!");
+            }
+
+            // 2. Nếu có lỗi (Model không hợp lệ HOẶC chưa tick xác nhận)
             if (!ModelState.IsValid)
             {
+                // [QUAN TRỌNG] LOAD LẠI DỮ LIỆU HIỂN THỊ
+                // Vì form chỉ gửi input, không gửi text hiển thị, nên ta phải query lại DB
+                var booking = await _context.Bookings
+                    .Include(b => b.Customer)
+                    .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
+                    .FirstOrDefaultAsync(b => b.Id == model.BookingId);
+
+                if (booking != null)
+                {
+                    // Map lại các thông tin hiển thị cơ bản
+                    model.CustomerName = $"{booking.Customer?.LastName} {booking.Customer?.FirstName}";
+                    model.LaptopName = booking.Laptop?.Name;
+                    model.StartDate = booking.StartTime;
+                    model.EndDate = booking.EndTime;
+                    model.TotalPrice = booking.TotalPrice;
+
+                    // Map lại ảnh giấy tờ & Ảnh laptop hiện tại (để hiển thị lại nếu user chưa chọn ảnh mới)
+                    model.IdCardUrl = booking.IdNoUrl;
+                    model.StudentCardUrl = booking.StudentUrl;
+                    model.LaptopImageUrl = booking.Laptop?.ImageUrl;
+
+                    // Map lại thông số kỹ thuật
+                    var detail = booking.Laptop?.LaptopDetails?.FirstOrDefault();
+                    if (detail != null)
+                    {
+                        model.Cpu = detail.Cpu;
+                        model.RamSize = detail.RamSize;
+                        model.Storage = detail.Storage;
+                        model.Gpu = detail.Gpu;
+                        model.ScreenSize = detail.ScreenSize;
+                        model.Os = detail.Os;
+                    }
+                }
+
+                // Trả về View kèm thông báo lỗi và dữ liệu vừa load lại
                 return View(model);
             }
 
-            // Kiểm tra booking tồn tại
-            var booking = await _context.Bookings
-                .Include(b => b.Customer)
-                .Include(b => b.Laptop)
-                .Include(b => b.Status)
+            // 3. XỬ LÝ LOGIC GIAO MÁY CHÍNH THỨC
+            var bookingToUpdate = await _context.Bookings
+                .Include(b => b.BookingReceipts)
+                .Include(b => b.Laptop) // Include Laptop để cập nhật ảnh
                 .FirstOrDefaultAsync(b => b.Id == model.BookingId);
 
-            if (booking == null)
+            if (bookingToUpdate == null)
             {
                 TempData["ErrorMessage"] = "Không tìm thấy booking.";
                 return RedirectToAction(nameof(Deliveries));
             }
 
-            // Kiểm tra trạng thái
-            if (booking.Status?.StatusName?.ToLower() != "approved")
+            // A. Check trạng thái: Nếu đã là Rented (10) thì chặn
+            if (bookingToUpdate.StatusId == 10)
             {
-                TempData["ErrorMessage"] = "Booking này không thể giao máy (chưa approve hoặc đã giao).";
+                TempData["ErrorMessage"] = "Booking này đã hoàn tất giao máy rồi!";
                 return RedirectToAction(nameof(Deliveries));
             }
-            // Kiểm tra đã giao chưa
-            var existingReceipt = await _context.BookingReceipts
-                .FirstOrDefaultAsync(br => br.BookingId == booking.Id);
 
-            if (existingReceipt != null)
+            // B. Check thanh toán (CẬP NHẬT MỚI): 
+            // Hợp lệ nếu: (Đã có phiếu thu tiền mặt) HOẶC (Trạng thái là 12 - Banked/Đã CK Online)
+            bool isPaid = (bookingToUpdate.BookingReceipts != null && bookingToUpdate.BookingReceipts.Any())
+                          || bookingToUpdate.StatusId == 12;
+
+            if (!isPaid)
             {
-                TempData["ErrorMessage"] = "Booking này đã được giao máy rồi!";
-                return RedirectToAction(nameof(Deliveries));
+                TempData["ErrorMessage"] = "Đơn hàng CHƯA THANH TOÁN. Vui lòng thu tiền trước!";
+                return RedirectToAction("QuickHandover", "Staff", new { searchBookingId = bookingToUpdate.Id });
             }
+
             try
             {
-                // Lấy Staff ID từ session (hoặc tạm fix cứng)
-                var userId = HttpContext.Session.GetString("UserId");
-                long staffId = 1; // Mặc định
-
-                if (!string.IsNullOrEmpty(userId))
+                // C. Xử lý Upload ảnh tình trạng (Lưu vào wwwroot và Update DB)
+                if (model.ConditionImage != null && model.ConditionImage.Length > 0)
                 {
-                    var userIdLong = long.Parse(userId);
-                    var staff = await _context.Staff.FirstOrDefaultAsync(s => s.StaffId == userIdLong);
-                    if (staff != null)
+                    // 1. Tạo tên file duy nhất
+                    var fileName = $"delivery_{bookingToUpdate.LaptopId}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid()}{Path.GetExtension(model.ConditionImage.FileName)}";
+
+                    // 2. Định nghĩa thư mục lưu
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
+                    if (!Directory.Exists(uploadPath))
                     {
-                        staffId = staff.Id;
+                        Directory.CreateDirectory(uploadPath);
+                    }
+                    var filePath = Path.Combine(uploadPath, fileName);
+
+                    // 3. Lưu file vật lý
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await model.ConditionImage.CopyToAsync(stream);
+                    }
+
+                    // 4. CẬP NHẬT ẢNH MỚI VÀO DATABASE (Bảng Laptop)
+                    if (bookingToUpdate.Laptop != null)
+                    {
+                        bookingToUpdate.Laptop.ImageUrl = "/images/laptops/" + fileName;
                     }
                 }
 
-                // Upload ảnh nếu có (tạm bỏ qua, có thể dùng Cloudinary)
-            //    string? imageUrl = null;
-                if (model.ConditionImage != null && model.ConditionImage.Length > 0)
-                {
-                    // TODO: Upload to Cloudinary or save to wwwroot
-                    _logger.LogInformation($"Image uploaded: {model.ConditionImage.FileName}");
-                }
-
-                // Tạo phiếu giao máy (BookingReceipt)
-                var receipt = new BookingReceipt
-                {
-                    BookingId = booking.Id,
-                    CustomerId = booking.CustomerId,
-                    StaffId = staffId,
-                    StartTime = booking.StartTime,
-                    EndTime = booking.EndTime,
-                    TotalPrice = booking.TotalPrice ?? 0,
-                    LateFee = 0, // Chưa có phí trễ
-                    LateMinutes = 0,
-                    CreatedDate = DateTime.Now
-                };
-
-                _context.BookingReceipts.Add(receipt);
-
-                // Cập nhật trạng thái booking sang "Rented" (đang thuê)
-                var rentedStatus = await _context.Statuses
-                    .FirstOrDefaultAsync(s => s.StatusName.ToLower() == "rented");
-
-                if (rentedStatus != null)
-                {
-                    booking.StatusId = rentedStatus.Id;
-                    booking.UpdatedDate = DateTime.Now;
-                }
-
-                // Lưu ghi chú vào database (có thể thêm trường Notes vào BookingReceipt sau)
-                // Hoặc lưu vào bảng khác nếu cần
-                _logger.LogInformation($"Delivery created for Booking #{booking.Id}");
-                _logger.LogInformation($"Conditions - Screen: {model.ScreenCondition}, Keyboard: {model.KeyboardCondition}, Battery: {model.BatteryLevel}%");
-                if (!string.IsNullOrEmpty(model.Notes))
-                {
-                    _logger.LogInformation($"Notes: {model.Notes}");
-                }
+                // D. Cập nhật trạng thái đơn hàng thành 'Rented' (10)
+                bookingToUpdate.StatusId = 10;
+                bookingToUpdate.UpdatedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Đã tạo phiếu giao máy thành công cho Booking #{booking.Id}!";
+                TempData["SuccessMessage"] = $"Giao máy thành công đơn #{bookingToUpdate.Id}! Chúc khách hàng trải nghiệm tốt.";
                 return RedirectToAction(nameof(Deliveries));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating delivery receipt");
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tạo phiếu giao máy. Vui lòng thử lại.";
+                _logger.LogError(ex, "Error confirming delivery");
+                TempData["ErrorMessage"] = "Lỗi hệ thống khi giao máy. Vui lòng thử lại!";
+
+                // Load lại model để tránh trang trắng (bạn có thể copy đoạn load data ở trên xuống đây nếu cần kỹ hơn)
                 return View(model);
             }
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateLaptopImageOnly(long bookingId, IFormFile? conditionImage)
+        {
+            // 1. Tìm booking và laptop
+            var booking = await _context.Bookings.Include(b => b.Laptop).FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null || booking.Laptop == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin máy.";
+                return RedirectToAction(nameof(CreateDelivery), new { id = bookingId });
+            }
+
+            // 2. Xử lý lưu ảnh (Nếu có chọn file)
+            if (conditionImage != null && conditionImage.Length > 0)
+            {
+                try
+                {
+                    var fileName = $"laptop_{booking.LaptopId}_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(conditionImage.FileName)}";
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
+
+                    if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);
+
+                    var filePath = Path.Combine(uploadPath, fileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await conditionImage.CopyToAsync(stream);
+                    }
+
+                    // Cập nhật Database
+                    booking.Laptop.ImageUrl = "/images/laptops/" + fileName;
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "Đã cập nhật ảnh mới nhất cho máy!";
+                }
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] = "Lỗi upload: " + ex.Message;
+                }
+            }
+            else
+            {
+                TempData["WarningMessage"] = "Vui lòng chọn ảnh trước khi bấm Cập nhật.";
+            }
+
+            // 3. Quay lại trang Giao máy
+            return RedirectToAction(nameof(CreateDelivery), new { id = bookingId });
         }
         // ==========================================
         // GIAO MÁY NHANH (QUICK HANDOVER) - Mới thêm
@@ -432,12 +535,14 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Kiểm tra trạng thái (Chỉ cho phép StatusId = 2 là Approved)
-            if (booking.StatusId != 2)
+            if (booking.StatusId != 2 && booking.StatusId != 12)
             {
                 if (booking.StatusId == 10)
                     TempData["WarningMessage"] = $"Đơn hàng #{searchBookingId} đã được giao (Rented) rồi!";
                 else
-                    TempData["ErrorMessage"] = $"Đơn hàng đang ở trạng thái '{booking.Status?.StatusName}'. Chỉ đơn 'Approved' mới được giao máy.";
+                    TempData["ErrorMessage"] = $"Đơn hàng đang ở trạng thái '{booking.Status?.StatusName}'. Chỉ đơn 'Approved' hoặc 'Banked' mới xử lý tại đây.";
+
+                // Có thể return View(booking) nhưng disable nút bấm, hoặc return null tuỳ bạn
             }
 
             return View(booking);
@@ -447,32 +552,29 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmHandover(long bookingId)
         {
-            var booking = await _context.Bookings.FindAsync(bookingId);
+            // Load Booking và check xem đã có Receipt chưa
+            var booking = await _context.Bookings
+                .Include(b => b.BookingReceipts)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
 
-            // Check lại lần cuối
-            if (booking == null || booking.StatusId != 2)
+            if (booking == null || booking.StatusId != 2) // Chỉ xử lý đơn Approved
             {
-                TempData["ErrorMessage"] = "Đơn hàng không hợp lệ hoặc trạng thái đã thay đổi.";
+                TempData["ErrorMessage"] = "Đơn hàng không hợp lệ.";
                 return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
+            }
+
+            if (booking.BookingReceipts.Any())
+            {
+                TempData["WarningMessage"] = "Đơn này đã thanh toán rồi!";
+                return RedirectToAction(nameof(Deliveries));
             }
 
             try
             {
-                // 1. Cập nhật trạng thái Booking -> 10 (Rented)
-                booking.StatusId = 10;
-                booking.UpdatedDate = DateTime.Now;
+                // [QUAN TRỌNG]: KHÔNG đổi StatusId sang 10 ở đây. Vẫn giữ là 2 (Approved).
+                // booking.StatusId = 10; <--- Bỏ dòng này
 
-                // 2. Tạo phiếu BookingReceipt
-                // Lấy Staff ID từ session hoặc mặc định là 1 nếu null
-                long staffId = 1;
-                var userId = HttpContext.Session.GetString("UserId");
-                if (!string.IsNullOrEmpty(userId) && long.TryParse(userId, out long parsedId))
-                {
-                    // Logic map StaffId của bạn (nếu bảng Staff khác bảng Account)
-                    // Ở đây tạm thời để staffId = 1 để code chạy được ngay
-                    staffId = 1;
-                }
-
+                long staffId = 1; // Lấy từ Session thực tế của bạn
                 var receipt = new BookingReceipt
                 {
                     BookingId = booking.Id,
@@ -489,15 +591,15 @@ namespace web_chothue_laptop.Controllers
                 _context.BookingReceipts.Add(receipt);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Giao máy thành công đơn #{bookingId}. Đã tạo phiếu thu!";
+                TempData["SuccessMessage"] = $"Đã thanh toán thành công đơn #{bookingId}. Vui lòng chuyển sang bước Giao máy.";
 
-                // Reset trang để làm đơn tiếp theo
-                return RedirectToAction(nameof(QuickHandover));
+                // [THAY ĐỔI]: Thanh toán xong -> Chuyển sang màn Quản lý Giao máy
+                return RedirectToAction(nameof(Deliveries));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi giao máy nhanh");
-                TempData["ErrorMessage"] = "Lỗi hệ thống khi lưu dữ liệu.";
+                _logger.LogError(ex, "Lỗi khi thanh toán");
+                TempData["ErrorMessage"] = "Lỗi hệ thống.";
                 return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
             }
         }
@@ -608,5 +710,209 @@ namespace web_chothue_laptop.Controllers
             var status = await _context.Statuses.FirstOrDefaultAsync(s => s.StatusName.ToLower() == statusName.ToLower());
             return status?.Id;
         }
+        
+        // ==========================================
+        // HOÀN THÀNH ĐƠN THUÊ (Complete Booking)
+        // ==========================================
+        
+        /// <summary>
+        /// Hoàn thành đơn thuê - Chuyển sang trạng thái Close
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CompleteBooking(long bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn thuê.";
+                return RedirectToAction(nameof(RentedLaptops));
+            }
+
+            // Chỉ cho phép hoàn thành nếu đang ở trạng thái Rented (10)
+            if (booking.StatusId != 10)
+            {
+                TempData["ErrorMessage"] = "Đơn thuê này không ở trạng thái Đang thuê.";
+                return RedirectToAction(nameof(RentedLaptops));
+            }
+
+            try
+            {
+                // Chuyển Booking sang trạng thái Close (8)
+                booking.StatusId = 8;
+                booking.UpdatedDate = DateTime.Now;
+
+                // Chuyển Laptop về trạng thái Available (9) - Sẵn sàng cho thuê lại
+                if (booking.Laptop != null)
+                {
+                    booking.Laptop.StatusId = 9; // Available
+                    booking.Laptop.UpdatedDate = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Đã hoàn thành đơn thuê #{bookingId}. Máy đã sẵn sàng trả về cho Student.";
+                return RedirectToAction(nameof(DueForReturnLaptops));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi hoàn thành đơn thuê");
+                TempData["ErrorMessage"] = "Lỗi hệ thống khi hoàn thành đơn thuê.";
+                return RedirectToAction(nameof(RentedLaptops));
+            }
+        }
+        
+        /// <summary>
+        /// Tạo thông báo trả máy về cho Student
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateReturnNotification(long bookingId, long laptopId, long studentId, string pickupLocation, DateTime appointmentTime)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Student)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn thuê.";
+                return RedirectToAction(nameof(DueForReturnLaptops));
+            }
+
+            // Kiểm tra trạng thái
+            if (booking.StatusId != 8)
+            {
+                TempData["ErrorMessage"] = "Đơn này chưa hoàn thành, không thể tạo thông báo trả máy.";
+                return RedirectToAction(nameof(DueForReturnLaptops));
+            }
+
+            try
+            {
+                // Lưu thông tin lịch hẹn vào RejectReason (sử dụng field có sẵn)
+                var notificationInfo = $"RETURN_SCHEDULE|{pickupLocation}|{appointmentTime:yyyy-MM-dd HH:mm}";
+                booking.RejectReason = notificationInfo;
+                booking.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Đã gửi thông báo trả máy đến Student. Chờ Student xác nhận nhận máy tại {pickupLocation} lúc {appointmentTime:HH:mm dd/MM/yyyy}.";
+                return RedirectToAction(nameof(DueForReturnLaptops));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo thông báo trả máy");
+                TempData["ErrorMessage"] = "Lỗi hệ thống khi tạo thông báo.";
+                return RedirectToAction(nameof(DueForReturnLaptops));
+            }
+        }
+        
+        // ==========================================
+        // QUẢN LÝ TRẢ MÁY VỀ CHO SINH VIÊN (Updated)
+        // ==========================================
+
+        /// <summary>
+        /// Màn hình 1: Danh sách các máy đã hoàn thành thuê (StatusId = 8 - Close)
+        /// </summary>
+        public async Task<IActionResult> DueForReturnLaptops(string searchString, int? pageNumber)
+        {
+            ViewData["CurrentFilter"] = searchString;
+
+            // 1. Query: Lấy các booking đã Close (StatusId = 8)
+            var query = _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Student)
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Customer)
+                .Include(b => b.Status)
+                .Where(b => b.StatusId == 8); // Close - Đã hoàn thành thuê
+
+            // 2. Filter tìm kiếm
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(b => 
+                    (b.Laptop != null && b.Laptop.Name.Contains(searchString)) ||
+                    (b.Laptop != null && b.Laptop.Student != null && b.Laptop.Student.LastName.Contains(searchString)) ||
+                    (b.Laptop != null && b.Laptop.Student != null && b.Laptop.Student.FirstName.Contains(searchString)) ||
+                    (b.Laptop != null && b.Laptop.Student != null && b.Laptop.Student.Email.Contains(searchString)) ||
+                    (b.Customer != null && b.Customer.LastName.Contains(searchString)) ||
+                    (b.Customer != null && b.Customer.FirstName.Contains(searchString)));
+            }
+
+            // 3. Sắp xếp: Ưu tiên booking mới nhất lên đầu
+            query = query.OrderByDescending(b => b.UpdatedDate);
+
+            // 4. Phân trang và trả về View
+            int pageSize = 5;
+            return View(await PaginatedList<Booking>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
+        }
+
+        /// <summary>
+        /// Action xử lý Form tạo phiếu hẹn (Submit từ Modal)
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateReturnSchedule(ReturnLaptopViewModel model)
+        {
+            // Do các trường hiển thị (LaptopName, StudentName...) trong ViewModel là nullable 
+            // và không bắt buộc nhập từ form (vì là readonly/hidden), nên ModelState thường sẽ Valid 
+            // nếu AppointmentTime hợp lệ.
+
+            // 1. Kiểm tra ID máy
+            var laptop = await _context.Laptops
+                .Include(l => l.Student)
+                .FirstOrDefaultAsync(l => l.Id == model.LaptopId);
+
+            if (laptop == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin máy!";
+                return RedirectToAction(nameof(DueForReturnLaptops));
+            }
+
+            try
+            {
+                // 2. Lấy thông tin sinh viên từ Database (để đảm bảo chính xác nhất)
+                string studentName = "Sinh viên";
+                string studentEmail = "";
+
+                if (laptop.Student != null)
+                {
+                    studentName = $"{laptop.Student.LastName} {laptop.Student.FirstName}";
+                    studentEmail = laptop.Student.Email;
+                }
+
+                // 3. Xử lý Logic "Lưu tạm thời" & Gửi thông báo
+                // Theo yêu cầu: Địa điểm cố định, Thời gian lưu tạm để báo cho SV.
+
+                string fixedLocation = "Toà Alpha, L300"; // Cố định
+                string timeString = model.AppointmentTime.ToString("HH:mm dd/MM/yyyy");
+
+                // --- (A) Giả lập gửi Email/Notification ---
+                // Code gửi email thật sẽ đặt ở đây. Ví dụ:
+                // _emailService.Send(studentEmail, "Mời nhận máy", $"Đến {fixedLocation} lúc {timeString}...");
+
+                // --- (B) Hiển thị thông báo thành công cho Staff ---
+                TempData["SuccessMessage"] = $"Đã lên lịch trả máy '{laptop.Name}'. " +
+                                             $"Nhắn SV {studentName} đến {fixedLocation} lúc {timeString}.";
+
+                // --- (C) Cập nhật trạng thái máy (Tuỳ chọn) ---
+                // Ví dụ: Đổi sang trạng thái "Chờ SV đến nhận" để không hiện ở list hết hạn nữa
+                // laptop.StatusId = 8; // Ví dụ: 8 là 'Waiting for Pickup'
+                // await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo lịch trả máy");
+                TempData["ErrorMessage"] = "Lỗi hệ thống khi tạo lịch hẹn.";
+            }
+
+            // Quay lại trang danh sách
+            return RedirectToAction(nameof(DueForReturnLaptops));
+        }
     }
+
 }
