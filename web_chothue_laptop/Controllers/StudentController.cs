@@ -141,7 +141,7 @@ namespace web_chothue_laptop.Controllers
             return View("Index", laptops);
         }
 
-        // Trang Bị từ chối
+        // Trang Bị từ chối - Hiển thị Laptop bị từ chối
         public async Task<IActionResult> Rejected(string? search, string? fromDate, string? toDate, int page = 1)
         {
             var student = await GetCurrentStudentAsync();
@@ -173,12 +173,14 @@ namespace web_chothue_laptop.Controllers
                 ViewBag.ToDate = toDate;
             }
 
-            var laptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
+            var rejectedLaptops = await laptopsQuery.OrderByDescending(l => l.CreatedDate).ToListAsync();
+            
+            // Đếm số lượng
             await SetLaptopCountsAsync(student.Id);
 
             ViewBag.CurrentPage = "Rejected";
             ViewBag.Page = page;
-            return View("Index", laptops);
+            return View(rejectedLaptops);
         }
 
         public async Task<IActionResult> Create()
@@ -940,6 +942,125 @@ namespace web_chothue_laptop.Controllers
                 .ToListAsync();
 
             return View(notifications);
+        }
+
+        // Action: Đồng ý với giá (chuyển Laptop từ Rejected -> Approved)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptPrice(long id)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var userIdLong = long.Parse(userId);
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentId == userIdLong);
+
+            if (student == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin sinh viên.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var laptop = await _context.Laptops
+                .FirstOrDefaultAsync(l => l.Id == id && l.StudentId == student.Id);
+
+            if (laptop == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy laptop hoặc bạn không có quyền thực hiện thao tác này.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            // Kiểm tra laptop có đang ở trạng thái Rejected không
+            var rejectedStatusId = await GetStatusIdAsync("rejected");
+            if (laptop.StatusId != rejectedStatusId)
+            {
+                TempData["ErrorMessage"] = "Laptop này không ở trạng thái bị từ chối.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            // Chuyển laptop sang trạng thái Approved
+            var approvedStatusId = await GetStatusIdAsync("approved");
+            if (approvedStatusId == null)
+            {
+                TempData["ErrorMessage"] = "Lỗi hệ thống. Vui lòng thử lại sau.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            laptop.StatusId = approvedStatusId.Value;
+            laptop.UpdatedDate = DateTime.Now;
+            laptop.RejectReason = null; // Xóa lý do từ chối
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Đã đồng ý! Laptop của bạn đã được chuyển sang trạng thái Đã phê duyệt và đang chờ thuê.";
+            return RedirectToAction(nameof(Approved));
+        }
+
+        // Action: Hủy laptop bị từ chối
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelRejectedLaptop(long id)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var userIdLong = long.Parse(userId);
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentId == userIdLong);
+
+            if (student == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin sinh viên.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var laptop = await _context.Laptops
+                .Include(l => l.LaptopDetails)
+                .Include(l => l.Bookings)
+                .FirstOrDefaultAsync(l => l.Id == id && l.StudentId == student.Id);
+
+            if (laptop == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy laptop hoặc bạn không có quyền thực hiện thao tác này.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            // Kiểm tra laptop có đang ở trạng thái Rejected không
+            var rejectedStatusId = await GetStatusIdAsync("rejected");
+            if (laptop.StatusId != rejectedStatusId)
+            {
+                TempData["ErrorMessage"] = "Laptop này không ở trạng thái bị từ chối.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            // Kiểm tra xem có booking nào không
+            if (laptop.Bookings.Any())
+            {
+                TempData["ErrorMessage"] = "Không thể xóa laptop đã có đơn đặt thuê.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            // Xóa laptop details trước
+            if (laptop.LaptopDetails.Any())
+            {
+                _context.LaptopDetails.RemoveRange(laptop.LaptopDetails);
+            }
+
+            // Xóa laptop
+            _context.Laptops.Remove(laptop);
+            await _context.SaveChangesAsync();
+
+            TempData["InfoMessage"] = "Đã hủy và xóa laptop thành công.";
+            return RedirectToAction(nameof(Rejected));
         }
 
         // Helper Methods

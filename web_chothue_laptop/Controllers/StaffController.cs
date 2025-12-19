@@ -24,32 +24,65 @@ namespace web_chothue_laptop.Controllers
         // ==========================================
         // TRANG 1: QUẢN LÝ ĐƠN THUÊ (Mặc định)
         // ==========================================
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString, int? pageNumber)
         {
-            // Chỉ lấy danh sách Booking
-            var pendingBookings = await _context.Bookings
+            ViewData["CurrentFilter"] = searchString; // Giữ lại từ khóa tìm kiếm
+
+            var query = _context.Bookings
                 .Include(b => b.Customer).Include(b => b.Laptop)
-                .Where(b => b.StatusId == 1) // 1: Pending Approval
-                .OrderByDescending(b => b.CreatedDate)
-                .ToListAsync();
+                .Where(b => b.StatusId == 1); // Trạng thái Pending
 
-            return View(pendingBookings);
+            // --- ĐOẠN FILTER ---
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(b => b.Customer.LastName.Contains(searchString)
+                                      || b.Customer.FirstName.Contains(searchString)
+                                      || b.Id.ToString().Contains(searchString));
+            }
+
+            // Lưu tổng số lượng để hiển thị trên tiêu đề (vì PaginatedList chỉ chứa 5 dòng)
+            ViewData["TotalCount"] = await query.CountAsync();
+
+            query = query.OrderByDescending(b => b.CreatedDate);
+
+            // --- ĐOẠN PHÂN TRANG ---
+            int pageSize = 5;
+            return View(await PaginatedList<Booking>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
-
         // ==========================================
         // TRANG 2: MÁY CHỜ KIỂM TRA (Action Mới)
         // ==========================================
-        public async Task<IActionResult> LaptopRequests()
+        public async Task<IActionResult> LaptopRequests(string searchString, int? pageNumber)
         {
-            // Lấy danh sách Laptop (Mới hoặc Tech đã duyệt)
-            var pendingLaptops = await _context.Laptops
-                .Include(l => l.Student)
-                .Where(l => l.StatusId == 1 || l.StatusId == 2) // 1: Mới, 2: Đã check OK
-                .OrderByDescending(l => l.UpdatedDate)
+            ViewData["CurrentFilter"] = searchString;
+
+            // Lấy danh sách laptop có TechnicalTicket được Technical duyệt (StatusId = 2)
+            var approvedTicketLaptopIds = await _context.TechnicalTickets
+                .Where(t => t.StatusId == 2 && t.BookingId == null) // Technical approved, không phải ticket của customer
+                .Select(t => t.LaptopId)
                 .ToListAsync();
 
-            // Trả về View riêng: LaptopRequests.cshtml
-            return View(pendingLaptops);
+            var query = _context.Laptops
+                .Include(l => l.Student)
+                .Include(l => l.Brand)
+                .Where(l => l.StatusId == 1 && approvedTicketLaptopIds.Contains(l.Id)); // Chỉ lấy laptop Pending có ticket đã duyệt
+
+            // --- FILTER ---
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(l =>
+                    (l.Name != null && l.Name.Contains(searchString)) ||
+                    (l.Student != null && l.Student.LastName != null && l.Student.LastName.Contains(searchString)) ||
+                    (l.Student != null && l.Student.FirstName != null && l.Student.FirstName.Contains(searchString))
+                );
+            }
+            ViewData["TotalCount"] = await query.CountAsync(); // Lưu tổng số
+
+            query = query.OrderByDescending(l => l.UpdatedDate);
+
+            // --- PHÂN TRANG ---
+            int pageSize = 5;
+            return View(await PaginatedList<Laptop>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // ==========================================
@@ -60,9 +93,18 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveBooking(long bookingId)
         {
-            var booking = await _context.Bookings.FindAsync(bookingId);
+            var booking = await _context.Bookings
+                .Include(b => b.Customer)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+                
             if (booking != null)
             {
+                // Kiểm tra blacklist
+                if (booking.Customer?.BlackList == true)
+                {
+                    TempData["WarningMessage"] = $"Cảnh báo: Customer này đang trong blacklist. Đơn thuê đã được duyệt nhưng vui lòng cẩn thận!";
+                }
+                
                 booking.StatusId = 2; // Approved
                 booking.UpdatedDate = DateTime.Now;
                 await _context.SaveChangesAsync();
@@ -129,11 +171,16 @@ namespace web_chothue_laptop.Controllers
         public async Task<IActionResult> PublishLaptop(long laptopId)
         {
             var laptop = await _context.Laptops.FindAsync(laptopId);
-            if (laptop != null && laptop.StatusId == 2)
+            if (laptop != null && laptop.StatusId == 1) // Kiểm tra StatusId = 1 (Pending) thay vì 2
             {
-                laptop.StatusId = 9; // Available
+                laptop.StatusId = 9; // Available - Đưa lên web
+                laptop.UpdatedDate = DateTime.Now;
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Đã niêm yết máy thành công!";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Laptop này không thể niêm yết (trạng thái không hợp lệ).";
             }
             // QUAN TRỌNG: Quay lại trang LaptopRequests thay vì Index
             return RedirectToAction(nameof(LaptopRequests));
@@ -142,27 +189,35 @@ namespace web_chothue_laptop.Controllers
         // ==========================================
         // QUẢN LÝ GIAO MÁY (DELIVERIES)
         // ==========================================
-        
+
         /// <summary>
         /// Danh sách booking cần giao máy
         /// </summary>
-        public async Task<IActionResult> Deliveries()
+        public async Task<IActionResult> Deliveries(string searchString, int? pageNumber)
         {
-            // Lấy danh sách booking đã approved nhưng chưa giao máy
-            // (Status = Approved và StartTime trong vòng 7 ngày tới)
-            var approvedBookings = await _context.Bookings
-                .Include(b => b.Customer)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.Brand)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.LaptopDetails)
-                .Include(b => b.Status)
-                .Where(b => b.Status.StatusName.ToLower() == "approved" && 
-                           b.StartTime <= DateTime.Today.AddDays(7)) // Booking sắp đến hoặc đã đến ngày
-                .OrderBy(b => b.StartTime)
-                .ToListAsync();
+            ViewData["CurrentFilter"] = searchString;
 
-            return View(approvedBookings);
+            var query = _context.Bookings
+                .Include(b => b.Customer)
+                .Include(b => b.Laptop).ThenInclude(l => l.Brand)
+                .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
+                .Include(b => b.Status)
+                .Where(b => b.Status.StatusName.ToLower() == "approved" &&
+                           b.StartTime <= DateTime.Today.AddDays(7));
+
+            // --- FILTER ---
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(b => b.Customer.LastName.Contains(searchString)
+                                      || b.Customer.FirstName.Contains(searchString)
+                                      || b.Id.ToString().Contains(searchString));
+            }
+
+            query = query.OrderBy(b => b.StartTime);
+
+            // --- PHÂN TRANG ---
+            int pageSize = 5;
+            return View(await PaginatedList<Booking>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         /// <summary>
@@ -268,7 +323,6 @@ namespace web_chothue_laptop.Controllers
                 TempData["ErrorMessage"] = "Booking này không thể giao máy (chưa approve hoặc đã giao).";
                 return RedirectToAction(nameof(Deliveries));
             }
-
             // Kiểm tra đã giao chưa
             var existingReceipt = await _context.BookingReceipts
                 .FirstOrDefaultAsync(br => br.BookingId == booking.Id);
@@ -278,7 +332,6 @@ namespace web_chothue_laptop.Controllers
                 TempData["ErrorMessage"] = "Booking này đã được giao máy rồi!";
                 return RedirectToAction(nameof(Deliveries));
             }
-
             try
             {
                 // Lấy Staff ID từ session (hoặc tạm fix cứng)
@@ -455,24 +508,96 @@ namespace web_chothue_laptop.Controllers
         /// <summary>
         /// Danh sách laptop đang được thuê
         /// </summary>
-        public async Task<IActionResult> RentedLaptops()
+        public async Task<IActionResult> RentedLaptops(string searchString, int? pageNumber)
         {
-            // Lấy danh sách booking với status "Rented" (đang thuê)
-            var rentedBookings = await _context.Bookings
+            ViewData["CurrentFilter"] = searchString;
+
+            // Query gốc
+            var query = _context.Bookings
                 .Include(b => b.Customer)
+                .Include(b => b.Laptop).ThenInclude(l => l.Brand)
+                .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
+                .Include(b => b.Laptop).ThenInclude(l => l.Student)
+                .Include(b => b.Status)
+                .Include(b => b.BookingReceipts)
+                .Where(b => b.Status.StatusName.ToLower() == "rented");
+
+            // --- TÍNH TOÁN THỐNG KÊ (Trước khi phân trang) ---
+            // Vì nếu phân trang rồi thì chỉ tính được trên 5 dòng thôi, nên phải tính riêng ở đây
+            var allData = await query.ToListAsync();
+            ViewData["Stat_Total"] = allData.Count;
+            ViewData["Stat_Expiring"] = allData.Count(b => (b.EndTime - DateTime.Today).Days <= 2 && (b.EndTime - DateTime.Today).Days >= 0);
+            ViewData["Stat_Overdue"] = allData.Count(b => b.EndTime < DateTime.Today);
+            ViewData["Stat_Revenue"] = allData.Sum(b => b.TotalPrice ?? 0).ToString("#,##0");
+
+            // --- FILTER ---
+            // Tạo lại queryable để chạy filter cho bảng
+            var displayQuery = query.AsQueryable();
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                displayQuery = displayQuery.Where(b => b.Customer.LastName.Contains(searchString)
+                                                    || b.Customer.FirstName.Contains(searchString)
+                                                    || b.Laptop.Name.Contains(searchString));
+            }
+
+            displayQuery = displayQuery.OrderBy(b => b.EndTime);
+
+            // --- PHÂN TRANG ---
+            int pageSize = 5;
+            return View(await PaginatedList<Booking>.CreateAsync(displayQuery.AsNoTracking(), pageNumber ?? 1, pageSize));
+        }
+        // --- THÊM VÀO StaffController.cs ---
+
+        // 1. Action Xem Chi Tiết
+        [HttpGet]
+        public async Task<IActionResult> BookingDetails(long id)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Customer) // Người thuê
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.LaptopDetails) // Linh kiện
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Student) // Chủ máy (Student)
                 .Include(b => b.Laptop)
                     .ThenInclude(l => l.Brand)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.LaptopDetails)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.Student)
-                .Include(b => b.Status)
-                .Include(b => b.BookingReceipts) // Lấy thông tin phiếu giao máy
-                .Where(b => b.Status.StatusName.ToLower() == "rented")
-                .OrderBy(b => b.EndTime) // Sắp xếp theo ngày trả gần nhất
-                .ToListAsync();
+                .FirstOrDefaultAsync(b => b.Id == id);
 
-            return View(rentedBookings);
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(booking);
+        }
+
+        // 2. Action Từ chối kèm lý do
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectBookingWithReason(long bookingId, string rejectReason)
+        {
+            // 1. Kiểm tra nếu chưa nhập lý do
+            if (string.IsNullOrWhiteSpace(rejectReason))
+            {
+                TempData["ErrorMessage"] = "Vui lòng nhập lý do từ chối!";
+                return RedirectToAction(nameof(BookingDetails), new { id = bookingId });
+            }
+
+            var booking = await _context.Bookings.FindAsync(bookingId);
+            if (booking != null)
+            {
+                // 2. Cập nhật trạng thái sang Rejected (3)
+                booking.StatusId = 3;
+                booking.UpdatedDate = DateTime.Now;
+
+                // 3. LƯU LÝ DO VÀO DATABASE (Quan trọng)
+                // Đảm bảo model Booking của bạn đã có cột RejectReason
+                booking.RejectReason = rejectReason;
+
+                await _context.SaveChangesAsync();
+                TempData["WarningMessage"] = $"Đã từ chối đơn #{bookingId}. Lý do đã được gửi cho khách.";
+            }
+            return RedirectToAction(nameof(Index));
         }
 
         // ==========================================
