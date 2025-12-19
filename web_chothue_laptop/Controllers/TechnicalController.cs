@@ -150,7 +150,10 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateInspectionInfo(long ticketId, string description, IFormFile? inspectionImage)
         {
-            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
+            // Load ticket và kèm theo dữ liệu Laptop để update
+            var ticket = await _context.TechnicalTickets
+                .Include(t => t.Laptop)
+                .FirstOrDefaultAsync(t => t.Id == ticketId);
 
             if (ticket == null)
             {
@@ -166,26 +169,52 @@ namespace web_chothue_laptop.Controllers
             }
             ticket.Description = description;
 
-            // 2. Xử lý Upload ảnh (Nếu có file mới)
+            // 2. Xử lý Upload ảnh (Lưu vào wwwroot và update DB)
             if (inspectionImage != null && inspectionImage.Length > 0)
             {
                 try
                 {
-                    // [TODO]: Thay thế logic này bằng Service Upload của bạn (VD: Cloudinary)
-                    // Hiện tại code chỉ demo logic, bạn cần code phần lưu file vật lý hoặc Cloudinary ở đây
-                    // Ví dụ: string imageUrl = await _cloudinaryService.UploadImage(inspectionImage);
-                    // ticket.Laptop.ImageUrl = imageUrl;
+                    // Kiểm tra Laptop có tồn tại không
+                    if (ticket.Laptop != null)
+                    {
+                        // Tạo tên file duy nhất để tránh trùng lặp (dùng GUID hoặc TimeStamp)
+                        var fileName = $"laptop_{ticket.Laptop.Id}_{Guid.NewGuid()}{Path.GetExtension(inspectionImage.FileName)}";
+
+                        // Định nghĩa thư mục lưu trữ (Ví dụ: wwwroot/images/laptops)
+                        var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
+
+                        // Tạo thư mục nếu chưa tồn tại
+                        if (!Directory.Exists(uploadFolder))
+                        {
+                            Directory.CreateDirectory(uploadFolder);
+                        }
+
+                        var filePath = Path.Combine(uploadFolder, fileName);
+
+                        // Lưu file vật lý vào server
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await inspectionImage.CopyToAsync(stream);
+                        }
+
+                        // CẬP NHẬT ĐƯỜNG DẪN VÀO DATABASE (Cột IMAGE_URL)
+                        // Lưu đường dẫn tương đối để web có thể hiển thị
+                        ticket.Laptop.ImageUrl = "/images/laptops/" + fileName;
+                    }
                 }
                 catch (Exception ex)
                 {
                     TempData["ErrorMessage"] = "Lỗi upload ảnh: " + ex.Message;
+                    return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
                 }
             }
 
             ticket.UpdatedDate = DateTime.Now;
+
+            // Lưu thay đổi vào Database (bao gồm cả Description và ImageUrl mới)
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Đã cập nhật thông tin kiểm tra.";
+            TempData["SuccessMessage"] = "Đã cập nhật thông tin kiểm tra và hình ảnh.";
 
             // Quay lại trang chi tiết
             return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });

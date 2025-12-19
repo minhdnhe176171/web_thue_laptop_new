@@ -25,7 +25,7 @@ public partial class Laptop
 
     public string? ImageUrl { get; set; }
 
-    public DateTime? EndTime { get; set; }  
+    public DateTime? EndTime { get; set; }
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 

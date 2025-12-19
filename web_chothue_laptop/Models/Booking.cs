@@ -22,8 +22,14 @@ public partial class Booking
     public long StatusId { get; set; }
 
     public DateTime? CreatedDate { get; set; }
-    public string? RejectReason { get; set; }
+
     public DateTime? UpdatedDate { get; set; }
+
+    public string? RejectReason { get; set; }
+
+    public string? IdNoUrl { get; set; }
+
+    public string? StudentUrl { get; set; }
 
     public virtual ICollection<BookingReceipt> BookingReceipts { get; set; } = new List<BookingReceipt>();
 
