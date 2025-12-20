@@ -1,0 +1,168 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@{
+    ViewData["Title"] = "Quản lý Laptop";
+    Layout = "_ManagerLayout";
+}
+<h2 class="mb-4">Quản lý toàn bộ Laptop</h2>
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Tổng Laptop đang có</h6>
+                <h4 class="text-primary">@ViewBag.TotalLaptop</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Laptop đang cho thuê</h6>
+                <h4 class="text-success">@ViewBag.RentingLaptop</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Laptop đang sửa chữa</h6>
+                <h4 class="text-warning">@ViewBag.MaintenanceLaptop</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Laptop đang có sẵn</h6>
+                <h4 class="text-info">@ViewBag.AvailableLaptop</h4>
+            </div>
+        </div>
+    </div>
+</div>
+<form method="get" asp-action="LaptopManagement" class="mb-3">
+    <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm kiếm tên máy..." class="form-control d-inline-block w-auto" />
+    <select name="statusId" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+        <option value="0">Tất cả trạng thái</option>
+        @foreach (var status in ViewBag.StatusList)
+        {
+            if (ViewBag.SelectedStatus == status.Id)
+            {
+                <option value="@status.Id" selected>@status.StatusName</option>
+            }
+            else
+            {
+                <option value="@status.Id">@status.StatusName</option>
+            }
+        }
+    </select>
+    <button type="submit" class="btn btn-primary">Lọc</button>
+</form>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Tên máy</th>
+            <th>Hãng</th>
+            <th>Trạng thái</th>
+            <th>Sinh viên</th>
+            <th>Email</th>
+            <th>Ngày tạo</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Brand?.BrandName</td>
+                <td>
+                    @switch (item.StatusId)
+                    {
+                        case 1:
+                            <span class="badge bg-warning text-dark">Đang chờ</span>
+                            break;
+                        case 2:
+                            <span class="badge bg-success">Đã phê duyệt</span>
+                            break;
+                        case 3:
+                            <span class="badge bg-danger">Đã từ chối</span>
+                            break;
+                        case 4:
+                            <span class="badge bg-orange">Đang sửa chữa</span>
+                            break;
+                        case 5:
+                            <span class="badge bg-purple">Đã sửa chữa</span>
+                            break;
+                        case 6:
+                            <span class="badge bg-primary">Đang hoạt động</span>
+                            break;
+                        case 7:
+                            <span class="badge bg-secondary">Ngừng hoạt động</span>
+                            break;
+                        case 8:
+                            <span class="badge bg-dark">Đã đóng</span>
+                            break;
+                        case 9:
+                            <span class="badge bg-teal">Có sẵn</span>
+                            break;
+                        case 10:
+                            <span class="badge bg-purple">Đang thuê</span>
+                            break;
+                        default:
+                            <span class="badge bg-light text-dark">Unknown</span>
+                            break;
+                    }
+                </td>
+
+                <td>@item.Student?.FirstName @item.Student?.LastName</td>
+                <td>@item.Student?.Email</td>
+                <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                <td>
+                    <a asp-action="LaptopDetail" asp-route-id="@item.Id" class="btn btn-info btn-sm">Chi tiết</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+
+        <!-- Previous -->
+        <li class="page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+            <a class="page-link"
+               asp-action="LaptopManagement"
+               asp-route-page="@(ViewBag.CurrentPage - 1)"
+               asp-route-searchString="@ViewBag.SearchString"
+               asp-route-statusId="@ViewBag.SelectedStatus">
+                Trước
+            </a>
+        </li>
+
+        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+        {
+            <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                <a class="page-link"
+                   asp-action="LaptopManagement"
+                   asp-route-page="@i"
+                   asp-route-searchString="@ViewBag.SearchString"
+                   asp-route-statusId="@ViewBag.SelectedStatus">
+                    @i
+                </a>
+            </li>
+        }
+
+        <!-- Next -->
+        <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+            <a class="page-link"
+               asp-action="LaptopManagement"
+               asp-route-page="@(ViewBag.CurrentPage + 1)"
+               asp-route-searchString="@ViewBag.SearchString"
+               asp-route-statusId="@ViewBag.SelectedStatus">
+                Sau
+            </a>
+        </li>
+
+    </ul>
+</nav>
