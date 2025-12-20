@@ -2,22 +2,20 @@
 @{
     ViewData["Title"] = "Quản lý tài khoản";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var currentRole = ViewBag.CurrentRole?.ToString() ?? "student";
-    var actionName = char.ToUpper(currentRole[0]) + currentRole.Substring(1);
 }
 
 <div class="container-fluid mt-4">
     <div class="row">
         <!-- Sidebar -->
         <div class="col-md-3">
-            @await Html.PartialAsync("~/Views/Admin/_ManageAccountSidebar.cshtml")
+            @await Html.PartialAsync("~/Views/Admin/_AdminSidebar.cshtml")
         </div>
 
         <!-- Main Content -->
         <div class="col-md-9">
             <div class="row">
                 <div class="col-12">
-                    <h2 class="mb-4">Quản lý tài khoản - @actionName.ToUpper()</h2>
+                    <h2 class="mb-4">Quản lý tài khoản</h2>
                 </div>
             </div>
 
@@ -34,9 +32,18 @@
                         </div>
                     }
                     <!-- Filter -->
-                    <form method="get" asp-controller="ManageAccount" asp-action="@actionName" id="filterForm">
+                    <form method="get" asp-controller="ManageAccount" asp-action="Index" id="filterForm">
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label for="filterRole" class="form-label">Lọc theo vai trò:</label>
+                                <select class="form-select" id="filterRole" name="filterRole">
+                                    <option value="">Tất cả</option>
+                                    <option value="staff" selected="@(ViewBag.FilterRole == "staff")">Staff</option>
+                                    <option value="technical" selected="@(ViewBag.FilterRole == "technical")">Technical</option>
+                                    <option value="manager" selected="@(ViewBag.FilterRole == "manager")">Manager</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
                                 <label for="filterStatus" class="form-label">Lọc theo trạng thái:</label>
                                 <select class="form-select" id="filterStatus" name="filterStatus">
                                     <option value="">Tất cả</option>
@@ -44,7 +51,7 @@
                                     <option value="locked" selected="@(ViewBag.FilterStatus == "locked")">Đã khóa</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="searchAccount" class="form-label">Tìm kiếm:</label>
                                 <input type="text" class="form-control" id="searchAccount" name="searchAccount" 
                                        placeholder="Email, tên..." value="@ViewBag.SearchAccount">
@@ -52,8 +59,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
-                                <a asp-controller="ManageAccount" asp-action="@actionName" class="btn btn-secondary">Làm mới</a>
+                                <a asp-controller="ManageAccount" asp-action="Index" class="btn btn-secondary">Làm mới</a>
                             </div>
                         </div>
                     </form>
@@ -128,7 +134,8 @@
                                 @for (int i = 1; i <= ViewBag.TotalPages; i++)
                                 {
                                     <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                        <a class="page-link" asp-controller="ManageAccount" asp-action="@actionName" 
+                                        <a class="page-link" asp-controller="ManageAccount" asp-action="Index" 
+                                           asp-route-filterRole="@ViewBag.FilterRole"
                                            asp-route-filterStatus="@ViewBag.FilterStatus"
                                            asp-route-searchAccount="@ViewBag.SearchAccount"
                                            asp-route-page="@i">@i</a>
@@ -155,7 +162,7 @@
             });
 
             // Tự động lọc khi thay đổi dropdown
-            $('#filterStatus').on('change', function() {
+            $('#filterRole, #filterStatus').on('change', function() {
                 $('#filterForm').submit();
             });
         });

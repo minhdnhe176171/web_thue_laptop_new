@@ -27,7 +27,6 @@ namespace web_chothue_laptop.ViewComponents
                 .Include(u => u.Students)
                 .Include(u => u.Managers)
                 .Include(u => u.Technicals)
-                .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Id == long.Parse(userId));
 
             if (user == null)
@@ -36,56 +35,41 @@ namespace web_chothue_laptop.ViewComponents
             }
 
             string fullName = "User";
-            string roleName = "Người dùng";
             string? avatarUrl = user.AvatarUrl;
-
-            // Lấy role name
-            if (user.Role != null)
-            {
-                roleName = user.Role.RoleName?.ToLower() switch
-                {
-                    "customer" => "Customer",
-                    "student" => "Student Lessor",
-                    "staff" => "Staff",
-                    "manager" => "Manager",
-                    "technical" => "Technical",
-                    _ => user.Role.RoleName ?? "Người dùng"
-                };
-            }
 
             // Lấy tên từ Customer, Staff, Student, Manager, hoặc Technical
             var customer = user.Customers.FirstOrDefault();
             if (customer != null)
             {
-                fullName = $"{customer.LastName} {customer.FirstName}";
+                fullName = $"{customer.FirstName} {customer.LastName}";
             }
             else
             {
                 var staff = user.Staff.FirstOrDefault();
                 if (staff != null)
                 {
-                    fullName = $"{staff.LastName} {staff.FirstName}";
+                    fullName = $"{staff.FirstName} {staff.LastName}";
                 }
                 else
                 {
                     var student = user.Students.FirstOrDefault();
                     if (student != null)
                     {
-                        fullName = $"{student.LastName} {student.FirstName}";
+                        fullName = $"{student.FirstName} {student.LastName}";
                     }
                     else
                     {
                         var manager = user.Managers.FirstOrDefault();
                         if (manager != null)
                         {
-                            fullName = $"{manager.LastName} {manager.FirstName}";
+                            fullName = $"{manager.FirstName} {manager.LastName}";
                         }
                         else
                         {
                             var technical = user.Technicals.FirstOrDefault();
                             if (technical != null)
                             {
-                                fullName = $"{technical.LastName} {technical.FirstName}";
+                                fullName = $"{technical.FirstName} {technical.LastName}";
                             }
                         }
                     }
@@ -93,7 +77,6 @@ namespace web_chothue_laptop.ViewComponents
             }
 
             ViewBag.FullName = fullName;
-            ViewBag.RoleName = roleName;
             ViewBag.AvatarUrl = avatarUrl;
             ViewBag.UserEmail = user.Email;
 
