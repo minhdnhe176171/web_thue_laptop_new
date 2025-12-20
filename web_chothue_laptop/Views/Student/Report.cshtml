@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.BookingReceipt>
+﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
 @{
     ViewData["Title"] = "Báo Cáo Thu Nhập";
     
@@ -6,13 +6,13 @@
     int pageSize = 10;
     int currentPage = ViewBag.CurrentPage ?? 1;
     
-    var completedPaged = Model?.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList() ?? new List<web_chothue_laptop.Models.BookingReceipt>();
+    var bookingsPaged = Model?.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList() ?? new List<web_chothue_laptop.Models.Booking>();
     int totalPages = (int)Math.Ceiling((Model?.Count() ?? 0) / (double)pageSize);
     
-    // Thống kê
-    decimal totalIncome = Model?.Sum(r => r.TotalPrice) ?? 0;
+    // ✅ Thống kê các đơn đã Close
     int totalBookings = Model?.Count() ?? 0;
-    decimal averageIncome = totalBookings > 0 ? totalIncome / totalBookings : 0;
+    decimal totalRevenue = Model?.Sum(b => b.TotalPrice ?? 0) ?? 0;
+    decimal avgRevenue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
 }
 
 <style>
@@ -344,25 +344,25 @@
         <div class="stats-row">
             <div class="stat-card stat-card-green">
                 <div class="stat-label">Tổng Thu Nhập</div>
-                <div class="stat-value">@totalIncome.ToString("#,##0") đ</div>
+                <div class="stat-value">@totalRevenue.ToString("#,##0") đ</div>
                 <div class="stat-subtitle">
-                    <i class="fas fa-arrow-up me-1"></i>Từ @totalBookings đơn hoàn thành
+                    <i class="fas fa-money-bill-wave me-1"></i>Từ @totalBookings đơn hoàn thành
                 </div>
             </div>
 
             <div class="stat-card stat-card-cyan">
-                <div class="stat-label">Tổng Đơn Hoàn Thành</div>
+                <div class="stat-label">Đơn Đã Hoàn Thành</div>
                 <div class="stat-value">@totalBookings</div>
                 <div class="stat-subtitle">
-                    <i class="fas fa-check-circle me-1"></i>Đơn đã thanh toán
+                    <i class="fas fa-check-circle me-1"></i>Đơn đã trả máy
                 </div>
             </div>
 
             <div class="stat-card stat-card-blue">
-                <div class="stat-label">Trung Bình / Đơn</div>
-                <div class="stat-value">@averageIncome.ToString("#,##0") đ</div>
+                <div class="stat-label">TB/Đơn</div>
+                <div class="stat-value">@avgRevenue.ToString("#,##0") đ</div>
                 <div class="stat-subtitle">
-                    <i class="fas fa-calculator me-1"></i>Doanh thu trung bình
+                    <i class="fas fa-calculator me-1"></i>Thu nhập trung bình
                 </div>
             </div>
         </div>
@@ -391,7 +391,7 @@
         <!-- Data Table -->
         <div class="table-card">
             <div class="table-header">
-                <i class="fas fa-history me-2"></i>Lịch Sử Cho Thuê Đã Hoàn Thành
+                <i class="fas fa-history me-2"></i>Lịch Sử Đơn Thuê Đã Hoàn Thành (@totalBookings đơn)
             </div>
             
             @if (Model != null && Model.Any())
@@ -401,10 +401,13 @@
                         <thead>
                             <tr>
                                 <th class="text-center">
-                                    <i class="fas fa-hashtag me-1"></i>Mã Receipt
+                                    <i class="fas fa-hashtag me-1"></i>Mã Đơn
                                 </th>
                                 <th>
                                     <i class="fas fa-laptop me-1"></i>Laptop
+                                </th>
+                                <th class="text-center">
+                                    <i class="fas fa-calendar me-1"></i>Thời Gian Cho Thuê
                                 </th>
                                 <th class="text-center">
                                     <i class="fas fa-clock me-1"></i>Số Ngày
@@ -415,32 +418,39 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var receipt in completedPaged)
+                            @foreach (var booking in bookingsPaged)
                             {
-                                var days = (receipt.EndTime - receipt.StartTime).Days;
+                                int totalDays = Math.Max(1, (booking.EndTime - booking.StartTime).Days);
+                                
                                 <tr>
                                     <td class="text-center">
-                                        <span class="badge-receipt">#@receipt.Id</span>
+                                        <span class="badge-receipt">#@booking.Id</span>
                                     </td>
                                     <td>
-                                        <div class="laptop-name">@receipt.Booking?.Laptop?.Name</div>
-                                        <div class="laptop-brand">@receipt.Booking?.Laptop?.Brand?.BrandName</div>
+                                        <div class="laptop-name">@booking.Laptop?.Name</div>
+                                        <div class="laptop-brand">@booking.Laptop?.Brand?.BrandName</div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge-days">@days ngày</span>
+                                        <small class="text-muted">
+                                            @booking.StartTime.ToString("dd/MM/yyyy")<br/>
+                                            <i class="fas fa-arrow-down"></i><br/>
+                                            @booking.EndTime.ToString("dd/MM/yyyy")
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge-days">@totalDays ngày</span>
                                     </td>
                                     <td class="text-end">
                                         <span class="price-text">
-                                            @receipt.TotalPrice.ToString("#,##0") đ
+                                            @(booking.TotalPrice?.ToString("#,##0") ?? "0") đ
                                         </span>
                                     </td>
                                 </tr>
                             }
                         </tbody>
-                 
                     </table>
                 </div>
-                
+
                 <!-- Pagination -->
                 <div class="p-3">
                     <nav>
@@ -471,15 +481,15 @@
             {
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
-                    <h5>Chưa có dữ liệu</h5>
+                    <h5>Chưa có đơn hoàn thành</h5>
                     <p>
-                        @if (!string.IsNullOrEmpty(ViewBag.Search as string) || !string.IsNullOrEmpty(ViewBag.FromDate as string))
+                        @if (!string.IsNullOrEmpty(ViewBag.Search as string))
                         {
                             <text>Không tìm thấy kết quả phù hợp với bộ lọc của bạn.</text>
                         }
                         else
                         {
-                            <text>Chưa có đơn thuê nào hoàn thành.</text>
+                            <text>Bạn chưa có đơn thuê nào hoàn thành. Các đơn đã trả máy sẽ hiển thị ở đây!</text>
                         }
                     </p>
                 </div>

@@ -783,34 +783,32 @@ namespace web_chothue_laptop.Controllers
 
             var laptopIds = laptops.Select(l => l.Id).ToList();
 
-            // Lấy danh sách BookingReceipts đã hoàn thành
-            var completedQuery = _context.BookingReceipts
-                .Include(br => br.Booking)
-                    .ThenInclude(b => b.Laptop)
-                        .ThenInclude(l => l.Brand)
-                .Include(br => br.Booking)
-                    .ThenInclude(b => b.Customer)
-                .Where(br => laptopIds.Contains(br.Booking.LaptopId))
+            // ✅ Chỉ lấy các đơn đã Close (StatusId = 8)
+            var closedBookingsQuery = _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .Where(b => laptopIds.Contains(b.LaptopId) && b.StatusId == 8) // Close
                 .AsQueryable();
 
             // Tìm kiếm theo tên laptop
             if (!string.IsNullOrWhiteSpace(search))
             {
                 search = search.Trim().ToLower();
-                completedQuery = completedQuery.Where(br =>
-                    (br.Booking.Laptop != null && br.Booking.Laptop.Name.ToLower().Contains(search)) ||
-                    (br.Booking.Laptop != null && br.Booking.Laptop.Brand != null && br.Booking.Laptop.Brand.BrandName.ToLower().Contains(search))
+                closedBookingsQuery = closedBookingsQuery.Where(b =>
+                    (b.Laptop != null && b.Laptop.Name.ToLower().Contains(search)) ||
+                    (b.Laptop != null && b.Laptop.Brand != null && b.Laptop.Brand.BrandName.ToLower().Contains(search))
                 );
                 ViewBag.Search = search;
             }
 
-            var completedBookings = await completedQuery
-                .OrderByDescending(br => br.CreatedDate)
+            var closedBookings = await closedBookingsQuery
+                .OrderByDescending(b => b.UpdatedDate ?? b.EndTime)
                 .ToListAsync();
 
             ViewBag.CurrentPage = page;
 
-            return View(completedBookings);
+            return View(closedBookings);
         }
 
         // Action mới: Hiển thị laptop đang cho thuê
@@ -889,7 +887,7 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Lấy các laptop có booking Close (StatusId = 8) với thông báo trả máy
+            // Lấy các laptop có booking Close (StatusId = 8) với thời gian hẹn trả máy
             var query = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.LaptopDetails)
@@ -898,9 +896,7 @@ namespace web_chothue_laptop.Controllers
                 .Include(l => l.Bookings)
                     .ThenInclude(b => b.Status)
                 .Where(l => l.StudentId == student.Id && 
-                           l.Bookings.Any(b => b.StatusId == 8 && 
-                                              !string.IsNullOrEmpty(b.RejectReason) && 
-                                              b.RejectReason.StartsWith("RETURN_SCHEDULE|")));
+                           l.Bookings.Any(b => b.StatusId == 8 && b.ReturnDueDate.HasValue));
 
             // Tìm kiếm theo tên laptop hoặc khách hàng
             if (!string.IsNullOrWhiteSpace(search))
@@ -968,8 +964,8 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction(nameof(Notifications));
             }
 
-            // Kiểm tra phải có thông báo trước
-            if (string.IsNullOrEmpty(booking.RejectReason) || !booking.RejectReason.StartsWith("RETURN_SCHEDULE|"))
+            // ✅ Kiểm tra phải có thông báo trước (kiểm tra ReturnDueDate)
+            if (!booking.ReturnDueDate.HasValue)
             {
                 TempData["ErrorMessage"] = "Đơn này chưa có thông báo trả máy.";
                 return RedirectToAction(nameof(Notifications));
@@ -977,13 +973,9 @@ namespace web_chothue_laptop.Controllers
 
             try
             {
-                // Parse thông tin cũ và thêm flag CONFIRMED
-                var parts = booking.RejectReason.Split('|');
-                var pickupLocation = parts.Length > 1 ? parts[1] : "Tòa Alpha, L300";
-                var appointmentTime = parts.Length > 2 ? parts[2] : DateTime.Now.ToString("yyyy-MM-dd HH:mm");
-                
-                // Đánh dấu đã xác nhận: RETURN_SCHEDULE|location|time|CONFIRMED|confirmDate
-                booking.RejectReason = $"RETURN_SCHEDULE|{pickupLocation}|{appointmentTime}|CONFIRMED|{DateTime.Now:yyyy-MM-dd HH:mm}";
+                // ✅ Đánh dấu đã xác nhận vào RejectReason (CHỈ lưu flag, không lưu thời gian)
+                // Format: CONFIRMED|<confirmDate>
+                booking.RejectReason = $"CONFIRMED|{DateTime.Now:yyyy-MM-dd HH:mm}";
                 booking.UpdatedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
