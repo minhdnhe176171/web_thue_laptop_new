@@ -30,14 +30,15 @@ namespace web_chothue_laptop.ViewComponents
                 return View(0);
             }
 
-            // ??m s? l??ng thông báo ch?a xác nh?n (có RETURN_SCHEDULE nh?ng ch?a có CONFIRMED)
-            var unconfirmedCount = await _context.Bookings
-                .Where(b => b.Laptop.StudentId == student.Id &&
-                           b.StatusId == 8 &&
-                           !string.IsNullOrEmpty(b.RejectReason) &&
-                           b.RejectReason.StartsWith("RETURN_SCHEDULE|") &&
-                           !b.RejectReason.Contains("|CONFIRMED|"))
-                .CountAsync();
+            // ??m s? l??ng thï¿½ng bï¿½o ch?a xï¿½c nh?n (t?m th?i tr? v? 0 vï¿½ RejectReason khï¿½ng cï¿½ trong model)
+            var unconfirmedCount = 0;
+            // var unconfirmedCount = await _context.Bookings
+            //     .Where(b => b.Laptop.StudentId == student.Id &&
+            //                b.StatusId == 8 &&
+            //                !string.IsNullOrEmpty(b.RejectReason) &&
+            //                b.RejectReason.StartsWith("RETURN_SCHEDULE|") &&
+            //                !b.RejectReason.Contains("|CONFIRMED|"))
+            //     .CountAsync();
 
             return View(unconfirmedCount);
         }

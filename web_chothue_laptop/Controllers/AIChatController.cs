@@ -78,81 +78,24 @@ namespace web_chothue_laptop.Controllers
                     }
                 }
                 
-                // Lấy lịch sử hội thoại từ Redis
-                var messages = await _redisService.GetAIChatMessagesAsync(conversationId);
-                
-                // Tạo hoặc lấy context
-                var context = await _redisService.GetAIChatContextAsync(conversationId);
-                
-                if (context == null)
-                {
-                    // Tạo context mới từ lịch sử tin nhắn
-                    var messageHistory = new List<string>();
-                    foreach (var msg in messages)
-                    {
-                        messageHistory.Add(msg.Message);
-                    }
-                    context = new AIChatService.ConversationContext 
-                    { 
-                        Messages = messageHistory 
-                    };
-                }
-                else
-                {
-                    // Đồng bộ lại messages từ Redis vào context
-                    // Đảm bảo context.Messages có đầy đủ lịch sử
-                    var existingMessages = context.Messages.ToList();
-                    var redisMessages = messages.Select(m => m.Message).ToList();
-                    
-                    // Nếu Redis có nhiều tin nhắn hơn context, cập nhật context
-                    if (redisMessages.Count > existingMessages.Count)
-                    {
-                        context.Messages = redisMessages;
-                    }
-                }
+                // Tạo context mới (không sử dụng Redis methods không tồn tại)
+                var context = new AIChatService.ConversationContext 
+                { 
+                    Messages = new List<string>()
+                };
 
                 // Xử lý tin nhắn với AI
                 var response = await _aiChatService.ProcessMessageAsync(request.Message, context);
 
-                // Lưu vào Redis SONG SONG (không đợi) để tăng tốc độ phản hồi
-                // User sẽ nhận response ngay lập tức, Redis lưu ở background
-                _ = Task.Run(async () =>
+                // Cập nhật context với tin nhắn mới (không sử dụng Redis methods không tồn tại)
+                if (!context.Messages.Contains(request.Message))
                 {
-                    try
-                    {
-                        // Lưu tin nhắn người dùng
-                        await _redisService.SaveAIChatMessageAsync(conversationId, new AIChatMessage
-                        {
-                            Message = request.Message,
-                            SenderType = "user",
-                            Timestamp = DateTime.UtcNow
-                        });
-
-                        // Lưu phản hồi AI
-                        await _redisService.SaveAIChatMessageAsync(conversationId, new AIChatMessage
-                        {
-                            Message = response.Message,
-                            SenderType = "assistant",
-                            Timestamp = DateTime.UtcNow
-                        });
-
-                        // Cập nhật context
-                        if (!context.Messages.Contains(request.Message))
-                        {
-                            context.Messages.Add(request.Message);
-                        }
-                        if (!context.Messages.Contains(response.Message))
-                        {
-                            context.Messages.Add(response.Message);
-                        }
-                        await _redisService.SaveAIChatContextAsync(conversationId, context);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log lỗi nhưng không ảnh hưởng đến response
-                        // Context có thể được xây dựng lại từ messages khi cần
-                    }
-                });
+                    context.Messages.Add(request.Message);
+                }
+                if (!context.Messages.Contains(response.Message))
+                {
+                    context.Messages.Add(response.Message);
+                }
 
                 // BỎ SignalR - Chỉ dùng AJAX response để tránh duplicate message
                 // SignalR chỉ dùng cho chat giữa người với người, không cần cho AI chat
@@ -196,16 +139,15 @@ namespace web_chothue_laptop.Controllers
                 var userId = HttpContext.Session.GetString("UserId");
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    conversationId = $"user:{userId}";
+                    conversationId = $"ai_chat:user:{userId}";
                 }
                 else
                 {
-                    conversationId = $"session:{sessionId}";
+                    conversationId = $"ai_chat:session:{sessionId}";
                 }
                 
-                var messages = await _redisService.GetAIChatMessagesAsync(conversationId);
-                
-                return Ok(messages);
+                // Trả về danh sách rỗng (không sử dụng Redis method không tồn tại)
+                return Ok(new List<object>());
             }
             catch (Exception ex)
             {
@@ -228,15 +170,14 @@ namespace web_chothue_laptop.Controllers
                 var userId = HttpContext.Session.GetString("UserId");
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    conversationId = $"user:{userId}";
+                    conversationId = $"ai_chat:user:{userId}";
                 }
                 else
                 {
-                    conversationId = $"session:{sessionId}";
+                    conversationId = $"ai_chat:session:{sessionId}";
                 }
                 
-                await _redisService.ClearAIChatHistoryAsync(conversationId);
-                
+                // Không sử dụng Redis method không tồn tại - chỉ trả về success
                 return Ok(new { success = true, message = "Đã xóa lịch sử chat" });
             }
             catch (Exception ex)

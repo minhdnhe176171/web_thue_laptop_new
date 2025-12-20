@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Laptop Bị Từ Chối";
     var currentPage = ViewBag.CurrentPage as string ?? "Rejected";
@@ -252,7 +252,9 @@
                                 }
                             </td>
                             <td>
-                                @if (!string.IsNullOrEmpty(l.RejectReason))
+                                @* Tạm thời comment vì RejectReason không có trong model *@
+                                <small class="text-muted">Không có lý do</small>
+                                @* @if (!string.IsNullOrEmpty(l.RejectReason))
                                 {
                                     <div class="reject-reason-box">
                                         <small class="fw-bold text-dark">@l.RejectReason</small>
@@ -261,7 +263,7 @@
                                 else
                                 {
                                     <small class="text-muted">Không có lý do</small>
-                                }
+                                } *@
                             </td>
                             <td class="text-center">
                                 @* ✅ SỬA: Kiểm tra hasAccepted thay vì isRecentlyUpdated *@

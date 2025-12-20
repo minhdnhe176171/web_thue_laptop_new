@@ -1,4 +1,4 @@
-Ôªøusing System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace web_chothue_laptop.ViewModels
 {
@@ -6,21 +6,14 @@ namespace web_chothue_laptop.ViewModels
     {
         public long BookingId { get; set; }
         
-        // Th√¥ng tin booking
+        // ThÙng tin booking
         public string? CustomerName { get; set; }
         public string? LaptopName { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public decimal? TotalPrice { get; set; }
-        public string? LaptopImageUrl { get; set; }
-        // [M·ªöI] Th√™m 3 tr∆∞·ªùng n√†y
-        public string? IdCardUrl { get; set; }     // Link ·∫£nh CCCD
-        public string? StudentCardUrl { get; set; } // Link th·∫ª sinh vi√™n
-
-        // Checkbox b·∫Øt bu·ªôc
-        public bool IsIdentityVerified { get; set; }
-
-        // Th√¥ng tin laptop detail
+        
+        // ThÙng tin laptop detail
         public string? Cpu { get; set; }
         public string? RamSize { get; set; }
         public string? Storage { get; set; }
@@ -28,11 +21,11 @@ namespace web_chothue_laptop.ViewModels
         public string? ScreenSize { get; set; }
         public string? Os { get; set; }
         
-        // TÃÅnh tr?ng m√°y l√∫c giao
-        [Display(Name = "M√†n hÃÅnh")]
+        // TÏnh tr?ng m·y l˙c giao
+        [Display(Name = "M‡n hÏnh")]
         public bool ScreenCondition { get; set; } = true;
         
-        [Display(Name = "B√†n ph√≠m")]
+        [Display(Name = "B‡n phÌm")]
         public bool KeyboardCondition { get; set; } = true;
         
         [Display(Name = "Chu?t")]
@@ -41,18 +34,18 @@ namespace web_chothue_laptop.ViewModels
         [Display(Name = "S?c")]
         public bool ChargerCondition { get; set; } = true;
         
-        [Display(Name = "V? m√°y")]
+        [Display(Name = "V? m·y")]
         public bool BodyCondition { get; set; } = true;
         
         [Display(Name = "Pin (%)")]
         [Range(0, 100, ErrorMessage = "Pin ph?i t? 0-100%")]
         public int BatteryLevel { get; set; } = 100;
         
-        [Display(Name = "Ghi ch√∫")]
-        [StringLength(500, ErrorMessage = "Ghi ch√∫ kh√¥ng ???c v??t qu√° 500 k∆∞ t?")]
+        [Display(Name = "Ghi ch˙")]
+        [StringLength(500, ErrorMessage = "Ghi ch˙ khÙng ???c v??t qu· 500 k˝ t?")]
         public string? Notes { get; set; }
         
-        [Display(Name = "?nh tÃÅnh tr?ng m√°y")]
+        [Display(Name = "?nh tÏnh tr?ng m·y")]
         public IFormFile? ConditionImage { get; set; }
         
         public string? ImageUrl { get; set; }

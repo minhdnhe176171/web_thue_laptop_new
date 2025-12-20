@@ -29,7 +29,50 @@
 
     <h2 class="mb-4">Lịch Sử Báo Lỗi</h2>
 
-    @if (tickets.Any())
+    <!-- Form tìm kiếm và filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="@Url.Action("MyTickets", "Ticket")" class="row g-3">
+                <div class="col-md-6">
+                    <label for="search" class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="@ViewBag.Search" placeholder="Mã ticket, tên laptop, mô tả...">
+                </div>
+                <div class="col-md-4">
+                    <label for="statusId" class="form-label">Trạng thái</label>
+                    <select class="form-select" id="statusId" name="statusId">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="1" selected="@(ViewBag.StatusId?.ToString() == "1")">Mới tạo</option>
+                        <option value="2" selected="@(ViewBag.StatusId?.ToString() == "2")">Kỹ thuật đã nhận</option>
+                        <option value="4" selected="@(ViewBag.StatusId?.ToString() == "4")">Đang sửa</option>
+                        <option value="5" selected="@(ViewBag.StatusId?.ToString() == "5")">Hoàn thành</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(ViewBag.Search?.ToString()) || ViewBag.StatusId != null)
+                {
+                    <div class="col-12">
+                        <a href="@Url.Action("MyTickets", "Ticket")" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                        </a>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+
+    @{
+        var paginatedTickets = ViewBag.PaginatedTickets as PaginatedList<TicketList>;
+        var pageIndex = paginatedTickets?.PageIndex ?? 1;
+        var totalPages = paginatedTickets?.TotalPages ?? 1;
+        var hasPreviousPage = paginatedTickets?.HasPreviousPage ?? false;
+        var hasNextPage = paginatedTickets?.HasNextPage ?? false;
+    }
+    @if (paginatedTickets != null && paginatedTickets.Any())
     {
         <div class="card shadow-sm">
             <div class="card-body p-0">
@@ -46,7 +89,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var ticket in tickets)
+                            @foreach (var ticket in paginatedTickets)
                             {
                                 <tr>
                                     <td class="ps-4">
@@ -119,9 +162,37 @@
         <div class="card shadow-sm">
             <div class="card-body text-center py-5">
                 <i class="bi bi-inbox" style="font-size: 48px; color: #dee2e6;"></i>
-                <p class="text-muted mt-3 mb-0">Bạn chưa có ticket báo lỗi nào.</p>
+                <p class="text-muted mt-3 mb-0">Không tìm thấy ticket báo lỗi nào.</p>
             </div>
         </div>
+    }
+    
+    <!-- Phân trang - Luôn hiển thị -->
+    @if (paginatedTickets != null)
+    {
+        var displayPages = Math.Max(totalPages, 3);
+        var hasPreviousDisplay = pageIndex > 1;
+        var hasNextDisplay = pageIndex < displayPages;
+        <nav aria-label="Page navigation" class="p-3">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item @(!hasPreviousDisplay ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("MyTickets", new { page = pageIndex - 1, search = ViewBag.Search, statusId = ViewBag.StatusId })" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                @for (int i = 1; i <= displayPages; i++)
+                {
+                    <li class="page-item @(i == pageIndex ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("MyTickets", new { page = i, search = ViewBag.Search, statusId = ViewBag.StatusId })">@i</a>
+                    </li>
+                }
+                <li class="page-item @(!hasNextDisplay ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("MyTickets", new { page = pageIndex + 1, search = ViewBag.Search, statusId = ViewBag.StatusId })" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
     }
 </div>
 
