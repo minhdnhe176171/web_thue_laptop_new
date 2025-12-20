@@ -73,7 +73,7 @@ namespace web_chothue_laptop.Controllers
                     .Include(t => t.Laptop).ThenInclude(l => l.Brand)
                     .Include(t => t.Laptop).ThenInclude(l => l.Student)
                     .Include(t => t.Status)
-                    .Where(t => t.StatusId == 2 || t.StatusId == 8);
+                    .Where(t => t.StatusId == 2 || t.StatusId == 8 || t.StatusId == 3); // ✅ Thêm StatusId = 3 (Rejected by Student)
 
                 if (startDate.HasValue) reportQuery = reportQuery.Where(t => t.CreatedDate >= startDate.Value);
                 if (endDate.HasValue)
@@ -85,6 +85,7 @@ namespace web_chothue_laptop.Controllers
                 ViewData["TotalCompleted"] = await reportQuery.CountAsync();
                 ViewData["ApprovedCount"] = await reportQuery.CountAsync(t => t.StatusId == 2);
                 ViewData["ClosedCount"] = await reportQuery.CountAsync(t => t.StatusId == 8);
+                ViewData["RejectedCount"] = await reportQuery.CountAsync(t => t.StatusId == 3); // ✅ Đếm ticket bị hủy
                 ViewData["StartDate"] = startDate?.ToString("yyyy-MM-dd");
                 ViewData["EndDate"] = endDate?.ToString("yyyy-MM-dd");
 
@@ -102,7 +103,12 @@ namespace web_chothue_laptop.Controllers
             }
 
             // --- QUERY CHUNG CHO INSPECTION & REPAIR ---
-            var activeTickets = _context.TechnicalTickets.Where(t => t.StatusId != 2 && t.StatusId != 8 && t.BookingId == null);
+            // ✅ Loại bỏ ticket đã hoàn thành (2, 8) VÀ ticket bị Student hủy (3)
+            var activeTickets = _context.TechnicalTickets.Where(t => 
+                t.StatusId != 2 && 
+                t.StatusId != 8 && 
+                t.StatusId != 3 && 
+                t.BookingId == null);
 
             ViewData["TotalCount"] = await activeTickets.CountAsync();
             ViewData["ProcessingCount"] = await activeTickets.CountAsync(t => t.StatusId == 4);
