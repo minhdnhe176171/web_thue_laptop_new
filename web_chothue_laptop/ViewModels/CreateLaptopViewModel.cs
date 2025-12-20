@@ -19,7 +19,6 @@ namespace web_chothue_laptop.ViewModels
         public long? BrandId { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn giá")]
-        [Range(100000, 1000000, ErrorMessage = "Giá phải từ 100,000 đến 1,000,000 VNĐ")]
         [Display(Name = "Giá")]
         public decimal? Price { get; set; }
 

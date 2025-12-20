@@ -73,7 +73,7 @@ namespace web_chothue_laptop.Controllers
                     .Include(t => t.Laptop).ThenInclude(l => l.Brand)
                     .Include(t => t.Laptop).ThenInclude(l => l.Student)
                     .Include(t => t.Status)
-                    .Where(t => t.StatusId == 2 || t.StatusId == 8);
+                    .Where(t => t.StatusId == 2 || t.StatusId == 8 || t.StatusId == 3); // ✅ Thêm StatusId = 3 (Rejected by Student)
 
                 if (startDate.HasValue) reportQuery = reportQuery.Where(t => t.CreatedDate >= startDate.Value);
                 if (endDate.HasValue)
@@ -85,6 +85,7 @@ namespace web_chothue_laptop.Controllers
                 ViewData["TotalCompleted"] = await reportQuery.CountAsync();
                 ViewData["ApprovedCount"] = await reportQuery.CountAsync(t => t.StatusId == 2);
                 ViewData["ClosedCount"] = await reportQuery.CountAsync(t => t.StatusId == 8);
+                ViewData["RejectedCount"] = await reportQuery.CountAsync(t => t.StatusId == 3); // ✅ Đếm ticket bị hủy
                 ViewData["StartDate"] = startDate?.ToString("yyyy-MM-dd");
                 ViewData["EndDate"] = endDate?.ToString("yyyy-MM-dd");
 
@@ -102,7 +103,12 @@ namespace web_chothue_laptop.Controllers
             }
 
             // --- QUERY CHUNG CHO INSPECTION & REPAIR ---
-            var activeTickets = _context.TechnicalTickets.Where(t => t.StatusId != 2 && t.StatusId != 8 && t.BookingId == null);
+            // ✅ Loại bỏ ticket đã hoàn thành (2, 8) VÀ ticket bị Student hủy (3)
+            var activeTickets = _context.TechnicalTickets.Where(t => 
+                t.StatusId != 2 && 
+                t.StatusId != 8 && 
+                t.StatusId != 3 && 
+                t.BookingId == null);
 
             ViewData["TotalCount"] = await activeTickets.CountAsync();
             ViewData["ProcessingCount"] = await activeTickets.CountAsync(t => t.StatusId == 4);
@@ -360,13 +366,14 @@ namespace web_chothue_laptop.Controllers
                 
                 technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed.";
                 
+                // ✅ SỬA: KHÔNG tự động đưa lên web
                 // Kiểm tra laptop có đang ở trạng thái Fixing không
                 if (ticket.Laptop != null && ticket.Laptop.StatusId == 4)
                 {
-                    // Nếu đang Fixing → Chuyển sang Available (9)
-                    ticket.Laptop.StatusId = 9; // Available - Đưa lên web
+                    // ✅ GIỮ NGUYÊN StatusId = 4 (Fixing)
+                    // KHÔNG chuyển sang Available (9) - Để Staff duyệt
                     ticket.Laptop.RejectReason = null; // Xóa lý do từ chối
-                    technicalResponse += " Laptop đã được chuyển sang Available.";
+                    technicalResponse += " Đã sửa xong. Chờ Staff duyệt lên web.";
                 }
                 else
                 {
@@ -401,9 +408,10 @@ namespace web_chothue_laptop.Controllers
                 TempData["SuccessMessage"] = "Đã sửa xong! Thiết bị quay lại mục Yêu Cầu Kiểm Tra.";
                 return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
             }
-            else if (ticket.Laptop?.StatusId == 9)
+            else if (statusId == 5)
             {
-                TempData["SuccessMessage"] = "Đã sửa xong! Laptop đã được niêm yết lên web.";
+                // ✅ SỬA: Thông báo chờ Staff duyệt thay vì "đã niêm yết"
+                TempData["SuccessMessage"] = "Đã sửa xong! Chờ Staff duyệt lên web.";
                 return RedirectToAction(nameof(Index), new { activeTab = "repair" });
             }
             

@@ -241,6 +241,9 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Price)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("PRICE");
+            entity.Property(e => e.NewPrice)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("NEW_PRICE");
             entity.Property(e => e.RejectReason)
                 .HasColumnName("REJECT_REASON");
             entity.Property(e => e.StatusId).HasColumnName("STATUS_ID");

@@ -150,6 +150,7 @@ namespace web_chothue_laptop.Controllers
             var laptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
                 .Include(l => l.Status)
+                .Include(l => l.TechnicalTickets)
                 .Where(l => l.StudentId == student.Id && 
                            (l.Status.StatusName.ToLower() == "rejected" || 
                             l.Status.StatusName.ToLower() == "fixing"));
@@ -259,9 +260,10 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Validate Price
-            if (model.Price == null || model.Price < 100000 || model.Price > 1000000)
+            var validPrices = new decimal[] { 70000, 140000, 210000, 280000, 350000 };
+            if (model.Price == null || !validPrices.Contains(model.Price.Value))
             {
-                ModelState.AddModelError(nameof(model.Price), "Giá phải từ 100,000 đến 1,000,000 VNĐ");
+                ModelState.AddModelError(nameof(model.Price), "Vui lòng chọn một trong các mức giá: 70,000 / 140,000 / 210,000 / 280,000 / 350,000 VNĐ");
             }
 
             // Validate deadline
@@ -1081,7 +1083,7 @@ namespace web_chothue_laptop.Controllers
             }
         }
 
-        // Action: Hủy laptop bị từ chối
+        // Action: Hủy laptop đang sửa chữa (Fixing) → Chuyển sang Rejected
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelRejectedLaptop(long id)
@@ -1104,8 +1106,8 @@ namespace web_chothue_laptop.Controllers
             }
 
             var laptop = await _context.Laptops
-                .Include(l => l.LaptopDetails)
-                .Include(l => l.Bookings)
+                .Include(l => l.Status)
+                .Include(l => l.TechnicalTickets)
                 .FirstOrDefaultAsync(l => l.Id == id && l.StudentId == student.Id);
 
             if (laptop == null)
@@ -1114,32 +1116,40 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction(nameof(Rejected));
             }
 
-            // Kiểm tra laptop có đang ở trạng thái Rejected không
+            // Chỉ cho phép hủy khi đang ở trạng thái Fixing
+            if (laptop.Status?.StatusName?.ToLower() != "fixing")
+            {
+                TempData["ErrorMessage"] = "Chỉ có thể hủy laptop đang ở trạng thái cần sửa chữa.";
+                return RedirectToAction(nameof(Rejected));
+            }
+
+            // Lấy StatusId của Rejected
             var rejectedStatusId = await GetStatusIdAsync("rejected");
-            if (laptop.StatusId != rejectedStatusId)
+            if (rejectedStatusId == null)
             {
-                TempData["ErrorMessage"] = "Laptop này không ở trạng thái bị từ chối.";
+                TempData["ErrorMessage"] = "Lỗi hệ thống. Vui lòng thử lại sau.";
                 return RedirectToAction(nameof(Rejected));
             }
 
-            // Kiểm tra xem có booking nào không
-            if (laptop.Bookings.Any())
+            // Chuyển laptop sang trạng thái Rejected
+            laptop.StatusId = rejectedStatusId.Value;
+            laptop.UpdatedDate = DateTime.Now;
+            laptop.RejectReason = "Student không đồng ý sửa chữa và đã hủy yêu cầu.";
+
+            // Cập nhật TechnicalTicket sang Rejected (StatusId = 3)
+            var relatedTicket = laptop.TechnicalTickets
+                .FirstOrDefault(t => t.StatusId == 1 && t.BookingId == null);
+            
+            if (relatedTicket != null)
             {
-                TempData["ErrorMessage"] = "Không thể xóa laptop đã có đơn đặt thuê.";
-                return RedirectToAction(nameof(Rejected));
+                relatedTicket.StatusId = 3; // Rejected
+                relatedTicket.TechnicalResponse += "\n[STUDENT HỦY]: Student không đồng ý sửa chữa.";
+                relatedTicket.UpdatedDate = DateTime.Now;
             }
 
-            // Xóa laptop details trước
-            if (laptop.LaptopDetails.Any())
-            {
-                _context.LaptopDetails.RemoveRange(laptop.LaptopDetails);
-            }
-
-            // Xóa laptop
-            _context.Laptops.Remove(laptop);
             await _context.SaveChangesAsync();
 
-            TempData["InfoMessage"] = "Đã hủy và xóa laptop thành công.";
+            TempData["WarningMessage"] = "Đã hủy yêu cầu sửa chữa. Laptop chuyển sang trạng thái Từ chối.";
             return RedirectToAction(nameof(Rejected));
         }
 
