@@ -282,6 +282,7 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+
             // VALIDATE: Mỗi customer chỉ được thuê 1 máy tại một thời điểm (bất kỳ laptop nào)
             // Kiểm tra xem customer đã có booking nào đang active (đã thanh toán thành công hoặc đang thuê) với bất kỳ laptop nào không
             var activeBookingAnyLaptop = await _context.Bookings
@@ -308,6 +309,13 @@ namespace web_chothue_laptop.Controllers
                 }
                 ViewBag.AvailableStartDate = availableStartDate;
                 ViewBag.AvailableEndDate = availableEndDate;
+
+
+            // Kiểm tra blacklist
+            if (customer.BlackList == true)
+            {
+                ModelState.AddModelError("", "Tài khoản của bạn đã bị đưa vào blacklist. Vui lòng liên hệ quản lý để được hỗ trợ.");
+                model.PricePerDay = model.Laptop.Price;
 
                 return View(model);
             }

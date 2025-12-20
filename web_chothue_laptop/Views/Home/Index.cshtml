@@ -83,7 +83,11 @@
                         <div class="card-body">
                             <p class="mb-2">
                                 <strong>Giá:</strong>
-                                @if (laptop.Price.HasValue)
+                                @if (laptop.NewPrice.HasValue)
+                                {
+                                    <span class="text-primary fw-bold">@laptop.NewPrice.Value.ToString("N0") VNĐ</span>
+                                }
+                                else if (laptop.Price.HasValue)
                                 {
                                     <span class="text-primary fw-bold">@laptop.Price.Value.ToString("N0") VNĐ</span>
                                 }

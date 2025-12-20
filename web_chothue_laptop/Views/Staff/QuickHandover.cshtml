@@ -1,7 +1,7 @@
 ﻿@model web_chothue_laptop.Models.Booking
 
 @{
-    ViewData["Title"] = "Giao Máy Nhanh";
+    ViewData["Title"] = "Thanh toán";
 }
 
 <style>
@@ -81,8 +81,11 @@
             <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
             <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
             <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+            
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
+            
             <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")" class="active"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
+            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Thanh toán</a>
         </div>
     </div>
 
@@ -137,23 +140,48 @@
                             </table>
                         </div>
                         <div class="col-md-5 text-center border-start">
-                            <h6 class="text-muted">Tổng Tiền Thanh Toán</h6>
-                            <h2 class="text-danger fw-bold my-3">@(Model.TotalPrice.HasValue? Model.TotalPrice.Value.ToString("N0") : "0") VNĐ</h2>
+    <h6 class="text-muted">Tổng Tiền Thanh Toán</h6>
+    <h2 class="text-danger fw-bold my-3">@(Model.TotalPrice.HasValue ? Model.TotalPrice.Value.ToString("N0") : "0") VNĐ</h2>
 
-                            @if (Model.StatusId == 2)
-                            {
-                                <div class="alert alert-warning small"><i class="fa fa-info-circle"></i> Kiểm tra kỹ máy và tiền trước khi xác nhận.</div>
-                                <form asp-action="ConfirmHandover" method="post">
-                                    <input type="hidden" name="bookingId" value="@Model.Id" />
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-success btn-lg w-100" onclick="return confirm('Đã nhận tiền và giao máy thành công?');"><i class="fa fa-check-circle"></i> XÁC NHẬN GIAO MÁY</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <div class="alert alert-secondary">Không thể thao tác (Trạng thái: @Model.Status?.StatusName)</div>
-                            }
-                        </div>
+    @* --- LOGIC XỬ LÝ TRẠNG THÁI --- *@
+
+    @if (Model.StatusId == 12) // TRƯỜNG HỢP 1: Đã thanh toán (Banked)
+    {
+        <div class="alert alert-success fw-bold border-success mb-4">
+            <i class="fas fa-check-circle fa-2x d-block mb-2"></i>
+            ĐÃ THANH TOÁN THÀNH CÔNG
+        </div>
+        
+        <a asp-action="CreateDelivery" asp-route-id="@Model.Id" class="btn btn-primary btn-lg w-100 shadow">
+            <i class="fas fa-truck"></i> CHUYỂN SANG GIAO MÁY
+        </a>
+    }
+    else if (Model.StatusId == 2) // TRƯỜNG HỢP 2: Chờ khách thanh toán (Approved)
+    {
+        <div class="alert alert-warning border-warning mb-3">
+            <div class="spinner-border text-warning mb-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="fw-bold">CHỜ KHÁCH THANH TOÁN...</div>
+            <small>Vui lòng yêu cầu khách hàng thực hiện thanh toán trên thiết bị của họ.</small>
+        </div>
+
+        <button type="button" class="btn btn-secondary btn-lg w-100 mb-2" disabled style="cursor: not-allowed; opacity: 0.6;">
+            <i class="fas fa-lock"></i> CHƯA THANH TOÁN
+        </button>
+
+        <a href="@Url.Action("QuickHandover", new { searchBookingId = Model.Id })" class="btn btn-outline-primary w-100">
+            <i class="fas fa-sync-alt"></i> Làm mới trạng thái
+        </a>
+    }
+    else
+    {
+        <div class="alert alert-secondary">
+            Trạng thái đơn hàng: <strong>@Model.Status?.StatusName</strong><br/>
+            @(Model.StatusId == 10 ? "Đơn hàng đang trong quá trình thuê." : "Không thể thao tác.")
+        </div>
+    }
+</div>
                     </div>
                 </div>
             </div>

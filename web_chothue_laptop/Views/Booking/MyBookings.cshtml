@@ -731,6 +731,7 @@
                                         <th>Tổng Tiền</th>
                                         <th>Ngày Tạo</th>
                                         <th>Trạng Thái</th>
+                                        <th style="width: 25%;">Lý Do Hủy</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -766,7 +767,21 @@
                                                     // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
                                                     var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
                                                     var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
+                                                    var statusVi = web_chothue_laptop.Helpers.StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
+                                                    var badgeClass = web_chothue_laptop.Helpers.StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(booking.RejectReason))
+                                                {
+                                                    <div class="alert alert-danger mb-0 p-2 small">
+                                                        <i class="bi bi-info-circle-fill me-1"></i> @booking.RejectReason
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">Checking...</span>
                                                 }
                                             </td>
                                         </tr>

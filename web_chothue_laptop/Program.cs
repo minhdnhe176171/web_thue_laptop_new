@@ -29,6 +29,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+
 // Add SignalR
 builder.Services.AddSignalR();
 
@@ -63,6 +64,9 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
 builder.Services.AddScoped<VnpayService>();
 builder.Services.AddScoped<PayOSService>();
+builder.Services.AddScoped<RagService>();
+builder.Services.AddHttpClient<AIChatService>();
+builder.Services.AddScoped<AIChatService>();
 
 var app = builder.Build();
 
@@ -71,7 +75,6 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
-app.UseStaticFiles();
 
 // Middleware để bypass ngrok browser warning page
 app.Use(async (context, next) =>
@@ -81,19 +84,18 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseStaticFiles();
 app.UseRouting();
 
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map SignalR Hubs
 app.MapHub<ChatHub>("/chathub");
 app.MapHub<BookingHub>("/bookinghub");
+app.MapHub<AIChatHub>("/aichathub");
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+
 
 app.MapControllerRoute(
     name: "createAccount",
@@ -110,5 +112,9 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+//app.MapControllerRoute(
+//    name: "manager",
+//    pattern: "{controller=Manager}/{action=LaptopRequests}/{id?}");
 
 app.Run();

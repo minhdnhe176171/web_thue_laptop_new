@@ -1,0 +1,26 @@
+﻿@model web_chothue_laptop.Models.Technical
+@{
+    ViewData["Title"] = "Chi tiết Technical";
+    Layout = "_ManagerLayout";
+}
+
+<h3>@Model.FirstName @Model.LastName</h3>
+
+<hr />
+
+<h5>Ticket đã xử lý</h5>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Ticket ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var t in Model.TechnicalTickets)
+        {
+            <tr>
+                <td>@t.Id</td>
+            </tr>
+        }
+    </tbody>
+</table>

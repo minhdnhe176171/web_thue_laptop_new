@@ -16,21 +16,60 @@ namespace web_chothue_laptop.Controllers
             _logger = logger;
         }
 
-        // GET: ManageAccount
-        public async Task<IActionResult> Index(string? filterRole, string? filterStatus, string? searchAccount, int page = 1)
+        // GET: ManageAccount - Redirect to Student by default
+        public IActionResult Index()
+        {
+            return RedirectToAction("Student");
+        }
+
+        // GET: ManageAccount/Student
+        public async Task<IActionResult> Student(string? filterStatus, string? searchAccount, int page = 1)
+        {
+            return await LoadAccountsByRole("student", filterStatus, searchAccount, page);
+        }
+
+        // GET: ManageAccount/Customer
+        public async Task<IActionResult> Customer(string? filterStatus, string? searchAccount, int page = 1)
+        {
+            return await LoadAccountsByRole("customer", filterStatus, searchAccount, page);
+        }
+
+        // GET: ManageAccount/Staff
+        public async Task<IActionResult> Staff(string? filterStatus, string? searchAccount, int page = 1)
+        {
+            return await LoadAccountsByRole("staff", filterStatus, searchAccount, page);
+        }
+
+        // GET: ManageAccount/Manager
+        public async Task<IActionResult> Manager(string? filterStatus, string? searchAccount, int page = 1)
+        {
+            return await LoadAccountsByRole("manager", filterStatus, searchAccount, page);
+        }
+
+        // GET: ManageAccount/Technical
+        public async Task<IActionResult> Technical(string? filterStatus, string? searchAccount, int page = 1)
+        {
+            return await LoadAccountsByRole("technical", filterStatus, searchAccount, page);
+        }
+
+        // Helper method to load accounts by role
+        private async Task<IActionResult> LoadAccountsByRole(string roleName, string? filterStatus, string? searchAccount, int page = 1)
         {
             try
             {
-                // Load all Staff, Technical, Manager data first to avoid multiple queries
+                // Load all Staff, Technical, Manager, Student, Customer data first to avoid multiple queries
                 var allStaff = _context.Staff.ToList();
                 var allTechnicals = _context.Technicals.ToList();
                 var allManagers = _context.Managers.ToList();
+                var allStudents = _context.Students.ToList();
+                var allCustomers = _context.Customers.ToList();
 
                 var query = from u in _context.Users
                             join r in _context.Roles on u.RoleId equals r.Id into roleGroup
                             from role in roleGroup.DefaultIfEmpty()
                             join s in _context.Statuses on u.StatusId equals s.Id into statusGroup
                             from status in statusGroup.DefaultIfEmpty()
+                            where role != null && role.RoleName.ToLower() == roleName.ToLower()
                             select new
                             {
                                 UserId = u.Id,
@@ -41,12 +80,6 @@ namespace web_chothue_laptop.Controllers
                                 CreatedDate = u.CreatedDate ?? DateTime.Now,
                                 RoleId = u.RoleId
                             };
-
-                // Apply filters
-                if (!string.IsNullOrEmpty(filterRole))
-                {
-                    query = query.Where(x => x.RoleName.ToLower().Contains(filterRole.ToLower()));
-                }
 
                 if (!string.IsNullOrEmpty(filterStatus))
                 {
@@ -81,7 +114,7 @@ namespace web_chothue_laptop.Controllers
                     StatusName = x.StatusName,
                     StatusId = x.StatusId,
                     CreatedDate = x.CreatedDate,
-                    FullName = GetFullNameFromMemory(x.UserId, x.RoleName, allStaff, allTechnicals, allManagers)
+                    FullName = GetFullNameFromMemory(x.UserId, x.RoleName, allStaff, allTechnicals, allManagers, allStudents, allCustomers)
                 }).ToList();
 
                 // Apply search filter on FullName after loading
@@ -103,7 +136,7 @@ namespace web_chothue_laptop.Controllers
                     .Take(pageSize)
                     .ToList();
 
-                ViewBag.FilterRole = filterRole;
+                ViewBag.CurrentRole = roleName;
                 ViewBag.FilterStatus = filterStatus;
                 ViewBag.SearchAccount = searchAccount;
                 ViewBag.CurrentPage = page;
@@ -167,7 +200,8 @@ namespace web_chothue_laptop.Controllers
         }
 
         private string GetFullNameFromMemory(long userId, string roleName, 
-            List<Staff> allStaff, List<Technical> allTechnicals, List<Manager> allManagers)
+            List<Staff> allStaff, List<Technical> allTechnicals, List<Manager> allManagers,
+            List<Student> allStudents, List<Customer> allCustomers)
         {
             try
             {
@@ -175,13 +209,19 @@ namespace web_chothue_laptop.Controllers
                 {
                     case "staff":
                         var staff = allStaff.FirstOrDefault(s => s.StaffId == userId);
-                        return staff != null ? $"{staff.FirstName} {staff.LastName}" : "N/A";
+                        return staff != null ? $"{staff.LastName} {staff.FirstName}" : "N/A";
                     case "technical":
                         var technical = allTechnicals.FirstOrDefault(t => t.TechnicalId == userId);
-                        return technical != null ? $"{technical.FirstName} {technical.LastName}" : "N/A";
+                        return technical != null ? $"{technical.LastName} {technical.FirstName}" : "N/A";
                     case "manager":
                         var manager = allManagers.FirstOrDefault(m => m.ManagerId == userId);
-                        return manager != null ? $"{manager.FirstName} {manager.LastName}" : "N/A";
+                        return manager != null ? $"{manager.LastName} {manager.FirstName}" : "N/A";
+                    case "student":
+                        var student = allStudents.FirstOrDefault(s => s.StudentId == userId);
+                        return student != null ? $"{student.LastName} {student.FirstName}" : "N/A";
+                    case "customer":
+                        var customer = allCustomers.FirstOrDefault(c => c.CustomerId == userId);
+                        return customer != null ? $"{customer.LastName} {customer.FirstName}" : "N/A";
                     default:
                         return "N/A";
                 }

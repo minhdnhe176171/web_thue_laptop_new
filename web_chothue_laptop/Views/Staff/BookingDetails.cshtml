@@ -1,0 +1,110 @@
+﻿@model web_chothue_laptop.Models.Booking
+@{
+    ViewData["Title"] = "Chi Tiết Đơn Thuê #" + Model.Id;
+    var detail = Model.Laptop?.LaptopDetails?.FirstOrDefault();
+}
+
+<div class="container py-4" style="max-width: 900px;">
+    <a asp-action="Index" class="btn btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+    </a>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Thông Tin Đơn Hàng #@Model.Id</h5>
+            <span class="badge bg-light text-primary">@Model.Status?.StatusName</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 border-end">
+                    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-user"></i> Người Thuê</h6>
+                    <p><strong>Họ Tên:</strong> @(Model.Customer?.LastName + " " + Model.Customer?.FirstName)</p>
+                    <p><strong>Email:</strong> @Model.Customer?.Email</p>
+                    <p><strong>SĐT:</strong> @Model.Customer?.Phone</p>
+                    <p><strong>Ngày Thuê:</strong> <span class="text-success fw-bold">@Model.StartTime.ToString("dd/MM/yyyy")</span></p>
+                    <p><strong>Ngày Trả:</strong> <span class="text-danger fw-bold">@Model.EndTime.ToString("dd/MM/yyyy")</span></p>
+                    <p><strong>Tổng Tiền:</strong> <span class="fw-bold text-success fs-5">@(Model.TotalPrice?.ToString("#,##0") ?? "0") đ</span></p>
+                </div>
+
+                <div class="col-md-6 ps-4">
+                    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-user-graduate"></i> Chủ Máy</h6>
+                    <p><strong>Họ Tên:</strong> @(Model.Laptop?.Student?.LastName + " " + Model.Laptop?.Student?.FirstName)</p>
+                    <p><strong>Mã SV:</strong> @Model.Laptop?.Student?.IdNo</p>
+                    <p><strong>Email:</strong> @Model.Laptop?.Student?.Email</p>
+                    <p><strong>SĐT:</strong> @Model.Laptop?.Student?.Phone</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white text-dark fw-bold">
+            <i class="fas fa-laptop"></i> Cấu Hình Chi Tiết: @Model.Laptop?.Name
+        </div>
+        <div class="card-body">
+            @if (detail != null)
+            {
+                <div class="row row-cols-2 g-3">
+                    <div class="col"><small class="text-muted">CPU:</small><br><strong>@detail.Cpu</strong></div>
+                    <div class="col"><small class="text-muted">RAM:</small><br><strong>@detail.RamSize (@detail.RamType)</strong></div>
+                    <div class="col"><small class="text-muted">Ổ cứng:</small><br><strong>@detail.Storage</strong></div>
+                    <div class="col"><small class="text-muted">Card đồ họa:</small><br><strong>@detail.Gpu</strong></div>
+                    <div class="col"><small class="text-muted">Màn hình:</small><br><strong>@detail.ScreenSize</strong></div>
+                    <div class="col"><small class="text-muted">Hệ điều hành:</small><br><strong>@detail.Os</strong></div>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted text-center my-3">Chưa có thông tin cấu hình chi tiết.</p>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }            
+            <div class="d-flex gap-3">
+                <form asp-action="ApproveBooking" method="post">
+                    <input type="hidden" name="bookingId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-success btn-lg px-5" onclick="return confirm('Bạn chắc chắn muốn duyệt đơn này?');">
+                        <i class="fas fa-check-circle"></i> Duyệt đơn
+                    </button>
+                </form>
+
+                <button type="button" class="btn btn-outline-danger btn-lg px-5" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="fas fa-times-circle"></i> Từ chối
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="RejectBookingWithReason" method="post">
+                <input type="hidden" name="bookingId" value="@Model.Id" />
+
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Từ Chối Đơn Hàng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Lý do từ chối <span class="text-danger">*</span></label>
+                        <textarea name="rejectReason" class="form-control" rows="3" placeholder="Nhập lý do cụ thể (VD: Máy không đủ điều kiện, khách hủy...)" required></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger">Xác Nhận Từ Chối</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
