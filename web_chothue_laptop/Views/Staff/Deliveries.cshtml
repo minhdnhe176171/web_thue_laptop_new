@@ -83,9 +83,8 @@
 
             <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
 
-            <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Thanh toán</a>
-        </div>
+            <a href="@Url.Action("Deliveries", "Staff")" class="active"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
+         </div>
     </div>
 
     <div class="staff-content">
@@ -138,11 +137,9 @@
                                 var isToday = booking.StartTime.Date == DateTime.Today;
                                 var isPast = booking.StartTime.Date < DateTime.Today;
 
-                                // [LOGIC MỚI] Kiểm tra đã thanh toán chưa
-                                // Lưu ý: booking.BookingReceipts cần được Include ở Controller
-                                bool isPaid = booking.BookingReceipts != null && booking.BookingReceipts.Any();
-
-                                <tr class="@(isPast ? "table-danger" : (isToday ? "table-warning" : ""))">
+                                // Kiểm tra đã thanh toán chưa
+                                bool isPaid = (booking.BookingReceipts != null && booking.BookingReceipts.Any()) || booking.StatusId == 12;
+                                <tr class="@(isPaid ? "table-danger" : "table-warning")">
                                     <td class="ps-4"><span class="badge bg-primary">#@booking.Id</span></td>
                                     <td>
                                         <span class="fw-semibold">@(booking.Customer?.LastName) @(booking.Customer?.FirstName)</span><br />
@@ -156,6 +153,7 @@
                                         @(booking.TotalPrice?.ToString("#,##0") ?? "0") đ
                                     </td>
 
+                                    @* CỘT TRẠNG THÁI THANH TOÁN *@
                                     <td class="text-center">
                                         @if (isPaid)
                                         {
@@ -167,20 +165,19 @@
                                         }
                                     </td>
 
+                                    @* CỘT THAO TÁC (Đã sửa theo yêu cầu) *@
                                     <td class="text-center">
                                         @if (isPaid)
                                         {
-                                            // Nếu ĐÃ THANH TOÁN -> Hiện nút Giao Máy (CreateDelivery)
+                                            // Nếu ĐÃ THANH TOÁN -> Hiện nút Giao Máy
                                             <a asp-action="CreateDelivery" asp-route-id="@booking.Id" class="btn btn-primary btn-sm text-white">
                                                 <i class="fas fa-box-open"></i> Giao Máy
                                             </a>
                                         }
                                         else
                                         {
-                                            // Nếu CHƯA THANH TOÁN -> Hiện nút Thanh Toán (QuickHandover)
-                                            <a asp-action="QuickHandover" asp-route-searchBookingId="@booking.Id" class="btn btn-warning btn-sm text-dark">
-                                                <i class="fas fa-money-bill-wave"></i> Thu Tiền
-                                            </a>
+                                            // Nếu CHƯA THANH TOÁN -> Không hiện nút gì cả, chỉ hiện chữ
+                                            <span class="text-muted small fst-italic">Chờ thanh toán...</span>
                                         }
                                     </td>
                                 </tr>

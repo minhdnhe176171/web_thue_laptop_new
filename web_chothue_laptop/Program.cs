@@ -4,20 +4,28 @@ using web_chothue_laptop.Hubs;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ==============================================
+// 1. ADD SERVICES TO THE CONTAINER
+// ==============================================
+
 builder.Services.AddControllersWithViews();
 
+// [QUAN TRỌNG] Thêm dịch vụ này để VNPAY Library lấy được IP của khách hàng
+builder.Services.AddHttpContextAccessor();
+
+// Cấu hình Authentication (Cookie)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login"; // Nếu chưa đăng nhập thì đá về đây
-        options.AccessDeniedPath = "/Account/AccessDenied"; // Nếu không đủ quyền (Staff vào trang Tech) thì đá về đây
+        options.LoginPath = "/Account/Login"; // Chưa đăng nhập thì về đây
+        options.AccessDeniedPath = "/Account/AccessDenied"; // Không đủ quyền thì về đây
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
 
-// Add Session
+// Cấu hình Session (Bắt buộc cho quy trình thanh toán nếu có lưu temp data)
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -26,13 +34,14 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// Kết nối Database SQL Server
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add SignalR
+// SignalR (Real-time)
 builder.Services.AddSignalR();
 
-// Add Redis
+// Kết nối Redis (Cache & Chat History)
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
@@ -51,29 +60,36 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     {
         var logger = sp.GetRequiredService<ILogger<Program>>();
         logger.LogWarning(ex, "Failed to connect to Redis. Chat history will not be persisted. Error: {Message}", ex.Message);
-        // Return a dummy connection multiplexer that won't crash the app
-        // In production, you might want to handle this differently
+        // Trả về kết nối giả lập để app không bị crash nếu Redis chết
         return ConnectionMultiplexer.Connect("localhost:6379,abortConnect=false");
     }
 });
 
-// Register Services
+// Đăng ký các Service tự viết (DI)
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
+// Nếu bạn muốn dùng VnPayLibrary qua DI thì thêm dòng dưới (không bắt buộc nếu dùng 'new VnPayLibrary()')
+// builder.Services.AddScoped<VnPayLibrary>(); 
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ==============================================
+// 2. CONFIGURE THE HTTP REQUEST PIPELINE
+// ==============================================
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
+
 app.UseStaticFiles();
 
 app.UseRouting();
 
+// [QUAN TRỌNG] Session phải đặt trước Authentication/Authorization và sau Routing
 app.UseSession();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -81,22 +97,18 @@ app.UseAuthorization();
 app.MapHub<ChatHub>("/chathub");
 app.MapHub<BookingHub>("/bookinghub");
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
+// Map Controller Routes
+// Route cụ thể đặt trước, route mặc định đặt cuối cùng
 app.MapControllerRoute(
     name: "createAccount",
     pattern: "CreateAccount/{action=Index}/{id?}",
     defaults: new { controller = "CreateAccount" });
 
-// ManageAccount routes
 app.MapControllerRoute(
     name: "manageAccount",
     pattern: "ManageAccount/{action=Index}/{id?}",
     defaults: new { controller = "ManageAccount" });
 
-// Default route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

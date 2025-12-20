@@ -93,10 +93,8 @@ namespace web_chothue_laptop.Controllers
                 booking.StatusId = 2; // Approved
                 booking.UpdatedDate = DateTime.Now;
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Đã duyệt đơn! Vui lòng thực hiện thanh toán.";
-
-                // [THAY ĐỔI]: Chuyển hướng sang trang Thanh toán (QuickHandover) thay vì về Index
-                return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
+                TempData["SuccessMessage"] = "Đã duyệt đơn! Vui lòng thực hiện thanh toán.";                              
+                return RedirectToAction(nameof(Deliveries));
             }
             return RedirectToAction(nameof(Index));
         }
@@ -196,9 +194,12 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Laptop).ThenInclude(l => l.Brand)
                 .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Include(b => b.Status)
-                .Include(b => b.BookingReceipts) // [THÊM]: Để kiểm tra đã thanh toán chưa
-                .Where(b => b.Status.StatusName.ToLower() == "approved" && // Chỉ lấy đơn Approved
-                            b.StartTime <= DateTime.Today.AddDays(7));
+                .Include(b => b.BookingReceipts)
+                // --- SỬA ĐOẠN NÀY ---
+                // Lấy tất cả đơn:
+                // 1. Đã duyệt (StatusId = 2) -> Để hiện thị "Chờ thanh toán"
+                // 2. Đã thanh toán Online (StatusId = 12) -> Để hiện thị nút "Giao máy"
+                .Where(b => b.StatusId == 2 || b.StatusId == 12);
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -211,60 +212,59 @@ namespace web_chothue_laptop.Controllers
             int pageSize = 5;
             return View(await PaginatedList<Booking>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
-
         /// <summary>
         /// Hiển thị form tạo phiếu giao máy
         /// </summary>
         // [HttpGet]
+        // --- COPY ĐÈ VÀO StaffController.cs ---
+
+        // GET: Staff/CreateDelivery/5
+        [HttpGet]
         public async Task<IActionResult> CreateDelivery(long? id)
         {
-            // 1. Kiểm tra ID
+            // 1. Kiểm tra ID đầu vào
             if (id == null)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy booking.";
+                TempData["ErrorMessage"] = "Không tìm thấy mã đơn hàng.";
                 return RedirectToAction(nameof(Deliveries));
             }
 
-            // 2. Load dữ liệu Booking + Receipt
+            // 2. Load dữ liệu Booking từ Database (Kèm thông tin Khách, Laptop, Phiếu thu)
             var booking = await _context.Bookings
                 .Include(b => b.Customer)
                 .Include(b => b.Laptop).ThenInclude(l => l.Brand)
                 .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Include(b => b.Status)
-                .Include(b => b.BookingReceipts) // QUAN TRỌNG: Để kiểm tra đã thanh toán chưa
+                .Include(b => b.BookingReceipts) // Quan trọng: để check phiếu thu tiền mặt
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (booking == null)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy booking.";
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng trong hệ thống.";
                 return RedirectToAction(nameof(Deliveries));
             }
 
-            // =========================================================
-            // 3. LOGIC KIỂM TRA MỚI (SỬA Ở ĐÂY)
-            // =========================================================
+            // 3. LOGIC KIỂM TRA MỚI (FIX LỖI 404 TẠI ĐÂY)
 
-            // A. Nếu trạng thái là 'Rented' (ID 10) => Tức là đã giao xong rồi => CHẶN
+            // Nếu đơn đã hoàn thành (Status = 10: Rented) -> Chặn
             if (booking.StatusId == 10)
             {
-                TempData["ErrorMessage"] = "Booking này đã hoàn tất giao nhận (Đang thuê).";
+                TempData["WarningMessage"] = "Đơn hàng này đã giao máy rồi!";
                 return RedirectToAction(nameof(Deliveries));
             }
 
-            // B. Nếu CHƯA có phiếu thu (Receipt) => Tức là chưa thanh toán => CHUYỂN ĐI THANH TOÁN
-            var existingReceipt = booking.BookingReceipts.FirstOrDefault();
-            if (existingReceipt == null)
+            // Kiểm tra thanh toán: 
+            // Hợp lệ nếu: (Status là 12 - Banked) HOẶC (Đã có Phiếu thu trong BookingReceipts)
+            bool isPaid = booking.StatusId == 12 || (booking.BookingReceipts != null && booking.BookingReceipts.Any());
+
+            if (!isPaid)
             {
-                TempData["WarningMessage"] = "Đơn này chưa thanh toán. Vui lòng thu tiền trước!";
-                return RedirectToAction("QuickHandover", "Staff", new { searchBookingId = booking.Id });
+                // [QUAN TRỌNG]: Nếu chưa thanh toán -> Quay về danh sách, KHÔNG redirect sang QuickHandover nữa
+                TempData["ErrorMessage"] = "Đơn hàng CHƯA THANH TOÁN. Không thể giao máy!";
+                return RedirectToAction(nameof(Deliveries));
             }
 
-            // C. Nếu ĐÃ có phiếu thu + Status là Approved (2) => HỢP LỆ => HIỂN THỊ MÀN HÌNH CHECK MÁY
-            // (Code cũ của bạn bị sai ở chỗ nó chặn dòng này)
-
-            // =========================================================
-
-            // 4. Chuẩn bị dữ liệu hiển thị lên View (Checklist)
+            // 4. Chuẩn bị dữ liệu hiển thị (ViewModel)
             var detail = booking.Laptop?.LaptopDetails?.FirstOrDefault();
 
             var model = new DeliveryViewModel
@@ -282,29 +282,24 @@ namespace web_chothue_laptop.Controllers
                 Storage = detail?.Storage,
                 Gpu = detail?.Gpu,
                 ScreenSize = detail?.ScreenSize,
-                Os = detail?.Os,
+
+                // Ảnh và Giấy tờ
                 LaptopImageUrl = booking.Laptop?.ImageUrl,
+                IdCardUrl = booking.IdNoUrl,
+                StudentCardUrl = booking.StudentUrl,
 
-                // [MỚI] Map dữ liệu ảnh giấy tờ từ Database sang ViewModel
-                // Lưu ý: Tên property bên phải (booking.IdNoUrl) phải khớp với Model Entity của bạn
-                IdCardUrl = booking.IdNoUrl,       // Map với cột ID_NO_URL
-                StudentCardUrl = booking.StudentUrl, // Map với cột STUDENT_URL
-
-                // [MỚI] Mặc định là chưa xác nhận (bắt buộc phải tick thủ công)
-                IsIdentityVerified = false,
-
-                // Các checkbox mặc định tích chọn
+                // Các checkbox mặc định
                 ScreenCondition = true,
                 KeyboardCondition = true,
                 MouseCondition = true,
                 ChargerCondition = true,
                 BodyCondition = true,
-                BatteryLevel = 100
+                BatteryLevel = 100,
+                IsIdentityVerified = false
             };
 
             return View(model);
         }
-
         /// <summary>
         /// Xử lý tạo phiếu giao máy
         /// </summary>
@@ -484,103 +479,7 @@ namespace web_chothue_laptop.Controllers
             // 3. Quay lại trang Giao máy
             return RedirectToAction(nameof(CreateDelivery), new { id = bookingId });
         }
-        // ==========================================
-        // GIAO MÁY NHANH (QUICK HANDOVER) - Mới thêm
-        // ==========================================
-
-        [HttpGet]
-        public async Task<IActionResult> QuickHandover(long? searchBookingId)
-        {
-            // Nếu chưa nhập gì thì trả về view rỗng
-            if (searchBookingId == null)
-            {
-                return View(null);
-            }
-
-            // Tìm kiếm Booking kèm thông tin Customer, Laptop, Status
-            var booking = await _context.Bookings
-                .Include(b => b.Customer)
-                .Include(b => b.Laptop)
-                    .ThenInclude(l => l.Brand)
-                .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.Id == searchBookingId);
-
-            // Xử lý thông báo lỗi
-            if (booking == null)
-            {
-                TempData["ErrorMessage"] = $"Không tìm thấy đơn hàng #{searchBookingId}";
-                return View(null);
-            }
-
-            // Kiểm tra trạng thái (Chỉ cho phép StatusId = 2 là Approved)
-            if (booking.StatusId != 2 && booking.StatusId != 12)
-            {
-                if (booking.StatusId == 10)
-                    TempData["WarningMessage"] = $"Đơn hàng #{searchBookingId} đã được giao (Rented) rồi!";
-                else
-                    TempData["ErrorMessage"] = $"Đơn hàng đang ở trạng thái '{booking.Status?.StatusName}'. Chỉ đơn 'Approved' hoặc 'Banked' mới xử lý tại đây.";
-
-                // Có thể return View(booking) nhưng disable nút bấm, hoặc return null tuỳ bạn
-            }
-
-            return View(booking);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConfirmHandover(long bookingId)
-        {
-            // Load Booking và check xem đã có Receipt chưa
-            var booking = await _context.Bookings
-                .Include(b => b.BookingReceipts)
-                .FirstOrDefaultAsync(b => b.Id == bookingId);
-
-            if (booking == null || booking.StatusId != 2) // Chỉ xử lý đơn Approved
-            {
-                TempData["ErrorMessage"] = "Đơn hàng không hợp lệ.";
-                return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
-            }
-
-            if (booking.BookingReceipts.Any())
-            {
-                TempData["WarningMessage"] = "Đơn này đã thanh toán rồi!";
-                return RedirectToAction(nameof(Deliveries));
-            }
-
-            try
-            {
-                // [QUAN TRỌNG]: KHÔNG đổi StatusId sang 10 ở đây. Vẫn giữ là 2 (Approved).
-                // booking.StatusId = 10; <--- Bỏ dòng này
-
-                long staffId = 1; // Lấy từ Session thực tế của bạn
-                var receipt = new BookingReceipt
-                {
-                    BookingId = booking.Id,
-                    CustomerId = booking.CustomerId,
-                    StaffId = staffId,
-                    StartTime = booking.StartTime,
-                    EndTime = booking.EndTime,
-                    TotalPrice = booking.TotalPrice ?? 0,
-                    LateFee = 0,
-                    LateMinutes = 0,
-                    CreatedDate = DateTime.Now
-                };
-
-                _context.BookingReceipts.Add(receipt);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = $"Đã thanh toán thành công đơn #{bookingId}. Vui lòng chuyển sang bước Giao máy.";
-
-                // [THAY ĐỔI]: Thanh toán xong -> Chuyển sang màn Quản lý Giao máy
-                return RedirectToAction(nameof(Deliveries));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi thanh toán");
-                TempData["ErrorMessage"] = "Lỗi hệ thống.";
-                return RedirectToAction(nameof(QuickHandover), new { searchBookingId = bookingId });
-            }
-        }
+        
         // ==========================================
         // QUẢN LÝ MÁY ĐANG ĐƯỢC THUÊ
         // ==========================================

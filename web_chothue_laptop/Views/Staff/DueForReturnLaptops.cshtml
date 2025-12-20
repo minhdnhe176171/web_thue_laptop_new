@@ -84,26 +84,13 @@
     <div class="staff-sidebar">
         <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
         <div class="sidebar-menu">
-            <a href="@Url.Action("Index", "Staff")" class="@(currentAction == "Index" ? "active" : "")">
-                <i class="fas fa-check-square"></i> Duyệt Đơn Thuê
-            </a>
-            <a href="@Url.Action("LaptopRequests", "Staff")" class="@(currentAction == "LaptopRequests" ? "active" : "")">
-                <i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra
-            </a>
-            <a href="@Url.Action("RentedLaptops", "Staff")" class="@(currentAction == "RentedLaptops" ? "active" : "")">
-                <i class="fas fa-list"></i> Máy Đang Thuê
-            </a>
-
-            <a href="@Url.Action("DueForReturnLaptops", "Staff")" class="@(currentAction == "DueForReturnLaptops" ? "active" : "")">
-                <i class="fas fa-undo"></i> Trả Máy Về SV
-            </a>
-
-            <a href="@Url.Action("Deliveries", "Staff")" class="@(currentAction == "Deliveries" ? "active" : "")">
-                <i class="fas fa-truck"></i> Quản lý Giao Máy
-            </a>
-            <a href="@Url.Action("QuickHandover", "Staff")" class="@(currentAction == "QuickHandover" ? "active" : "")">
-                <i class="fas fa-bolt"></i> Thanh toán
-            </a>
+            <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
+            <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
+            <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+            
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")" class="active"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
+            
+            <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
         </div>
     </div>
 

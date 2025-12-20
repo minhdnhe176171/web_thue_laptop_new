@@ -7,7 +7,7 @@ using web_chothue_laptop.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Http; // [QUAN TRỌNG] Cần thêm dòng này để dùng IFormFile
+using Microsoft.AspNetCore.Http;
 
 namespace web_chothue_laptop.Controllers
 {
@@ -107,7 +107,16 @@ namespace web_chothue_laptop.Controllers
             ViewData["TotalCount"] = await activeTickets.CountAsync();
             ViewData["ProcessingCount"] = await activeTickets.CountAsync(t => t.StatusId == 4);
             ViewData["FixedCount"] = await activeTickets.CountAsync(t => t.StatusId == 5);
-            ViewData["BrokenCount"] = (int)ViewData["TotalCount"] - (int)ViewData["ProcessingCount"] - (int)ViewData["FixedCount"] - await activeTickets.CountAsync(t => t.StatusId == 1);
+
+            // [ĐÃ SỬA] CS8605: Dùng toán tử ?? 0 để xử lý trường hợp ViewData null
+            // Thay vì ép kiểu trực tiếp (int), ta ép sang (int?) rồi lấy giá trị mặc định là 0
+            int total = (int?)ViewData["TotalCount"] ?? 0;
+            int processing = (int?)ViewData["ProcessingCount"] ?? 0;
+            int fixedCount = (int?)ViewData["FixedCount"] ?? 0;
+            int pending = await activeTickets.CountAsync(t => t.StatusId == 1);
+
+            ViewData["BrokenCount"] = total - processing - fixedCount - pending;
+
 
             // --- TAB YÊU CẦU KIỂM TRA (INSPECTION) ---
             var inspectionQuery = activeTickets
@@ -122,7 +131,10 @@ namespace web_chothue_laptop.Controllers
                 if (long.TryParse(searchString, out long searchId))
                     inspectionQuery = inspectionQuery.Where(t => t.Id == searchId);
                 else
-                    inspectionQuery = inspectionQuery.Where(t => (t.Laptop != null && t.Laptop.Name.ToLower().Contains(searchString)) || (t.Laptop.Student != null && (t.Laptop.Student.FirstName + " " + t.Laptop.Student.LastName).ToLower().Contains(searchString)));
+                    inspectionQuery = inspectionQuery.Where(t =>
+                        (t.Laptop != null && t.Laptop.Name != null && t.Laptop.Name.ToLower().Contains(searchString)) ||
+                        (t.Laptop != null && t.Laptop.Student != null && (t.Laptop.Student.FirstName + " " + t.Laptop.Student.LastName).ToLower().Contains(searchString))
+                    );
             }
 
             inspectionQuery = inspectionQuery.OrderBy(t => t.CreatedDate);
@@ -177,10 +189,10 @@ namespace web_chothue_laptop.Controllers
                     // Kiểm tra Laptop có tồn tại không
                     if (ticket.Laptop != null)
                     {
-                        // Tạo tên file duy nhất để tránh trùng lặp (dùng GUID hoặc TimeStamp)
+                        // Tạo tên file duy nhất để tránh trùng lặp
                         var fileName = $"laptop_{ticket.Laptop.Id}_{Guid.NewGuid()}{Path.GetExtension(inspectionImage.FileName)}";
 
-                        // Định nghĩa thư mục lưu trữ (Ví dụ: wwwroot/images/laptops)
+                        // Định nghĩa thư mục lưu trữ
                         var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
 
                         // Tạo thư mục nếu chưa tồn tại
@@ -197,8 +209,7 @@ namespace web_chothue_laptop.Controllers
                             await inspectionImage.CopyToAsync(stream);
                         }
 
-                        // CẬP NHẬT ĐƯỜNG DẪN VÀO DATABASE (Cột IMAGE_URL)
-                        // Lưu đường dẫn tương đối để web có thể hiển thị
+                        // CẬP NHẬT ĐƯỜNG DẪN VÀO DATABASE
                         ticket.Laptop.ImageUrl = "/images/laptops/" + fileName;
                     }
                 }
@@ -210,18 +221,13 @@ namespace web_chothue_laptop.Controllers
             }
 
             ticket.UpdatedDate = DateTime.Now;
-
-            // Lưu thay đổi vào Database (bao gồm cả Description và ImageUrl mới)
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Đã cập nhật thông tin kiểm tra và hình ảnh.";
-
-            // Quay lại trang chi tiết
             return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
         }
 
         // ============================================================
-        // 3. CÁC ACTION KHÁC (DUYỆT, TỪ CHỐI, SỬA CHỮA...)
+        // 3. CÁC ACTION KHÁC
         // ============================================================
 
         [HttpPost]
@@ -301,7 +307,6 @@ namespace web_chothue_laptop.Controllers
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(m => m.Id == id);
             if (ticket == null) return NotFound();
 
-            // Lưu trạng thái quay về
             ViewBag.ReturnTab = activeTab ?? "repair";
             ViewBag.ReturnSearch = searchString;
 
@@ -311,7 +316,8 @@ namespace web_chothue_laptop.Controllers
         // POST: Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(long id, int statusId, string technicalResponse, bool qcWifi, bool qcKeyboard, bool qcScreen, bool qcClean, string? partName, decimal? partPrice)
+        // [ĐÃ SỬA] Xóa tham số 'decimal? partPrice' vì không được sử dụng (Fix lỗi IDE0060)
+        public async Task<IActionResult> Edit(long id, int statusId, string technicalResponse, bool qcWifi, bool qcKeyboard, bool qcScreen, bool qcClean, string? partName)
         {
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return NotFound();

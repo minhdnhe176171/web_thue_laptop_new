@@ -79,15 +79,13 @@
         <div class="sidebar-menu">
             <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
             <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
-            <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+
+            <a href="@Url.Action("RentedLaptops", "Staff")" class="active"><i class="fas fa-list"></i> Máy Đang Thuê</a>
 
             <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
-
             <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Thanh toán</a>
         </div>
     </div>
-
     <div class="staff-content">
         <h2 class="text-primary fw-bold mb-4">Laptop Đang Được Thuê</h2>
 

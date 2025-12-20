@@ -58,27 +58,27 @@
                             {
                                 <dt class="col-sm-5">CPU:</dt>
                                 <dd class="col-sm-7">@Model.Cpu</dd>
- }
+                            }
                             @if (!string.IsNullOrEmpty(Model.RamSize))
                             {
                                 <dt class="col-sm-5">RAM:</dt>
                                 <dd class="col-sm-7">@Model.RamSize</dd>
- }
+                            }
                             @if (!string.IsNullOrEmpty(Model.Storage))
                             {
                                 <dt class="col-sm-5">Storage:</dt>
                                 <dd class="col-sm-7">@Model.Storage</dd>
- }
+                            }
                             @if (!string.IsNullOrEmpty(Model.Gpu))
                             {
                                 <dt class="col-sm-5">GPU:</dt>
                                 <dd class="col-sm-7">@Model.Gpu</dd>
- }
+                            }
                             @if (!string.IsNullOrEmpty(Model.ScreenSize))
                             {
                                 <dt class="col-sm-5">Màn hình:</dt>
                                 <dd class="col-sm-7">@Model.ScreenSize</dd>
- }
+                            }
                         </dl>
                     </div>
                 </div>
@@ -101,40 +101,39 @@
                             <input asp-for="BatteryLevel" type="number" class="form-control" min="0" max="100" />
                             <span asp-validation-for="BatteryLevel" class="text-danger"></span>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label fw-bold"><i class="fas fa-camera"></i> Ảnh Tình Trạng Máy</label>
 
                             <div class="row mb-2">
                                 <div class="col-12 text-center">
-                                    <div class="border rounded bg-light p-2 position-relative">
-                                        @if (!string.IsNullOrEmpty(Model.LaptopImageUrl))
-                                        {
-                                            <span class="badge bg-success position-absolute top-0 start-0 m-2 shadow">Ảnh hiện tại</span>
-                                            <img src="@Model.LaptopImageUrl" class="img-fluid rounded" style="max-height: 200px;" alt="Ảnh máy" />
-                                        }
-                                        else
-                                        {
-                                            <div class="py-4 text-muted">
-                                                <i class="fas fa-image fa-3x mb-2"></i><br>Chưa có ảnh trong hệ thống
-                                            </div>
-                                        }
+                                    <div class="border rounded bg-light p-2 position-relative" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+
+                                        <img id="img_LaptopPreview" src="@(!string.IsNullOrEmpty(Model.LaptopImageUrl) ? Model.LaptopImageUrl : "#")"
+                                             class="img-fluid rounded"
+                                             style="max-height: 200px; display: @(!string.IsNullOrEmpty(Model.LaptopImageUrl) ? "block" : "none")"
+                                             alt="Ảnh máy" />
+
+                                        <div id="box_EmptyState" class="text-muted" style="display: @(!string.IsNullOrEmpty(Model.LaptopImageUrl) ? "none" : "block")">
+                                            <i class="fas fa-image fa-3x mb-2"></i><br>Chưa có ảnh
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <label class="form-label small text-muted">Cập nhật ảnh mới:</label>
                             <div class="input-group">
-                                <input asp-for="ConditionImage" type="file" class="form-control" accept="image/*" />
+                                <input asp-for="ConditionImage" type="file" class="form-control" accept="image/*" id="inp_ConditionImage" />
 
                                 <button type="submit"
                                         asp-action="UpdateLaptopImageOnly"
                                         formnovalidate
                                         class="btn btn-primary">
-                                    <i class="fas fa-upload"></i> Cập Nhật
+                                    <i class="fas fa-upload"></i> Cập Nhật Ngay
                                 </button>
                             </div>
                             <div class="form-text">
-                                <i class="fas fa-info-circle"></i> Chọn ảnh và bấm nút <strong>Cập Nhật</strong> bên cạnh để lưu ảnh mới ngay lập tức.
+                                <i class="fas fa-info-circle"></i> Chọn ảnh và bấm <strong>Cập Nhật Ngay</strong> để lưu ảnh vào hệ thống, hoặc bấm <strong>Xác Nhận Giao Máy</strong> ở cuối để lưu cùng đơn hàng.
                             </div>
                         </div>
 
@@ -159,7 +158,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-check p-3 bg-light border rounded">
-                            <input asp-for="IsIdentityVerified" class="form-check-input border-dark" style="transform: scale(1.3); margin-top: 0.3rem;" />
+                            <input asp-for="IsIdentityVerified" class="form-check-input border-dark" style="transform: scale(1.3); margin-top: 0.3rem;" id="IsIdentityVerified" />
                             <label asp-for="IsIdentityVerified" class="form-check-label fw-bold text-danger ms-2">Đã xác nhận đúng người</label>
                         </div>
                         <span asp-validation-for="IsIdentityVerified" class="text-danger small"></span>
@@ -194,7 +193,6 @@
                         }
                         else
                         {
-
                             <div class="alert alert-warning py-5">Chưa cập nhật ảnh CCCD</div>
                         }
                     </div>
@@ -206,7 +204,6 @@
                         }
                         else
                         {
-
                             <div class="alert alert-warning py-5">Chưa cập nhật ảnh Thẻ HS</div>
                         }
                     </div>
@@ -214,7 +211,7 @@
             </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal" onclick="document.getElementById('IsIdentityVerified').checked = true;">
+                <button type="button" class="btn btn-success px-4" onclick="confirmIdentityInModal()">
                     <i class="fas fa-check-double"></i> Xác nhận Hợp Lệ
                 </button>
             </div>
@@ -228,12 +225,12 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // --- XỬ LÝ PREVIEW ẢNH ---
         const inputImage = document.getElementById('inp_ConditionImage');
+        const imgPreview = document.getElementById('img_LaptopPreview');
         const emptyState = document.getElementById('box_EmptyState');
-        const imgPreview = document.getElementById('img_NewPreview');
-        const badgeNew = document.getElementById('badge_New');
 
-        if (inputImage && emptyState && imgPreview) {
+        if (inputImage && imgPreview) {
             inputImage.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
@@ -241,23 +238,25 @@
                     reader.onload = function(e) {
                         imgPreview.src = e.target.result;
                         imgPreview.style.display = 'block';
-                        badgeNew.style.display = 'block';
-                        emptyState.style.display = 'none'; // Ẩn chữ đi
+                        if(emptyState) emptyState.style.display = 'none';
                     }
                     reader.readAsDataURL(file);
-                } else {
-                    imgPreview.src = '#';
-                    imgPreview.style.display = 'none';
-                    badgeNew.style.display = 'none';
-                    emptyState.style.display = 'block'; // Hiện lại chữ
                 }
             });
         }
     });
 
-    // Hàm xác nhận danh tính (nếu bạn dùng nút trong Modal)
-    function confirmIdentity() {
+    // --- XỬ LÝ NÚT XÁC NHẬN TRONG MODAL ---
+    function confirmIdentityInModal() {
+        // 1. Tích vào checkbox
         const checkBox = document.getElementById('IsIdentityVerified');
         if(checkBox) checkBox.checked = true;
+
+        // 2. Đóng Modal (Bootstrap 5)
+        var myModalEl = document.getElementById('identityModal');
+        var modal = bootstrap.Modal.getInstance(myModalEl);
+        if (modal) {
+            modal.hide();
+        }
     }
 </script>
