@@ -286,11 +286,7 @@ namespace web_chothue_laptop.Controllers
                                     else
                                     {
                                         var manager1 = user.Managers.FirstOrDefault();
-
-                                        if (manager1!= null)
-
                                         if (manager1 != null)
-
                                         {
                                             model.FirstName = manager1.FirstName;
                                             model.LastName = manager1.LastName;

@@ -1,4 +1,4 @@
-﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Booking>
+﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
 @{
     ViewData["Title"] = "Duyệt Đơn Thuê";
 }
@@ -76,19 +76,30 @@
 
 <div class="staff-wrapper">
     <div class="staff-sidebar">
-        <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
+        <div class="sidebar-header">
+            <i class="fas fa-user-shield"></i> Staff Dashboard
+        </div>
         <div class="sidebar-menu">
-            <a href="@Url.Action("Index", "Staff")" class="active"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
-
-            <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
-            <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
-            <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
-            <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
+            <a href="@Url.Action("Index", "Staff")" class="active">
+                <i class="fas fa-check-square"></i> Duyệt Đơn Thuê
+            </a>
+            <a href="@Url.Action("LaptopRequests", "Staff")">
+                <i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra
+            </a>
+            <a href="@Url.Action("RentedLaptops", "Staff")">
+                <i class="fas fa-list"></i> Máy Đang Thuê
+            </a>
+            <a href="@Url.Action("Deliveries", "Staff")">
+                <i class="fas fa-truck"></i> Quản lý Giao Máy
+            </a>
+            <a href="@Url.Action("QuickHandover", "Staff")">
+                <i class="fas fa-bolt"></i> Giao Máy Nhanh
+            </a>
         </div>
     </div>
 
     <div class="staff-content">
-        <h3 class="fw-bold text-primary mb-4">Quản Lý Đơn Thuê (@ViewData["TotalCount"])</h3>
+        <h3 class="fw-bold text-primary mb-4">Quản Lý Đơn Thuê (@(Model != null ? Model.Count() : 0))</h3>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -98,20 +109,7 @@
         {
             <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]</div>
         }
-        <form asp-action="Index" method="get" class="mb-3">
-            <div class="input-group" style="max-width: 500px;">
-                <input type="text" name="searchString" class="form-control"
-                       placeholder="Tìm tên khách, mã đơn..." value="@ViewData["CurrentFilter"]">
-                <button class="btn btn-primary text-nowrap" type="submit">
-                    <i class="fas fa-search"></i> Tìm kiếm
-                </button>
 
-                @if (ViewData["CurrentFilter"] != null)
-                {
-                    <a asp-action="Index" class="btn btn-outline-secondary">Xóa</a>
-                }
-            </div>
-        </form>
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -129,21 +127,22 @@
                         {
                             foreach (var item in Model)
                             {
-                                <tr class="@((item.Customer?.BlackList == true) ? "table-danger" : "")">
+                                <tr>
                                     <td class="ps-4 fw-bold text-primary">#@item.Id</td>
-                                    <td>
-                                        @(item.Customer?.LastName + " " + item.Customer?.FirstName)
-                                        @if (item.Customer?.BlackList == true)
-                                        {
-                                            <span class="badge bg-danger ms-2">BLACKLIST</span>
-                                        }
-                                    </td>
+                                    <td>@(item.Customer?.LastName + " " + item.Customer?.FirstName)</td>
                                     <td>@item.Laptop?.Name</td>
                                     <td>@item.StartTime.ToString("dd/MM") - @item.EndTime.ToString("dd/MM")</td>
                                     <td>
-                                        <a asp-action="BookingDetails" asp-route-id="@item.Id" class="btn btn-info btn-sm text-white">
-                                            <i class="fas fa-eye"></i> Chi tiết
-                                        </a>
+                                        <div class="d-flex gap-2">
+                                            <form asp-action="ApproveBooking" method="post">
+                                                <input type="hidden" name="bookingId" value="@item.Id" />
+                                                <button class="btn btn-success btn-sm">Duyệt</button>
+                                            </form>
+                                            <form asp-action="RejectBooking" method="post">
+                                                <input type="hidden" name="bookingId" value="@item.Id" />
+                                                <button class="btn btn-outline-danger btn-sm">Hủy</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -156,15 +155,6 @@
                         }
                     </tbody>
                 </table>
-                <div class="p-3 d-flex justify-content-end">
-                    @{
-                        var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
-                        var nextDisabled = !Model.HasNextPage ? "disabled" : "";
-                    }
-                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm me-2 @prevDisabled">Trước</a>
-                    <span class="align-self-center mx-2">Trang @Model.PageIndex / @Model.TotalPages</span>
-                    <a asp-action="Index" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm ms-2 @nextDisabled">Sau</a>
-                </div>
             </div>
         </div>
     </div>

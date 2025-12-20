@@ -1,4 +1,4 @@
-﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Booking>
+@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Booking>
 
 @{
     ViewData["Title"] = "Trả Máy Cho Sinh Viên";
@@ -137,15 +137,15 @@
                             {
                                 @foreach (var booking in Model)
                                 {
-                                    // ✅ Kiểm tra xem đã tạo thông báo chưa (dùng ReturnDueDate)
-                                    bool hasNotification = booking.ReturnDueDate.HasValue;
+                                    // ✅ Kiểm tra xem đã tạo thông báo chưa (tạm thời false vì ReturnDueDate không có trong model)
+                                    bool hasNotification = false;
                                     
-                                    // ✅ Kiểm tra Student đã xác nhận chưa (parse từ RejectReason)
+                                    // ✅ Kiểm tra Student đã xác nhận chưa (tạm thời false vì RejectReason không có trong model)
                                     bool isConfirmedByStudent = false;
-                                    if (hasNotification && !string.IsNullOrEmpty(booking.RejectReason) && booking.RejectReason.Contains("CONFIRMED"))
-                                    {
-                                        isConfirmedByStudent = true;
-                                    }
+                                    // if (hasNotification && !string.IsNullOrEmpty(booking.RejectReason) && booking.RejectReason.Contains("CONFIRMED"))
+                                    // {
+                                    //     isConfirmedByStudent = true;
+                                    // }
                                     
                                     <tr>
                                         <td class="ps-4">
