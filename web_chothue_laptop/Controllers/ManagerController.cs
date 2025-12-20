@@ -354,123 +354,200 @@ namespace web_chothue_laptop.Controllers
         return View(laptop);
     }
 
-    // GET: Manager/CustomerManagement
-    // Màn hình 1: Danh sách Customer
+    //GET: Manager/CustomerManagement
+    //Màn hình 1: Danh sách Customer
     public async Task<IActionResult> CustomerManagement(string? search, string? filterStatus, int page = 1)
+    {
+        var query = _context.Customers
+            .Include(c => c.CustomerNavigation)
+            .AsQueryable();
+
+        // Filter by blacklist status
+        if (!string.IsNullOrEmpty(filterStatus))
         {
-            var query = _context.Customers
-                .Include(c => c.CustomerNavigation)
+            if (filterStatus.ToLower() == "blacklist")
+            {
+                query = query.Where(c => c.BlackList == true);
+            }
+            else if (filterStatus.ToLower() == "normal")
+            {
+                query = query.Where(c => c.BlackList == null || c.BlackList == false);
+            }
+        }
+
+        // Search by phone, email, or name
+        if (!string.IsNullOrEmpty(search))
+        {
+            search = search.Trim();
+            query = query.Where(c =>
+                c.Email.Contains(search) ||
+                (c.Phone != null && c.Phone.Contains(search)) ||
+                c.FirstName.Contains(search) ||
+                c.LastName.Contains(search));
+        }
+
+        // Get total count before pagination
+        int totalItems = await query.CountAsync();
+
+        // Pagination
+        int pageSize = 6;
+        int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var customers = await query
+            .OrderByDescending(c => c.CreatedDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        ViewBag.Search = search;
+        ViewBag.FilterStatus = filterStatus;
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = totalPages;
+        ViewBag.TotalItems = totalItems;
+
+        return View(customers);
+    }
+
+    // GET: Manager/RentalHistory/{id}
+    // Màn hình 2: Lịch sử thuê của Customer
+    public async Task<IActionResult> RentalHistory(long? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var customer = await _context.Customers
+            .Include(c => c.CustomerNavigation)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (customer == null)
+        {
+            return NotFound();
+        }
+
+        var bookings = await _context.Bookings
+            .Include(b => b.Laptop)
+            .Include(b => b.Status)
+            .Include(b => b.Staff)
+            .Where(b => b.CustomerId == id)
+            .OrderByDescending(b => b.CreatedDate)
+            .ToListAsync();
+
+        ViewBag.Customer = customer;
+        ViewBag.Bookings = bookings;
+
+        return View(bookings);
+    }
+
+    // POST: Manager/ToggleBlacklist/{id}
+    // Bật/tắt trạng thái Blacklist của Customer
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleBlacklist(long id)
+    {
+        var customer = await _context.Customers.FindAsync(id);
+        if (customer == null)
+        {
+            return NotFound();
+        }
+
+        // Toggle blacklist status
+        customer.BlackList = !(customer.BlackList ?? false);
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = customer.BlackList == true
+                ? "Đã thêm customer vào blacklist thành công!"
+                : "Đã xóa customer khỏi blacklist thành công!";
+        }
+
+
+        // GET: Manager/SalesReport
+        // Màn hình báo cáo doanh số - Các đơn đã Close (Customer đã trả máy)
+        public async Task<IActionResult> SalesReport(string? search, DateTime? fromDate, DateTime? toDate, int page = 1)
+        {
+            // Query các booking đã Close (StatusId = 8)
+            var query = _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Student)
+                .Include(b => b.Customer)
+                .Include(b => b.Staff)
+                .Include(b => b.Status)
+                .Where(b => b.StatusId == 8) // Close - Đã trả máy
                 .AsQueryable();
 
-            // Filter by blacklist status
-            if (!string.IsNullOrEmpty(filterStatus))
+            // Tìm kiếm theo tên laptop, customer, hoặc mã booking
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                if (filterStatus.ToLower() == "blacklist")
-                {
-                    query = query.Where(c => c.BlackList == true);
-                }
-                else if (filterStatus.ToLower() == "normal")
-                {
-                    query = query.Where(c => c.BlackList == false);
-                }
+                search = search.Trim().ToLower();
+                query = query.Where(b =>
+                    b.Id.ToString().Contains(search) ||
+                    (b.Laptop != null && b.Laptop.Name.ToLower().Contains(search)) ||
+                    (b.Laptop != null && b.Laptop.Brand != null && b.Laptop.Brand.BrandName.ToLower().Contains(search)) ||
+                    (b.Customer != null && (
+                        b.Customer.FirstName.ToLower().Contains(search) ||
+                        b.Customer.LastName.ToLower().Contains(search) ||
+                        b.Customer.Email.ToLower().Contains(search)
+                    ))
+                );
             }
 
-            // Search by phone, email, or name
-            if (!string.IsNullOrEmpty(search))
+            // Lọc theo ngày
+            if (fromDate.HasValue)
             {
-                search = search.Trim();
-                query = query.Where(c => 
-                    c.Email.Contains(search) ||
-                    (c.Phone != null && c.Phone.Contains(search)) ||
-                    c.FirstName.Contains(search) ||
-                    c.LastName.Contains(search));
+                query = query.Where(b => b.UpdatedDate >= fromDate.Value || b.EndTime >= fromDate.Value);
             }
 
-            // Get total count before pagination
-            int totalItems = await query.CountAsync();
+            if (toDate.HasValue)
+            {
+                var endOfDay = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(b => b.UpdatedDate <= endOfDay || b.EndTime <= endOfDay);
+            }
+
+            // Thống kê tổng hợp
+            var totalRevenue = await query.SumAsync(b => b.TotalPrice ?? 0);
+            var totalBookings = await query.CountAsync();
+            var avgRevenue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
 
             // Pagination
-            int pageSize = 6;
+            int pageSize = 10;
+            int totalItems = await query.CountAsync();
             int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-            var customers = await query
-                .OrderByDescending(c => c.CreatedDate)
+            var bookings = await query
+                .OrderByDescending(b => b.UpdatedDate ?? b.EndTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
+            // Pass data to view
+            ViewBag.TotalRevenue = totalRevenue;
+            ViewBag.TotalBookings = totalBookings;
+            ViewBag.AvgRevenue = avgRevenue;
             ViewBag.Search = search;
-            ViewBag.FilterStatus = filterStatus;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = totalPages;
             ViewBag.TotalItems = totalItems;
 
-            return View(customers);
-        }
-
-        // GET: Manager/RentalHistory/{id}
-        // Màn hình 2: Lịch sử thuê của Customer
-        public async Task<IActionResult> RentalHistory(long? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var customer = await _context.Customers
-                .Include(c => c.CustomerNavigation)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            var bookings = await _context.Bookings
-                .Include(b => b.Laptop)
-                .Include(b => b.Status)
-                .Include(b => b.Staff)
-                .Where(b => b.CustomerId == id)
-                .OrderByDescending(b => b.CreatedDate)
-                .ToListAsync();
-
-            ViewBag.Customer = customer;
-            ViewBag.Bookings = bookings;
-
             return View(bookings);
         }
 
-        // POST: Manager/ToggleBlacklist/{id}
-        // Bật/tắt trạng thái Blacklist của Customer
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleBlacklist(long id)
+        catch (Exception ex)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            // Toggle blacklist status
-            customer.BlackList = !customer.BlackList;
             
-            try
-            {
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = customer.BlackList == true 
-                    ? "Đã thêm customer vào blacklist thành công!" 
-                    : "Đã xóa customer khỏi blacklist thành công!";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling blacklist for customer {CustomerId}", id);
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái blacklist.";
-            }
-
-            return RedirectToAction(nameof(RentalHistory), new { id = id });
+            TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái blacklist.";
         }
+
+        return RedirectToAction(nameof(RentalHistory), new { id = id });
+
     }
 }
+
 
 

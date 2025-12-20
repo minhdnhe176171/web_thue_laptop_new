@@ -1,0 +1,312 @@
+@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Models
+@{
+    ViewData["Title"] = "Phiếu Hẹn Nhận Máy";
+    var booking = ViewBag.Booking as Booking;
+}
+
+<div class="container py-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a asp-controller="Booking" asp-action="MyBookings" class="text-decoration-none text-primary">
+            ← Quay lại theo dõi đơn thuê
+        </a>
+    </div>
+
+    @if (booking != null)
+    {
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Phiếu Hẹn Nhận Máy -->
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white text-center py-4">
+                        <h3 class="mb-0">
+                            <i class="bi bi-receipt-cutoff"></i> Phiếu Hẹn Nhận Máy
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Mã đơn hàng -->
+                        <div class="text-center mb-4">
+                            <h5 class="text-muted mb-3">Mã Đơn Hàng</h5>
+                            <div class="bg-light p-4 rounded">
+                                <h1 class="text-primary fw-bold mb-0">#@booking.Id</h1>
+                            </div>
+                            <p class="small text-muted mt-2 mb-0">Vui lòng cung cấp mã đơn hàng này cho Staff</p>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Số tiền cần thanh toán -->
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-3">
+                                <i class="bi bi-cash-stack"></i> Số Tiền Cần Thanh Toán
+                            </h5>
+                            <div class="bg-light p-3 rounded">
+                                <h2 class="text-success fw-bold mb-0 text-center">
+                                    @if (booking.TotalPrice.HasValue)
+                                    {
+                                        @booking.TotalPrice.Value.ToString("N0") <span class="fs-5">VNĐ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Chưa có thông tin</span>
+                                    }
+                                </h2>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Thông tin máy -->
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-3">
+                                <i class="bi bi-laptop"></i> Thông Tin Máy
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <strong>Tên Laptop:</strong>
+                                    <p class="mb-0">@booking.Laptop?.Name</p>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Hãng:</strong>
+                                    <p class="mb-0">@booking.Laptop?.Brand?.BrandName</p>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Thời gian thuê:</strong>
+                                    <p class="mb-0">
+                                        Từ <strong>@booking.StartTime.ToString("dd/MM/yyyy")</strong><br>
+                                        Đến <strong>@booking.EndTime.ToString("dd/MM/yyyy")</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Chú ý -->
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle"></i> <strong>Chú ý:</strong>
+                            </h6>
+                            <p class="mb-2">
+                                Vui lòng đến <strong>Thư viện trường tòa Delta</strong> để gặp Staff để làm thủ tục nhận máy.
+                            </p>
+                            <p class="mb-0">
+                                Bạn có thể <strong>thanh toán trước qua QR code online</strong> để tiết kiệm thời gian khi nhận máy.
+                            </p>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Thanh toán online -->
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-3">
+                                <i class="bi bi-credit-card"></i> Thanh Toán Online
+                            </h5>
+                            <div class="text-center mb-4">
+                                <p class="text-muted mb-3">Bấm vào đây để thanh toán online qua QR code</p>
+                                <a asp-controller="Booking" asp-action="OnlinePayment" asp-route-bookingId="@booking.Id" class="btn btn-success btn-lg px-5 py-3">
+                                    <i class="bi bi-qr-code-scan"></i> Bấm Vào Đây Để Thanh Toán Online
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            Không tìm thấy thông tin đơn hàng.
+        </div>
+    }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+<script>
+    let checkInterval;
+
+
+    function checkPaymentStatus(bookingId) {
+        const statusAlert = document.getElementById('paymentStatusAlert');
+        const statusMessage = document.getElementById('statusMessage');
+        const checkBtn = document.getElementById('checkStatusBtn');
+
+        fetch(`/Booking/CheckPaymentStatus/${bookingId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.status === 'rented') {
+                        statusAlert.className = 'alert alert-success';
+                        statusMessage.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                        statusAlert.style.display = 'block';
+                        checkBtn.style.display = 'none';
+                        
+                        // Tự động reload sau 3 giây
+                        setTimeout(() => {
+                            window.location.href = '/Booking/MyBookings';
+                        }, 3000);
+                    } else if (data.status === 'paid') {
+                        // Đã thanh toán thành công
+                        statusAlert.className = 'alert alert-success';
+                        statusMessage.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                        statusAlert.style.display = 'block';
+                        checkBtn.style.display = 'none';
+                        
+                        setTimeout(() => {
+                            window.location.href = '/Booking/MyBookings';
+                        }, 3000);
+                    } else if (data.status === 'approved_not_paid') {
+                        // StatusId = 2 - đã duyệt nhưng chưa thanh toán
+                        // Thử manual check payment để cập nhật nếu đã thanh toán
+                        fetch(`/Booking/ManualCheckPayment`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            },
+                            body: JSON.stringify({ bookingId: bookingId })
+                        })
+                        .then(response => response.json())
+                        .then(manualData => {
+                            if (manualData.success && manualData.status === 'paid') {
+                                // Đã thanh toán thành công
+                                statusAlert.className = 'alert alert-success';
+                                statusMessage.innerHTML = '<i class="bi bi-check-circle"></i> ' + manualData.message;
+                                statusAlert.style.display = 'block';
+                                checkBtn.style.display = 'none';
+                                setTimeout(() => {
+                                    window.location.href = '/Booking/MyBookings';
+                                }, 3000);
+                            } else {
+                                // Vẫn chưa thanh toán
+                                statusAlert.className = 'alert alert-info';
+                                statusMessage.innerHTML = '<i class="bi bi-info-circle"></i> ' + data.message;
+                                statusAlert.style.display = 'block';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Manual check error:', error);
+                            statusAlert.className = 'alert alert-info';
+                            statusMessage.innerHTML = '<i class="bi bi-info-circle"></i> ' + data.message;
+                            statusAlert.style.display = 'block';
+                        });
+                    } else {
+                        statusAlert.className = 'alert alert-warning';
+                        statusMessage.innerHTML = '<i class="bi bi-hourglass-split"></i> ' + data.message;
+                        statusAlert.style.display = 'block';
+                    }
+                } else {
+                    statusAlert.className = 'alert alert-danger';
+                    statusMessage.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + data.message;
+                    statusAlert.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    // Tự động kiểm tra trạng thái mỗi 3 giây nếu đang ở trang này
+    // Để phát hiện khi thanh toán thành công
+    @if (booking != null)
+    {
+        <text>
+        checkInterval = setInterval(() => {
+            checkPaymentStatus(@booking.Id);
+        }, 3000);
+        </text>
+    }
+
+    // Dừng interval khi rời trang
+    window.addEventListener('beforeunload', () => {
+        if (checkInterval) {
+            clearInterval(checkInterval);
+        }
+    });
+
+    // SignalR để lắng nghe real-time updates
+    @{
+        var customerId = ViewBag.CustomerId as long?;
+    }
+    
+    @if (customerId.HasValue && booking != null)
+    {
+        <text>
+        const bookingConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/bookinghub")
+            .build();
+
+        const customerId = @customerId.Value;
+        const currentBookingId = @booking.Id;
+
+        bookingConnection.start().then(function () {
+            console.log("Booking Hub Connected");
+            bookingConnection.invoke("JoinCustomerGroup", customerId).then(function () {
+                console.log("Joined customer booking group:", customerId);
+            }).catch(function (err) {
+                console.error("Error joining customer booking group:", err.toString());
+            });
+        }).catch(function (err) {
+            console.error("Booking Hub connection error:", err.toString());
+        });
+
+        // Lắng nghe khi booking status được cập nhật
+        bookingConnection.on("BookingStatusUpdated", function (data) {
+            console.log("Booking status updated:", data);
+            
+            if (data.bookingId === currentBookingId && data.newStatusId === 10) {
+                // Đã chuyển sang Rented - hiển thị thông báo chúc mừng
+                const statusAlert = document.getElementById('paymentStatusAlert');
+                const statusMessage = document.getElementById('statusMessage');
+                const checkBtn = document.getElementById('checkStatusBtn');
+                
+                statusAlert.className = 'alert alert-success';
+                statusMessage.innerHTML = '<i class="bi bi-check-circle"></i> Đã xác nhận giao dịch thành công. Vui lòng trả máy đúng hạn. Cảm ơn quý khách!';
+                statusAlert.style.display = 'block';
+                checkBtn.style.display = 'none';
+                
+                // Dừng interval kiểm tra
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                }
+                
+                // Tự động chuyển về trang MyBookings sau 3 giây
+                setTimeout(() => {
+                    window.location.href = '/Booking/MyBookings';
+                }, 3000);
+            }
+        });
+        </text>
+    }
+</script>
+
+<style>
+    .card {
+        border-radius: 12px;
+    }
+
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+</style>
+

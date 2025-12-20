@@ -56,17 +56,14 @@ namespace web_chothue_laptop.Controllers
         {
             ViewData["CurrentFilter"] = searchString;
 
-            // Lấy danh sách laptop có TechnicalTicket được Technical duyệt (StatusId = 2)
-            var approvedTicketLaptopIds = await _context.TechnicalTickets
-                .Where(t => t.StatusId == 2 && t.BookingId == null) // Technical approved, không phải ticket của customer
-                .Select(t => t.LaptopId)
-                .ToListAsync();
-
+            // ✅ HIỂN THỊ:
+            // - Laptop Pending (StatusId = 1): Chưa gửi Tech HOẶC Tech đã duyệt
+            // - Laptop Fixing (StatusId = 4): Tech yêu cầu sửa, chờ Student đồng ý & Tech sửa xong
             var query = _context.Laptops
                 .Include(l => l.Student)
-
+                .Include(l => l.Brand)
                 .Include(l => l.TechnicalTickets)
-                .Where(l => l.StatusId == 1 || l.StatusId == 2 || l.StatusId == 4); // Mới hoặc Tech đã duyệt
+                .Where(l => l.StatusId == 1 || l.StatusId == 4); // ✅ Thêm StatusId = 4
 
             // --- FILTER ---
             if (!string.IsNullOrEmpty(searchString))
@@ -184,19 +181,80 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PublishLaptop(long laptopId)
         {
-            var laptop = await _context.Laptops.FindAsync(laptopId);
-            if (laptop != null && laptop.StatusId == 1) // Kiểm tra StatusId = 1 (Pending) thay vì 2
+            var laptop = await _context.Laptops
+                .Include(l => l.TechnicalTickets)
+                .FirstOrDefaultAsync(l => l.Id == laptopId);
+                
+            if (laptop == null)
             {
-                laptop.StatusId = 9; // Available - Đưa lên web
-                laptop.UpdatedDate = DateTime.Now;
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Đã niêm yết máy thành công!";
+                TempData["ErrorMessage"] = "Không tìm thấy laptop.";
+                return RedirectToAction(nameof(LaptopRequests));
+            }
+
+            // ✅ KIỂM TRA ĐIỀU KIỆN NIÊM YẾT:
+            // 1. Laptop Pending (StatusId = 1) VÀ Technical đã duyệt (Ticket.StatusId = 2)
+            // 2. Laptop Fixing (StatusId = 4) VÀ Technical đã sửa xong (Ticket.StatusId = 5)
+            
+            bool canPublish = false;
+            string reason = "";
+
+            if (laptop.StatusId == 1)
+            {
+                // Case 1: Laptop Pending - Cần Technical duyệt
+                var approvedTicket = laptop.TechnicalTickets?
+                    .FirstOrDefault(t => t.StatusId == 2 && t.BookingId == null);
+                    
+                if (approvedTicket != null)
+                {
+                    canPublish = true;
+                }
+                else
+                {
+                    reason = "Laptop chưa được Technical duyệt.";
+                }
+            }
+            else if (laptop.StatusId == 4)
+            {
+                // Case 2: Laptop Fixing - Cần Technical sửa xong
+                var fixedTicket = laptop.TechnicalTickets?
+                    .FirstOrDefault(t => t.StatusId == 5 && t.BookingId == null);
+                    
+                if (fixedTicket != null)
+                {
+                    canPublish = true;
+                }
+                else
+                {
+                    reason = "Laptop chưa được Technical sửa xong.";
+                }
             }
             else
             {
-                TempData["ErrorMessage"] = "Laptop này không thể niêm yết (trạng thái không hợp lệ).";
+                reason = $"Laptop đang ở trạng thái không hợp lệ (StatusId = {laptop.StatusId}).";
             }
-            // QUAN TRỌNG: Quay lại trang LaptopRequests thay vì Index
+
+            if (!canPublish)
+            {
+                TempData["ErrorMessage"] = $"Không thể niêm yết: {reason}";
+                return RedirectToAction(nameof(LaptopRequests));
+            }
+
+            // ✅ NIÊM YẾT LAPTOP
+            laptop.StatusId = 9; // Available - Đưa lên web
+            laptop.UpdatedDate = DateTime.Now;
+            laptop.RejectReason = null; // Xóa lý do từ chối nếu có
+            
+            // ✅ TÍNH GIÁ MỚI: NEW_PRICE = Price / 0.7
+            // Price là 70% giá thực (Student nhập)
+            // NEW_PRICE là 100% giá thực (hiển thị trên web)
+            if (laptop.Price.HasValue)
+            {
+                laptop.NewPrice = Math.Round(laptop.Price.Value / 0.7m, 0); // Làm tròn
+            }
+            
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = $"Đã niêm yết máy thành công! Giá niêm yết: {laptop.NewPrice?.ToString("#,##0")} đ/ngày";
+            
             return RedirectToAction(nameof(LaptopRequests));
         }
 
@@ -665,7 +723,7 @@ namespace web_chothue_laptop.Controllers
         }
         
         /// <summary>
-        /// Tạo thông báo trả máy về cho Student
+        /// Tạo thông báo trả máy về cho Student (Địa điểm cố định: Tòa Alpha, L300)
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -691,14 +749,15 @@ namespace web_chothue_laptop.Controllers
 
             try
             {
-                // Lưu thông tin lịch hẹn vào RejectReason (sử dụng field có sẵn)
-                var notificationInfo = $"RETURN_SCHEDULE|{pickupLocation}|{appointmentTime:yyyy-MM-dd HH:mm}";
-                booking.RejectReason = notificationInfo;
+                // ✅ LƯU THỜI GIAN VÀO RETURN_DUE_DATE (Không dùng RejectReason nữa)
+                booking.ReturnDueDate = appointmentTime;
                 booking.UpdatedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Đã gửi thông báo trả máy đến Student. Chờ Student xác nhận nhận máy tại {pickupLocation} lúc {appointmentTime:HH:mm dd/MM/yyyy}.";
+                // ✅ Thông báo với địa điểm cố định
+                const string FIXED_LOCATION = "Tòa Alpha, L300";
+                TempData["SuccessMessage"] = $"Đã gửi thông báo trả máy đến Student. Chờ Student xác nhận nhận máy tại {FIXED_LOCATION} lúc {appointmentTime:HH:mm dd/MM/yyyy}.";
                 return RedirectToAction(nameof(DueForReturnLaptops));
             }
             catch (Exception ex)

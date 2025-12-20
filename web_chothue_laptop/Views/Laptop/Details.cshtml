@@ -2,6 +2,9 @@
 @model web_chothue_laptop.Models.Laptop
 @{
     ViewData["Title"] = "Chi Tiết Laptop";
+    var isRentedByOthers = ViewBag.IsRentedByOthers as bool? ?? false;
+    var currentCustomerBooking = ViewBag.CurrentCustomerBooking as web_chothue_laptop.Models.Booking;
+    var currentCustomer = ViewBag.CurrentCustomer as web_chothue_laptop.Models.Customer;
 }
 
 <div class="container py-4">
@@ -39,20 +42,42 @@
                         </div>
                         <div class="col-md-6 mb-2">
                             <strong>Tình trạng:</strong> 
-                            @if (Model.Status != null)
-                            {
-                                var statusVi = StatusHelper.GetVietnameseStatus(Model.Status.StatusName);
-                                var badgeClass = StatusHelper.GetStatusBadgeClass(Model.Status.StatusName);
-                                <span class="badge @badgeClass">@statusVi</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Chưa xác định</span>
+                            @{
+                                // Kiểm tra nếu laptop đã hết thời hạn thuê (EndTime < DateTime.Now)
+                                var isExpired = ViewBag.IsExpired as bool? ?? false;
+                                
+                                // Hiển thị trạng thái đơn hàng của customer hiện tại nếu có booking đang active
+                                if (isExpired)
+                                {
+                                    // Laptop đã hết thời hạn thuê -> hiển thị "Đã đóng"
+                                    <span class="badge bg-secondary">Đã đóng</span>
+                                }
+                                else if (currentCustomer != null && currentCustomerBooking != null)
+                                {
+                                    // Customer có booking đang active -> hiển thị trạng thái đó
+                                    var statusVi = StatusHelper.GetVietnameseStatus(currentCustomerBooking.Status?.StatusName);
+                                    var badgeClass = StatusHelper.GetStatusBadgeClass(currentCustomerBooking.Status?.StatusName);
+                                    <span class="badge @badgeClass">@statusVi</span>
+                                }
+                                else if (isRentedByOthers)
+                                {
+                                    // Laptop đang được thuê bởi người khác
+                                    <span class="badge bg-warning">Đang thuê</span>
+                                }
+                                else
+                                {
+                                    // Laptop có sẵn (bao gồm cả trường hợp customer đã từng thuê nhưng đã hoàn thành)
+                                    <span class="badge bg-success">Có sẵn</span>
+                                }
                             }
                         </div>
                         <div class="col-12 mb-2">
                             <strong>Giá thuê:</strong> 
-                            @if (Model.Price.HasValue)
+                            @if (Model.NewPrice.HasValue)
+                            {
+                                <span class="text-primary fw-bold">@Model.NewPrice.Value.ToString("N0") VNĐ</span>
+                            }
+                            else if (Model.Price.HasValue)
                             {
                                 <span class="text-primary fw-bold">@Model.Price.Value.ToString("N0") VNĐ</span>
                             }
@@ -61,6 +86,31 @@
                                 <span class="text-muted">Chưa có giá</span>
                             }
                         </div>
+                        @{
+                            var isExpiredForDisplay = ViewBag.IsExpired as bool? ?? false;
+                        }
+                        @if (Model.EndTime.HasValue && !isExpiredForDisplay)
+                        {
+                            var availableEndDate = Model.EndTime.Value.Date.AddDays(-1);
+                            <div class="col-12 mb-2">
+                                <strong>Thời gian có thể thuê:</strong>
+                                <span class="text-info fw-bold">
+                                    Từ @DateTime.Today.ToString("dd/MM/yyyy") đến @availableEndDate.ToString("dd/MM/yyyy")
+                                </span>
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-info-circle"></i> Ngày trả tối đa: @availableEndDate.ToString("dd/MM/yyyy") (trước 1 ngày so với ngày student muốn nhận lại máy: @Model.EndTime.Value.Date.ToString("dd/MM/yyyy"))
+                                </small>
+                            </div>
+                        }
+                        else if (Model.EndTime.HasValue && isExpiredForDisplay)
+                        {
+                            <div class="col-12 mb-2">
+                                <strong>Thời gian có thể thuê:</strong>
+                                <span class="text-danger fw-bold">
+                                    Đã hết thời hạn (Ngày kết thúc: @Model.EndTime.Value.Date.ToString("dd/MM/yyyy"))
+                                </span>
+                            </div>
+                        }
                     </div>
                     <div class="mt-3">
                         @{
@@ -69,27 +119,87 @@
                             var hasPendingBooking = ViewBag.HasPendingBooking as bool? ?? false;
                             var hasActiveBooking = ViewBag.HasActiveBooking as bool? ?? false;
                             var activeBooking = ViewBag.ActiveBooking as web_chothue_laptop.Models.Booking;
+                            var isExpiredForButton = ViewBag.IsExpired as bool? ?? false;
                         }
-                        @if (isAvailable)
+                        @if (isExpiredForButton)
+                        {
+                            // Laptop đã hết thời hạn thuê
+                            <button class="btn btn-secondary btn-lg w-100" disabled>
+                                <i class="bi bi-x-circle"></i> Không Có Sẵn
+                            </button>
+                            <p class="text-danger text-center mt-2 mb-0 fw-bold">
+                                <small>Laptop đã hết thời hạn thuê, vui lòng chọn máy khác</small>
+                            </p>
+                        }
+                        else if (isAvailable)
                         {
                             @if (isLoggedIn)
                             {
-                                @if (hasPendingBooking)
+                                // Hiển thị trạng thái đơn hàng của customer hiện tại
+                                if (currentCustomerBooking != null)
                                 {
-                                    <button class="btn btn-warning btn-lg w-100" disabled>
-                                        <i class="bi bi-clock-history"></i> Đang Chờ Duyệt
-                                    </button>
-                                    <p class="text-muted text-center mt-2 mb-0">
-                                        <small>Bạn đã có một đơn đặt thuê laptop này đang chờ duyệt</small>
-                                    </p>
+                                    var statusVi = StatusHelper.GetVietnameseStatus(currentCustomerBooking.Status?.StatusName);
+                                    var badgeClass = StatusHelper.GetStatusBadgeClass(currentCustomerBooking.Status?.StatusName);
+                                    
+                                    if (currentCustomerBooking.StatusId == 1) // Pending
+                                    {
+                                        <button class="btn btn-warning btn-lg w-100" disabled>
+                                            <i class="bi bi-clock-history"></i> Đang Chờ Duyệt
+                                        </button>
+                                        <p class="text-muted text-center mt-2 mb-0">
+                                            <small>Bạn đã có một đơn đặt thuê laptop này đang chờ duyệt</small>
+                                        </p>
+                                    }
+                                    else if (currentCustomerBooking.StatusId == 12) // Banked (Đã chuyển khoản)
+                                    {
+                                        <button class="btn btn-success btn-lg w-100" disabled>
+                                            <i class="bi bi-check-circle"></i> @statusVi
+                                        </button>
+                                        <p class="text-muted text-center mt-2 mb-0">
+                                            <small>Bạn đã chuyển khoản thành công. Vui lòng chờ lấy máy từ @currentCustomerBooking.StartTime.ToString("dd/MM/yyyy") đến @currentCustomerBooking.EndTime.ToString("dd/MM/yyyy")</small>
+                                        </p>
+                                    }
+                                    else if (currentCustomerBooking.StatusId == 2 || currentCustomerBooking.StatusId == 10) // Approved hoặc Rented
+                                    {
+                                        <button class="btn btn-info btn-lg w-100" disabled>
+                                            <i class="bi bi-check-circle"></i> @statusVi
+                                        </button>
+                                        <p class="text-muted text-center mt-2 mb-0">
+                                            <small>Bạn đang thuê laptop này từ @currentCustomerBooking.StartTime.ToString("dd/MM/yyyy") đến @currentCustomerBooking.EndTime.ToString("dd/MM/yyyy")</small>
+                                        </p>
+                                    }
+                                    else if (currentCustomerBooking.StatusId == 8) // Completed
+                                    {
+                                        <button class="btn btn-success btn-lg w-100" disabled>
+                                            <i class="bi bi-check-circle"></i> @statusVi
+                                        </button>
+                                        <p class="text-muted text-center mt-2 mb-0">
+                                            <small>Bạn đã hoàn thành thuê laptop này</small>
+                                        </p>
+                                    }
+                                    else if (currentCustomerBooking.StatusId == 3) // Cancelled
+                                    {
+                                        <button class="btn btn-secondary btn-lg w-100" disabled>
+                                            <i class="bi bi-x-circle"></i> @statusVi
+                                        </button>
+                                        <p class="text-muted text-center mt-2 mb-0">
+                                            <small>Đơn đặt thuê của bạn đã bị hủy</small>
+                                        </p>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-secondary btn-lg w-100" disabled>
+                                            <i class="bi bi-info-circle"></i> @statusVi
+                                        </button>
+                                    }
                                 }
-                                else if (hasActiveBooking && activeBooking != null)
+                                else if (isRentedByOthers)
                                 {
-                                    <button class="btn btn-info btn-lg w-100" disabled>
-                                        <i class="bi bi-check-circle"></i> Đang Thuê
+                                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                                        <i class="bi bi-x-circle"></i> Đang Được Thuê
                                     </button>
                                     <p class="text-muted text-center mt-2 mb-0">
-                                        <small>Bạn đang thuê laptop này từ @activeBooking.StartTime.ToString("dd/MM/yyyy") đến @activeBooking.EndTime.ToString("dd/MM/yyyy")</small>
+                                        <small>Laptop này hiện đang được thuê bởi người khác</small>
                                     </p>
                                 }
                                 else
@@ -101,12 +211,24 @@
                             }
                             else
                             {
-                                <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
-                                    <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập Để Đặt Thuê
-                                </a>
-                                <p class="text-muted text-center mt-2 mb-0">
-                                    <small>Vui lòng đăng nhập để đặt thuê laptop này</small>
-                                </p>
+                                @if (isRentedByOthers)
+                                {
+                                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                                        <i class="bi bi-x-circle"></i> Đang Được Thuê
+                                    </button>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Laptop này hiện đang được thuê bởi người khác</small>
+                                    </p>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
+                                        <i class="bi bi-box-arrow-in-right"></i> Đăng Nhập Để Đặt Thuê
+                                    </a>
+                                    <p class="text-muted text-center mt-2 mb-0">
+                                        <small>Vui lòng đăng nhập để đặt thuê laptop này</small>
+                                    </p>
+                                }
                             }
                         }
                         else
@@ -178,7 +300,14 @@
                     <h5 class="mb-0">Lịch Sử Sử Dụng</h5>
                 </div>
                 <div class="card-body">
-                    @if (Model.Bookings != null && Model.Bookings.Any())
+                    @{
+                        var paginatedBookings = ViewBag.PaginatedBookings as PaginatedList<Booking>;
+                        var pageIndex = paginatedBookings?.PageIndex ?? 1;
+                        var totalPages = paginatedBookings?.TotalPages ?? 1;
+                        var hasPreviousPage = paginatedBookings?.HasPreviousPage ?? false;
+                        var hasNextPage = paginatedBookings?.HasNextPage ?? false;
+                    }
+                    @if (paginatedBookings != null && paginatedBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table">
@@ -192,7 +321,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in Model.Bookings.OrderByDescending(b => b.StartTime))
+                                    @foreach (var booking in paginatedBookings)
                                     {
                                         <tr>
                                             <td>
@@ -220,8 +349,10 @@
                                             <td>
                                                 @if (booking.Status != null)
                                                 {
-                                                    var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
+                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" trong lịch sử
+                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho lịch sử
+                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
+                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
                                                 }
                                                 else
@@ -238,6 +369,34 @@
                     else
                     {
                         <p class="text-muted mb-0">Chưa có lịch sử thuê.</p>
+                    }
+                    
+                    <!-- Phân trang - Luôn hiển thị -->
+                    @if (paginatedBookings != null)
+                    {
+                        var displayPages = Math.Max(totalPages, 3);
+                        var hasPreviousDisplay = pageIndex > 1;
+                        var hasNextDisplay = pageIndex < displayPages;
+                        <nav aria-label="Page navigation" class="p-3">
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item @(!hasPreviousDisplay ? "disabled" : "")">
+                                    <a class="page-link" href="@Url.Action("Details", new { id = Model.Id, page = pageIndex - 1 })" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                @for (int i = 1; i <= displayPages; i++)
+                                {
+                                    <li class="page-item @(i == pageIndex ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Details", new { id = Model.Id, page = i })">@i</a>
+                                    </li>
+                                }
+                                <li class="page-item @(!hasNextDisplay ? "disabled" : "")">
+                                    <a class="page-link" href="@Url.Action("Details", new { id = Model.Id, page = pageIndex + 1 })" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
                     }
                 </div>
             </div>

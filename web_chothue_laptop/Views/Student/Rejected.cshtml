@@ -3,7 +3,7 @@
     ViewData["Title"] = "Laptop Bị Từ Chối";
     var currentPage = ViewBag.CurrentPage as string ?? "Rejected";
     
-    // Pagination settings
+    
     int pageSize = 5;
     int page = ViewBag.Page ?? 1;
     var laptopsPaged = Model.Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -157,8 +157,11 @@
             <a class="btn btn-primary" asp-controller="Student" asp-action="Create">
                 <i class="fas fa-plus"></i> Tạo laptop cho thuê
             </a>
-            <a class="btn btn-secondary" asp-controller="Student" asp-action="Index">
-                <i class="fas fa-arrow-left"></i> Quay lại
+            <a class="btn btn-success" asp-controller="Student" asp-action="MyRentals">
+                <i class="fas fa-handshake"></i> Laptop Đang Cho Thuê
+            </a>
+            <a class="btn btn-secondary" asp-controller="Student" asp-action="Report">
+                <i class="fas fa-arrow-left"></i> Báo cáo
             </a>
         </div>
 
@@ -216,9 +219,16 @@
                         <tbody>
                     @foreach(var l in laptopsPaged)
                     {
-                        // Kiểm tra xem Student đã đồng ý chưa (UpdatedDate trong vòng 24 giờ)
-                        bool isRecentlyUpdated = l.UpdatedDate.HasValue && 
-                                                 (DateTime.Now - l.UpdatedDate.Value).TotalHours <= 24;
+                        // ✅ SỬA: Kiểm tra TechnicalTicket thay vì UpdatedDate
+                        // Lấy ticket liên quan (StatusId = 1: Pending hoặc 4: Processing, không có BookingId)
+                        var relatedTicket = l.TechnicalTickets?
+                            .Where(t => t.BookingId == null)
+                            .OrderByDescending(t => t.CreatedDate)
+                            .FirstOrDefault();
+                        
+                        // Nếu StatusId = 4 (Processing) → Student đã đồng ý
+                        // Nếu StatusId = 1 (Pending) → Chưa đồng ý, hiển thị nút
+                        bool hasAccepted = relatedTicket != null && relatedTicket.StatusId == 4;
                         
                         <tr>
                             <td class="ps-4">
@@ -254,8 +264,8 @@
                                 }
                             </td>
                             <td class="text-center">
-                                @* Chỉ hiển thị nút khi StatusId = 4 (Fixing) VÀ chưa đồng ý trong 24 giờ gần đây *@
-                                @if (l.Status?.StatusName?.ToLower() == "fixing" && !isRecentlyUpdated)
+                                @* ✅ SỬA: Kiểm tra hasAccepted thay vì isRecentlyUpdated *@
+                                @if (l.Status?.StatusName?.ToLower() == "fixing" && !hasAccepted)
                                 {
                                     <form asp-action="AcceptPrice" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có đồng ý cho sửa chữa không?');">
                                         @Html.AntiForgeryToken()
@@ -270,7 +280,7 @@
                                         </button>
                                     </form>
                                 }
-                                else if (l.Status?.StatusName?.ToLower() == "fixing" && isRecentlyUpdated)
+                                else if (l.Status?.StatusName?.ToLower() == "fixing" && hasAccepted)
                                 {
                                     <small class="text-success fw-bold">
                                         <i class="bi bi-check-circle-fill"></i> Đã đồng ý

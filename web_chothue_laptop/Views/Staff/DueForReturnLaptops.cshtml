@@ -137,12 +137,12 @@
                             {
                                 @foreach (var booking in Model)
                                 {
-                                    // Kiểm tra xem đã tạo thông báo chưa (dùng RejectReason để lưu thông tin lịch hẹn)
-                                    bool hasNotification = !string.IsNullOrEmpty(booking.RejectReason) && booking.RejectReason.StartsWith("RETURN_SCHEDULE|");
+                                    // ✅ Kiểm tra xem đã tạo thông báo chưa (dùng ReturnDueDate)
+                                    bool hasNotification = booking.ReturnDueDate.HasValue;
                                     
-                                    // Kiểm tra Student đã xác nhận chưa
+                                    // ✅ Kiểm tra Student đã xác nhận chưa (parse từ RejectReason)
                                     bool isConfirmedByStudent = false;
-                                    if (hasNotification && booking.RejectReason.Contains("|CONFIRMED|"))
+                                    if (hasNotification && !string.IsNullOrEmpty(booking.RejectReason) && booking.RejectReason.Contains("CONFIRMED"))
                                     {
                                         isConfirmedByStudent = true;
                                     }

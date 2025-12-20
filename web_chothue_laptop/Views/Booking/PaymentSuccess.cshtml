@@ -1,0 +1,168 @@
+@model web_chothue_laptop.Models.Booking
+
+@{
+    ViewData["Title"] = "Thanh Toán Thành Công";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-lg border-0">
+                <!-- Icon thành công -->
+                <div class="card-body text-center p-5">
+                    <div class="success-animation mb-4">
+                        <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+                    </div>
+                    
+                    <h1 class="text-success mb-3">
+                        <i class="bi bi-check-circle-fill"></i> Thanh Toán Thành Công!
+                    </h1>
+                    
+                    <p class="lead text-muted mb-4">
+                        C?m ?n b?n ?ã thanh toán. ??n hàng c?a b?n ?ã ???c xác nh?n.
+                    </p>
+
+                    @if (Model != null)
+                    {
+                        <div class="alert alert-success mb-4">
+                            <h5 class="alert-heading">Thông tin ??n hàng</h5>
+                            <hr>
+                            <div class="row text-start">
+                                <div class="col-6">
+                                    <strong>Mã ??n hàng:</strong>
+                                </div>
+                                <div class="col-6">
+                                    <span class="badge bg-primary">#@Model.Id</span>
+                                </div>
+                            </div>
+                            <div class="row text-start mt-2">
+                                <div class="col-6">
+                                    <strong>Laptop:</strong>
+                                </div>
+                                <div class="col-6">
+                                    @Model.Laptop?.Name
+                                </div>
+                            </div>
+                            <div class="row text-start mt-2">
+                                <div class="col-6">
+                                    <strong>Th?i gian thuê:</strong>
+                                </div>
+                                <div class="col-6">
+                                    @Model.StartTime.ToString("dd/MM/yyyy") - @Model.EndTime.ToString("dd/MM/yyyy")
+                                </div>
+                            </div>
+                            <div class="row text-start mt-2">
+                                <div class="col-6">
+                                    <strong>T?ng ti?n:</strong>
+                                </div>
+                                <div class="col-6">
+                                    <span class="text-success fw-bold">@(Model.TotalPrice?.ToString("N0")) VN?</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>B??c ti?p theo:</strong> 
+                            Vui lòng ??n <strong>Th? vi?n tr??ng tòa Delta</strong> ?? nh?n máy theo th?i gian ?ã ??t.
+                        </div>
+                    }
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="@Url.Action("MyBookings", "Booking")" class="btn btn-primary btn-lg">
+                            <i class="bi bi-list-check"></i> Xem ??n Hàng C?a Tôi
+                        </a>
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary">
+                            <i class="bi bi-house"></i> V? Trang Ch?
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .success-animation {
+        animation: scaleIn 0.5s ease-in-out;
+    }
+
+    @@keyframes scaleIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .checkmark {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+        animation: checkmarkAnimation 0.8s ease-in-out;
+    }
+
+    @@keyframes checkmarkAnimation {
+        0% {
+            transform: scale(0) rotate(0deg);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2) rotate(180deg);
+            opacity: 0.7;
+        }
+        100% {
+            transform: scale(1) rotate(360deg);
+            opacity: 1;
+        }
+    }
+
+    .checkmark-circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 2;
+        stroke-miterlimit: 10;
+        stroke: #28a745;
+        fill: none;
+        animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    .checkmark-check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        stroke: #28a745;
+        stroke-width: 3;
+        animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+    }
+
+    @@keyframes stroke {
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .alert {
+        border-radius: 10px;
+    }
+
+    .btn {
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 500;
+    }
+</style>
