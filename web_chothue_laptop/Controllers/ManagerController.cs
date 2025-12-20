@@ -3,15 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
-public class ManagerController : Controller
+namespace web_chothue_laptop.Controllers
 {
-    private readonly Swp391LaptopContext _context;
-
-    public ManagerController(Swp391LaptopContext context)
+    public class ManagerController : Controller
     {
-        _context = context;
-    }
+        private readonly Swp391LaptopContext _context;
+        private readonly ILogger<ManagerController> _logger;
+
+        public ManagerController(Swp391LaptopContext context, ILogger<ManagerController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
     public IActionResult Index()
     {
@@ -254,7 +259,6 @@ public class ManagerController : Controller
 
         var bookings = query
             .Skip((page - 1) * pageSize)
-            .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
 
@@ -349,10 +353,10 @@ public class ManagerController : Controller
 
         return View(laptop);
     }
-}
-        // GET: Manager/CustomerManagement
-        // Màn hình 1: Danh sách Customer
-        public async Task<IActionResult> CustomerManagement(string? search, string? filterStatus, int page = 1)
+
+    // GET: Manager/CustomerManagement
+    // Màn hình 1: Danh sách Customer
+    public async Task<IActionResult> CustomerManagement(string? search, string? filterStatus, int page = 1)
         {
             var query = _context.Customers
                 .Include(c => c.CustomerNavigation)
@@ -367,7 +371,7 @@ public class ManagerController : Controller
                 }
                 else if (filterStatus.ToLower() == "normal")
                 {
-                    query = query.Where(c => c.BlackList == null || c.BlackList == false);
+                    query = query.Where(c => c.BlackList == false);
                 }
             }
 
@@ -449,7 +453,7 @@ public class ManagerController : Controller
             }
 
             // Toggle blacklist status
-            customer.BlackList = !(customer.BlackList ?? false);
+            customer.BlackList = !customer.BlackList;
             
             try
             {

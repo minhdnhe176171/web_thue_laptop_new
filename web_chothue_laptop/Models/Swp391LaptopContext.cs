@@ -49,11 +49,9 @@ public partial class Swp391LaptopContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 
+
     {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
-        }
+        
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -91,6 +89,14 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.UpdatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("UPDATED_DATE");
+            entity.Property(e => e.IdNoUrl)
+                .HasMaxLength(255)
+                .HasColumnName("ID_NO_URL");
+            entity.Property(e => e.StudentUrl)
+                .HasMaxLength(255)
+                .HasColumnName("STUDENT_URL");
+            entity.Property(e => e.RejectReason)
+                .HasColumnName("REJECT_REASON");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.CustomerId)
@@ -235,6 +241,8 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Price)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("PRICE");
+            entity.Property(e => e.RejectReason)
+                .HasColumnName("REJECT_REASON");
             entity.Property(e => e.StatusId).HasColumnName("STATUS_ID");
             entity.Property(e => e.StudentId).HasColumnName("STUDENT_ID");
             entity.Property(e => e.UpdatedDate)

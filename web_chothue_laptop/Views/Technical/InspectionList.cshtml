@@ -76,13 +76,34 @@
                 {
                     foreach (var item in Model)
                     {
+                        // Kiểm tra xem Laptop có đang chờ Student đồng ý không (StatusId = 4 - Fixing)
+                        bool isWaitingStudentApproval = item.Laptop?.StatusId == 4;
+                        
                         <tr>
                             <td class="ps-4"><span class="badge bg-secondary rounded-pill">#@item.Id</span></td>
-                            <td class="fw-bold">@item.Laptop?.Name <div class="small text-muted fw-normal">ID: @item.LaptopId</div></td>
+                            <td class="fw-bold">
+                                @item.Laptop?.Name 
+                                <div class="small text-muted fw-normal">ID: @item.LaptopId</div>
+                                @if (isWaitingStudentApproval)
+                                {
+                                    <div class="small text-warning fw-bold mt-1">
+                                        <i class="fas fa-exclamation-triangle"></i> Chờ Student đồng ý
+                                    </div>
+                                }
+                            </td>
                             <td>@(item.Laptop?.Student?.LastName + " " + item.Laptop?.Student?.FirstName)</td>
                             <td>@item.Description</td>
                             <td class="text-center">
-                                <a asp-action="InspectionDetails" asp-route-id="@item.Id" class="btn btn-info btn-sm px-3 text-white me-1">Chi tiết</a>
+                                @if (isWaitingStudentApproval)
+                                {
+                                    <span class="badge bg-warning text-dark px-3 py-2">
+                                        <i class="fas fa-hourglass-half"></i> Chờ xác nhận
+                                    </span>
+                                }
+                                else
+                                {
+                                    <a asp-action="InspectionDetails" asp-route-id="@item.Id" class="btn btn-info btn-sm px-3 text-white me-1">Chi tiết</a>
+                                }
                             </td>
                         </tr>
                     }
