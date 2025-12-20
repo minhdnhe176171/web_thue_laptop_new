@@ -243,8 +243,7 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Price)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("PRICE");
-            entity.Property(e => e.RejectReason)
-                .HasColumnName("REJECT_REASON");
+            entity.Property(e => e.RejectReason).HasColumnName("REJECT_REASON");
             entity.Property(e => e.StatusId).HasColumnName("STATUS_ID");
             entity.Property(e => e.StudentId).HasColumnName("STUDENT_ID");
             entity.Property(e => e.UpdatedDate)
