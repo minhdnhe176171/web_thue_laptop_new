@@ -462,12 +462,19 @@ namespace web_chothue_laptop.Controllers
                 ? "Đã thêm customer vào blacklist thành công!"
                 : "Đã xóa customer khỏi blacklist thành công!";
         }
-
-
-        // GET: Manager/SalesReport
-        // Màn hình báo cáo doanh số - Các đơn đã Close (Customer đã trả máy)
-        public async Task<IActionResult> SalesReport(string? search, DateTime? fromDate, DateTime? toDate, int page = 1)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error toggling blacklist for customer {CustomerId}", id);
+            TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái blacklist.";
+        }
+
+        return RedirectToAction(nameof(RentalHistory), new { id = id });
+    }
+
+    // GET: Manager/SalesReport
+    // Màn hình báo cáo doanh số - Các đơn đã Close (Customer đã trả máy)
+    public async Task<IActionResult> SalesReport(string? search, DateTime? fromDate, DateTime? toDate, int page = 1)
+    {
             // Query các booking đã Close (StatusId = 8)
             var query = _context.Bookings
                 .Include(b => b.Laptop)
@@ -537,15 +544,6 @@ namespace web_chothue_laptop.Controllers
 
             return View(bookings);
         }
-
-        catch (Exception ex)
-        {
-            
-            TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái blacklist.";
-        }
-
-        return RedirectToAction(nameof(RentalHistory), new { id = id });
-
     }
 }
 
