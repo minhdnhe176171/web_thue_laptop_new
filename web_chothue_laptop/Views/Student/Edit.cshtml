@@ -1,4 +1,4 @@
-﻿@model web_chothue_laptop.ViewModels.CreateLaptopViewModel
+﻿﻿@model web_chothue_laptop.ViewModels.CreateLaptopViewModel
 @{
     ViewData["Title"] = "Chỉnh sửa laptop";
 }
@@ -30,13 +30,13 @@
     </div>
 
     <div class="form-group">
-        <label>Giá</label>
+        <label>Giá/ngày</label>
         <div>
-            <label><input asp-for="Price" type="radio" value="100000" /> 100,000</label>
-            <label><input asp-for="Price" type="radio" value="200000" /> 200,000</label>
-            <label><input asp-for="Price" type="radio" value="300000" /> 300,000</label>
-            <label><input asp-for="Price" type="radio" value="400000" /> 400,000</label>
-            <label><input asp-for="Price" type="radio" value="500000" /> 500,000</label>
+            <label class="mr-3"><input asp-for="Price" type="radio" value="70000" /> 70,000 đ</label>
+            <label class="mr-3"><input asp-for="Price" type="radio" value="140000" /> 140,000 đ</label>
+            <label class="mr-3"><input asp-for="Price" type="radio" value="210000" /> 210,000 đ</label>
+            <label class="mr-3"><input asp-for="Price" type="radio" value="280000" /> 280,000 đ</label>
+            <label class="mr-3"><input asp-for="Price" type="radio" value="350000" /> 350,000 đ</label>
             <span asp-validation-for="Price" class="text-danger"></span>
         </div>
     </div>

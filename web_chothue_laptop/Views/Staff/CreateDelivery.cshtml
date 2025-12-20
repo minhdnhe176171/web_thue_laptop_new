@@ -1,4 +1,4 @@
-﻿@model web_chothue_laptop.ViewModels.DeliveryViewModel
+﻿﻿@model web_chothue_laptop.ViewModels.DeliveryViewModel
 @{
     ViewData["Title"] = "Tạo Phiếu Giao Máy";
 }
@@ -14,9 +14,12 @@
     <form asp-action="CreateDelivery" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="BookingId" />
-        
+
+        <input type="hidden" asp-for="IdCardUrl" />
+        <input type="hidden" asp-for="StudentCardUrl" />
+        <input type="hidden" asp-for="LaptopImageUrl" />
+
         <div class="row">
-            <!-- Thông tin booking -->
             <div class="col-md-6">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg text-black">
@@ -53,119 +56,112 @@
                         <dl class="row mb-0">
                             @if (!string.IsNullOrEmpty(Model.Cpu))
                             {
-                                <dt class="col-sm-5"><i class="fas fa-microchip"></i> CPU:</dt>
+                                <dt class="col-sm-5">CPU:</dt>
                                 <dd class="col-sm-7">@Model.Cpu</dd>
                             }
-
                             @if (!string.IsNullOrEmpty(Model.RamSize))
                             {
-                                <dt class="col-sm-5"><i class="fas fa-memory"></i> RAM:</dt>
+                                <dt class="col-sm-5">RAM:</dt>
                                 <dd class="col-sm-7">@Model.RamSize</dd>
                             }
-
                             @if (!string.IsNullOrEmpty(Model.Storage))
                             {
-                                <dt class="col-sm-5"><i class="fas fa-hdd"></i> Storage:</dt>
+                                <dt class="col-sm-5">Storage:</dt>
                                 <dd class="col-sm-7">@Model.Storage</dd>
                             }
-
                             @if (!string.IsNullOrEmpty(Model.Gpu))
                             {
-                                <dt class="col-sm-5"><i class="fas fa-th"></i> GPU:</dt>
+                                <dt class="col-sm-5">GPU:</dt>
                                 <dd class="col-sm-7">@Model.Gpu</dd>
                             }
-
                             @if (!string.IsNullOrEmpty(Model.ScreenSize))
                             {
-                                <dt class="col-sm-5"><i class="fas fa-desktop"></i> Màn hình:</dt>
+                                <dt class="col-sm-5">Màn hình:</dt>
                                 <dd class="col-sm-7">@Model.ScreenSize</dd>
-                            }
-
-                            @if (!string.IsNullOrEmpty(Model.Os))
-                            {
-                                <dt class="col-sm-5"><i class="fab fa-windows"></i> OS:</dt>
-                                <dd class="col-sm-7">@Model.Os</dd>
                             }
                         </dl>
                     </div>
                 </div>
             </div>
 
-            <!-- Kiểm tra tình trạng máy -->
             <div class="col-md-6">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header  text-black">
+                    <div class="card-header text-black">
                         <h5 class="mb-0"><i class="fas fa-check-circle"></i> Kiểm Tra Tình Trạng Máy</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input asp-for="ScreenCondition" class="form-check-input" />
-                                <label asp-for="ScreenCondition" class="form-check-label">
-                                    <i class="fas fa-desktop"></i> Màn hình hoạt động tốt
-                                </label>
-                            </div>
-                        </div>
+                        <div class="mb-3"><div class="form-check"><input asp-for="ScreenCondition" class="form-check-input" /><label asp-for="ScreenCondition" class="form-check-label">Màn hình hoạt động tốt</label></div></div>
+                        <div class="mb-3"><div class="form-check"><input asp-for="KeyboardCondition" class="form-check-input" /><label asp-for="KeyboardCondition" class="form-check-label">Bàn phím hoạt động tốt</label></div></div>
+                        <div class="mb-3"><div class="form-check"><input asp-for="MouseCondition" class="form-check-input" /><label asp-for="MouseCondition" class="form-check-label">Chuột đi kèm (nếu có)</label></div></div>
+                        <div class="mb-3"><div class="form-check"><input asp-for="ChargerCondition" class="form-check-input" /><label asp-for="ChargerCondition" class="form-check-label">Sạc hoạt động tốt</label></div></div>
+                        <div class="mb-3"><div class="form-check"><input asp-for="BodyCondition" class="form-check-input" /><label asp-for="BodyCondition" class="form-check-label">Vỏ máy không trầy xước</label></div></div>
 
                         <div class="mb-3">
-                            <div class="form-check">
-                                <input asp-for="KeyboardCondition" class="form-check-input" />
-                                <label asp-for="KeyboardCondition" class="form-check-label">
-                                    <i class="fas fa-keyboard"></i> Bàn phím hoạt động tốt
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input asp-for="MouseCondition" class="form-check-input" />
-                                <label asp-for="MouseCondition" class="form-check-label">
-                                    <i class="fas fa-mouse"></i> Chuột đi kèm (nếu có)
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input asp-for="ChargerCondition" class="form-check-input" />
-                                <label asp-for="ChargerCondition" class="form-check-label">
-                                    <i class="fas fa-plug"></i> Sạc hoạt động tốt
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input asp-for="BodyCondition" class="form-check-input" />
-                                <label asp-for="BodyCondition" class="form-check-label">
-                                    <i class="fas fa-laptop"></i> Vỏ máy không trầy xước
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="BatteryLevel" class="form-label">
-                                <i class="fas fa-battery-full"></i> Mức pin hiện tại (%)
-                            </label>
+                            <label asp-for="BatteryLevel" class="form-label fw-bold">Mức pin hiện tại (%)</label>
                             <input asp-for="BatteryLevel" type="number" class="form-control" min="0" max="100" />
                             <span asp-validation-for="BatteryLevel" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="ConditionImage" class="form-label">
-                                <i class="fas fa-camera"></i> Upload ảnh tình trạng máy
-                            </label>
-                            <input asp-for="ConditionImage" type="file" class="form-control" accept="image/*" />
-                            <small class="text-muted">Chụp ảnh laptop trước khi giao</small>
+                            <label class="form-label fw-bold"><i class="fas fa-camera"></i> Ảnh Tình Trạng Máy</label>
+
+                            <div class="row mb-2">
+                                <div class="col-12 text-center">
+                                    <div class="border rounded bg-light p-2 position-relative" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+
+                                        <img id="img_LaptopPreview" src="@(!string.IsNullOrEmpty(Model.LaptopImageUrl) ? Model.LaptopImageUrl : "#")"
+                                             class="img-fluid rounded"
+                                             style="max-height: 200px; display: @(!string.IsNullOrEmpty(Model.LaptopImageUrl) ? "block" : "none")"
+                                             alt="Ảnh máy" />
+
+                                        <div id="box_EmptyState" class="text-muted" style="display: @(!string.IsNullOrEmpty(Model.LaptopImageUrl) ? "none" : "block")">
+                                            <i class="fas fa-image fa-3x mb-2"></i><br>Chưa có ảnh
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <label class="form-label small text-muted">Cập nhật ảnh mới:</label>
+                            <div class="input-group">
+                                <input asp-for="ConditionImage" type="file" class="form-control" accept="image/*" id="inp_ConditionImage" />
+
+                                <button type="submit"
+                                        asp-action="UpdateLaptopImageOnly"
+                                        formnovalidate
+                                        class="btn btn-primary">
+                                    <i class="fas fa-upload"></i> Cập Nhật Ngay
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> Chọn ảnh và bấm <strong>Cập Nhật Ngay</strong> để lưu ảnh vào hệ thống, hoặc bấm <strong>Xác Nhận Giao Máy</strong> ở cuối để lưu cùng đơn hàng.
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Notes" class="form-label">
-                                <i class="fas fa-sticky-note"></i> Ghi chú
-                            </label>
-                            <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Ghi chú thêm về tình trạng máy..."></textarea>
-                            <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4 border-warning">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="mb-0 text-dark"><i class="fas fa-id-card"></i> Xác Minh Giấy Tờ Tùy Thân</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-info text-white me-3" data-bs-toggle="modal" data-bs-target="#identityModal">
+                                <i class="fas fa-eye"></i> Xem CCCD & Thẻ HS
+                            </button>
+                            <span class="text-muted fst-italic">Vui lòng đối chiếu ảnh gốc với người nhận máy.</span>
                         </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check p-3 bg-light border rounded">
+                            <input asp-for="IsIdentityVerified" class="form-check-input border-dark" style="transform: scale(1.3); margin-top: 0.3rem;" id="IsIdentityVerified" />
+                            <label asp-for="IsIdentityVerified" class="form-check-label fw-bold text-danger ms-2">Đã xác nhận đúng người</label>
+                        </div>
+                        <span asp-validation-for="IsIdentityVerified" class="text-danger small"></span>
                     </div>
                 </div>
             </div>
@@ -173,17 +169,94 @@
 
         <div class="card shadow-sm">
             <div class="card-body text-center">
-                <button type="submit" class="btn btn-success btn-lg px-5">
-                    <i class="fas fa-check"></i> Xác Nhận Giao Máy
-                </button>
-                <a asp-action="Deliveries" class="btn btn-secondary btn-lg px-5 ms-3">
-                    <i class="fas fa-times"></i> Hủy
-                </a>
+                <button type="submit" class="btn btn-success btn-lg px-5"><i class="fas fa-check"></i> Xác Nhận Giao Máy</button>
+                <a asp-action="Deliveries" class="btn btn-secondary btn-lg px-5 ms-3"><i class="fas fa-times"></i> Hủy</a>
             </div>
         </div>
     </form>
 </div>
 
+<div class="modal fade" id="identityModal" tabindex="-1" aria-labelledby="identityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold" id="identityModalLabel"><i class="fas fa-address-card"></i> Hồ Sơ Giấy Tờ Khách Hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <div class="row text-center">
+                    <div class="col-md-6 border-end">
+                        <h6 class="fw-bold text-primary mb-3">CĂN CƯỚC CÔNG DÂN</h6>
+                        @if (!string.IsNullOrEmpty(Model.IdCardUrl))
+                        {
+                            <div class="bg-white p-2 rounded shadow-sm"><img src="@Model.IdCardUrl" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;" /></div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning py-5">Chưa cập nhật ảnh CCCD</div>
+                        }
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary mb-3">THẺ HỌC SINH</h6>
+                        @if (!string.IsNullOrEmpty(Model.StudentCardUrl))
+                        {
+                            <div class="bg-white p-2 rounded shadow-sm"><img src="@Model.StudentCardUrl" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;" /></div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning py-5">Chưa cập nhật ảnh Thẻ HS</div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success px-4" onclick="confirmIdentityInModal()">
+                    <i class="fas fa-check-double"></i> Xác nhận Hợp Lệ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // --- XỬ LÝ PREVIEW ẢNH ---
+        const inputImage = document.getElementById('inp_ConditionImage');
+        const imgPreview = document.getElementById('img_LaptopPreview');
+        const emptyState = document.getElementById('box_EmptyState');
+
+        if (inputImage && imgPreview) {
+            inputImage.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imgPreview.src = e.target.result;
+                        imgPreview.style.display = 'block';
+                        if(emptyState) emptyState.style.display = 'none';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+
+    // --- XỬ LÝ NÚT XÁC NHẬN TRONG MODAL ---
+    function confirmIdentityInModal() {
+        // 1. Tích vào checkbox
+        const checkBox = document.getElementById('IsIdentityVerified');
+        if(checkBox) checkBox.checked = true;
+
+        // 2. Đóng Modal (Bootstrap 5)
+        var myModalEl = document.getElementById('identityModal');
+        var modal = bootstrap.Modal.getInstance(myModalEl);
+        if (modal) {
+            modal.hide();
+        }
+    }
+</script>

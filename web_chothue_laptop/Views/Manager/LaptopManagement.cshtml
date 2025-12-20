@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+﻿﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Quản lý Laptop";
     Layout = "_ManagerLayout";
@@ -160,7 +160,7 @@
                asp-route-page="@(ViewBag.CurrentPage + 1)"
                asp-route-searchString="@ViewBag.SearchString"
                asp-route-statusId="@ViewBag.SelectedStatus">
-                Sau
+                
             </a>
         </li>
 

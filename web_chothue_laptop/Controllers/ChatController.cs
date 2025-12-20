@@ -43,7 +43,7 @@ namespace web_chothue_laptop.Controllers
             var userRoleId = user.RoleId ?? 0;
             var userRole = user.Role?.RoleName?.ToLower() ?? "";
             var isCustomer = userRoleId == 2 || userRole.Contains("customer") || userRole.Contains("student");
-            
+
             if (!isCustomer)
             {
                 // Nếu là staff, redirect sang staff chat
@@ -80,7 +80,7 @@ namespace web_chothue_laptop.Controllers
             var userId = HttpContext.Session.GetString("UserId");
             var userRoleIdStr = HttpContext.Session.GetString("UserRoleId");
             var userRole = HttpContext.Session.GetString("UserRole");
-            
+
             // Check if user is staff (RoleId = 4 or role name contains "staff")
             var isStaff = false;
             if (!string.IsNullOrEmpty(userRoleIdStr) && long.TryParse(userRoleIdStr, out var userRoleId))
@@ -91,7 +91,7 @@ namespace web_chothue_laptop.Controllers
             {
                 isStaff = userRole.ToLower().Contains("staff");
             }
-            
+
             if (string.IsNullOrEmpty(userId) || !isStaff)
             {
                 return RedirectToAction("Login", "Account");
@@ -126,4 +126,3 @@ namespace web_chothue_laptop.Controllers
         }
     }
 }
-

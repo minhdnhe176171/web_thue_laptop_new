@@ -175,16 +175,16 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra số điện thoại đã tồn tại trong các bảng (trừ user hiện tại)
             var existsInCustomer = await _context.Customers
                 .AnyAsync(c => c.Phone == phone && c.CustomerId != userId && !string.IsNullOrEmpty(c.Phone));
-            
+
             var existsInStaff = await _context.Staff
                 .AnyAsync(s => s.Phone == phone && s.StaffId != userId && !string.IsNullOrEmpty(s.Phone));
-            
+
             var existsInStudent = await _context.Students
                 .AnyAsync(s => s.Phone == phone && s.StudentId != userId && !string.IsNullOrEmpty(s.Phone));
-            
+
             var existsInManager = await _context.Managers
                 .AnyAsync(m => m.Phone == phone && m.ManagerId != userId && !string.IsNullOrEmpty(m.Phone));
-            
+
             var existsInTechnical = await _context.Technicals
                 .AnyAsync(t => t.Phone == phone && t.TechnicalId != userId && !string.IsNullOrEmpty(t.Phone));
 
@@ -222,16 +222,16 @@ namespace web_chothue_laptop.Controllers
                     // Kiểm tra số điện thoại đã tồn tại trong các bảng (trừ user hiện tại)
                     var existsInCustomer = await _context.Customers
                         .AnyAsync(c => c.Phone == model.Phone && c.CustomerId != userIdLong && !string.IsNullOrEmpty(c.Phone));
-                    
+
                     var existsInStaff = await _context.Staff
                         .AnyAsync(s => s.Phone == model.Phone && s.StaffId != userIdLong && !string.IsNullOrEmpty(s.Phone));
-                    
+
                     var existsInStudent = await _context.Students
                         .AnyAsync(s => s.Phone == model.Phone && s.StudentId != userIdLong && !string.IsNullOrEmpty(s.Phone));
-                    
+
                     var existsInManager = await _context.Managers
                         .AnyAsync(m => m.Phone == model.Phone && m.ManagerId != userIdLong && !string.IsNullOrEmpty(m.Phone));
-                    
+
                     var existsInTechnical = await _context.Technicals
                         .AnyAsync(t => t.Phone == model.Phone && t.TechnicalId != userIdLong && !string.IsNullOrEmpty(t.Phone));
 
@@ -247,14 +247,14 @@ namespace web_chothue_laptop.Controllers
                             .Include(u => u.Managers)
                             .Include(u => u.Technicals)
                             .FirstOrDefaultAsync(u => u.Id == userIdLong);
-                        
+
                         if (user != null)
                         {
                             model.Email = user.Email;
                             model.RoleId = user.RoleId;
                             model.RoleName = user.Role?.RoleName;
                             model.AvatarUrl = user.AvatarUrl;
-                            
+
                             var customer1 = user.Customers.FirstOrDefault();
                             if (customer1 != null)
                             {
@@ -286,24 +286,28 @@ namespace web_chothue_laptop.Controllers
                                     else
                                     {
                                         var manager1 = user.Managers.FirstOrDefault();
+
                                         if (manager1 != null)
-                                        {
-                                            model.FirstName = manager1.FirstName;
-                                            model.LastName = manager1.LastName;
-                                            model.Phone = manager1.Phone;
-                                            model.Dob = manager1.Dob;
-                                        }
-                                        else
-                                        {
-                                            var technical1 = user.Technicals.FirstOrDefault();
-                                            if (technical1 != null)
+
+                                            if (manager1 != null)
+
                                             {
-                                                model.FirstName = technical1.FirstName;
-                                                model.LastName = technical1.LastName;
-                                                model.Phone = technical1.Phone;
-                                                model.Dob = technical1.Dob;
+                                                model.FirstName = manager1.FirstName;
+                                                model.LastName = manager1.LastName;
+                                                model.Phone = manager1.Phone;
+                                                model.Dob = manager1.Dob;
                                             }
-                                        }
+                                            else
+                                            {
+                                                var technical1 = user.Technicals.FirstOrDefault();
+                                                if (technical1 != null)
+                                                {
+                                                    model.FirstName = technical1.FirstName;
+                                                    model.LastName = technical1.LastName;
+                                                    model.Phone = technical1.Phone;
+                                                    model.Dob = technical1.Dob;
+                                                }
+                                            }
                                     }
                                 }
                             }
@@ -400,4 +404,3 @@ namespace web_chothue_laptop.Controllers
         }
     }
 }
-

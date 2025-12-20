@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+﻿﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Booking>
 @{
     ViewData["Title"] = "Laptop Đang Được Thuê";
 }
@@ -79,12 +79,13 @@
         <div class="sidebar-menu">
             <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
             <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
+
             <a href="@Url.Action("RentedLaptops", "Staff")" class="active"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
             <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
         </div>
     </div>
-
     <div class="staff-content">
         <h2 class="text-primary fw-bold mb-4">Laptop Đang Được Thuê</h2>
 
@@ -92,7 +93,10 @@
             <div class="col-md-3">
                 <div class="card bg-primary text-white shadow-sm">
                     <div class="card-body d-flex justify-content-between align-items-center">
-                        <div><h6 class="text-uppercase mb-1 opacity-75">Tổng Đang Thuê</h6><h2 class="mb-0">@Model.Count()</h2></div>
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">Tổng Đang Thuê</h6>
+                            <h2 class="mb-0">@ViewData["Stat_Total"]</h2>
+                        </div>
                         <i class="fas fa-laptop fa-3x opacity-50"></i>
                     </div>
                 </div>
@@ -102,7 +106,7 @@
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-uppercase mb-1">Sắp Hết Hạn</h6>
-                            <h2 class="mb-0">@Model.Count(b => (b.EndTime - DateTime.Today).Days <= 2 && (b.EndTime - DateTime.Today).Days >= 0)</h2>
+                            <h2 class="mb-0">@ViewData["Stat_Expiring"]</h2>
                         </div>
                         <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
                     </div>
@@ -111,7 +115,10 @@
             <div class="col-md-3">
                 <div class="card bg-danger text-white shadow-sm">
                     <div class="card-body d-flex justify-content-between align-items-center">
-                        <div><h6 class="text-uppercase mb-1 opacity-75">Quá Hạn</h6><h2 class="mb-0">@Model.Count(b => b.EndTime < DateTime.Today)</h2></div>
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">Quá Hạn</h6>
+                            <h2 class="mb-0">@ViewData["Stat_Overdue"]</h2>
+                        </div>
                         <i class="fas fa-clock fa-3x opacity-50"></i>
                     </div>
                 </div>
@@ -119,12 +126,26 @@
             <div class="col-md-3">
                 <div class="card bg-success text-white shadow-sm">
                     <div class="card-body d-flex justify-content-between align-items-center">
-                        <div><h6 class="text-uppercase mb-1 opacity-75">Doanh Thu</h6><h2 class="mb-0">@(Model.Sum(b => b.TotalPrice ?? 0).ToString("#,##0"))</h2></div>
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">Doanh Thu</h6>
+                            <h2 class="mb-0">@ViewData["Stat_Revenue"]</h2>
+                        </div>
                         <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
+
+        <form asp-action="RentedLaptops" method="get" class="mb-3 d-flex" style="max-width: 400px;">
+            <div class="input-group">
+                <input type="text" name="searchString" class="form-control" placeholder="Tìm tên khách, laptop..." value="@ViewData["CurrentFilter"]">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i>Tìm kiếm</button>
+                @if (ViewData["CurrentFilter"] != null)
+                {
+                    <a asp-action="RentedLaptops" class="btn btn-outline-secondary">X</a>
+                }
+            </div>
+        </form>
 
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3">
@@ -141,6 +162,7 @@
                                 <th>Chủ Máy</th>
                                 <th>Ngày Trả</th>
                                 <th>Trạng Thái</th>
+                                <th>Hành Động</th>
                                 <th>Tổng Tiền</th>
                             </tr>
                         </thead>
@@ -173,14 +195,21 @@
                                             }
                                             else if (daysLeft == 0)
                                             {
-
                                                 <span class="badge bg-warning text-dark">Hôm nay</span>
                                             }
                                             else
                                             {
-
                                                 <span class="badge bg-info text-dark">Còn @daysLeft ngày</span>
                                             }
+                                        </td>
+                                        <td class="text-center">
+                                            <form asp-action="CompleteBooking" asp-controller="Staff" method="post" style="display:inline" onsubmit="return confirm('Xác nhận hoàn thành đơn thuê này? Máy sẽ chuyển sang trạng thái chờ trả về.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="bookingId" value="@booking.Id" />
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-check-circle"></i> Hoàn thành
+                                                </button>
+                                            </form>
                                         </td>
                                         <td class="text-success fw-bold">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</td>
                                     </tr>
@@ -188,11 +217,43 @@
                             }
                             else
                             {
-                                <tr><td colspan="7" class="text-center py-5 text-muted">Không có laptop nào đang được thuê</td></tr>
+                                <tr><td colspan="8" class="text-center py-5 text-muted">Không có laptop nào đang được thuê</td></tr>
                             }
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <div class="card-footer bg-white d-flex justify-content-end py-3">
+                @if (Model == null)
+                {
+                    <p>No data available.</p>
+                    return; // Dừng việc hiển thị phần còn lại của trang
+                }
+
+                @{
+                    var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                    var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+                }
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @prevDisabled">
+                            <a asp-action="RentedLaptops"
+                               asp-route-pageNumber="@(Model.PageIndex - 1)"
+                               asp-route-searchString="@ViewData["CurrentFilter"]"
+                               class="page-link">Trước</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <span class="page-link">Trang @Model.PageIndex / @Model.TotalPages</span>
+                        </li>
+                        <li class="page-item @nextDisabled">
+                            <a asp-action="RentedLaptops"
+                               asp-route-pageNumber="@(Model.PageIndex + 1)"
+                               asp-route-searchString="@ViewData["CurrentFilter"]"
+                               class="page-link">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>

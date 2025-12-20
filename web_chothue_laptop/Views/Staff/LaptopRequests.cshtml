@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+﻿﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Máy Chờ Kiểm Tra";
 }
@@ -72,21 +72,21 @@
         overflow-x: auto;
     }
 </style>
-
 <div class="staff-wrapper">
     <div class="staff-sidebar">
         <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
         <div class="sidebar-menu">
             <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
+
             <a href="@Url.Action("LaptopRequests", "Staff")" class="active"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
+
             <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
             <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
         </div>
     </div>
-
     <div class="staff-content">
-        <h3 class="fw-bold text-primary mb-4">Máy Chờ Kiểm Tra (@(Model?.Count() ?? 0))</h3>
+        <h3 class="fw-bold text-primary mb-4">Máy Chờ Kiểm Tra (@ViewData["TotalCount"])</h3>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -96,17 +96,30 @@
         {
             <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>@TempData["WarningMessage"]</div>
         }
+        <form asp-action="LaptopRequests" method="get" class="mb-3">
+            <div class="input-group" style="max-width: 500px;">
+                <input type="text" name="searchString" class="form-control" placeholder="Tìm tên máy, sinh viên..." value="@ViewData["CurrentFilter"]">
 
+                <button type="submit" class="btn btn-primary text-nowrap">
+                    <i class="fas fa-search"></i> Tìm kiếm
+                </button>
+
+                @if (ViewData["CurrentFilter"] != null)
+                {
+                    <a asp-action="LaptopRequests" class="btn btn-outline-secondary">X</a>
+                }
+            </div>
+        </form>
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th class="ps-4 py-3">Tên Laptop</th>
-                            <th>Chủ Máy (Student)</th>
-                            <th>Trạng Thái</th>
-                            <th>Giá Thuê</th>
-                            <th class="text-end pe-4">Xử Lý</th>
+                            <th class="ps-4 py-3" style="width: 30%;">Tên Laptop</th>
+                            <th style="width: 20%;">Chủ Máy</th>
+                            <th style="width: 20%;">Trạng Thái</th>
+                            <th style="width: 15%;">Giá Thuê</th>
+                            <th class="text-end pe-4" style="width: 15%;">Xử Lý</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -114,38 +127,132 @@
                         {
                             foreach (var laptop in Model)
                             {
+                                // ✅ Kiểm tra trạng thái ticket
+                                var approvedTicket = laptop.TechnicalTickets?.FirstOrDefault(t => t.StatusId == 2 && t.BookingId == null);
+                                var pendingTicket = laptop.TechnicalTickets?.FirstOrDefault(t => t.StatusId == 1 && t.BookingId == null);
+                                var processingTicket = laptop.TechnicalTickets?.FirstOrDefault(t => t.StatusId == 4 && t.BookingId == null); // Student đã đồng ý sửa
+                                var fixedTicket = laptop.TechnicalTickets?.FirstOrDefault(t => t.StatusId == 5 && t.BookingId == null); // Tech đã sửa xong
+                                bool hasTicket = laptop.TechnicalTickets != null && laptop.TechnicalTickets.Any(t => t.BookingId == null);
+                                
                                 <tr>
                                     <td class="ps-4">
                                         <span class="fw-bold text-dark">@laptop.Name</span><br />
-                                        <small class="text-muted">ID: @laptop.Id</small>
+                                        <small class="text-muted">ID: @laptop.Id | Hãng: @laptop.Brand?.BrandName</small>
                                     </td>
-                                    <td>@(laptop.Student?.LastName + " " + laptop.Student?.FirstName)</td>
                                     <td>
-                                        @if (laptop.StatusId == 1)
-                                        {
-                                            <span class="badge bg-warning text-dark">Chờ gửi Technical</span>
-                                        }
-                                        else if (laptop.StatusId == 2)
-                                        {
+                                        @(laptop.Student?.LastName + " " + laptop.Student?.FirstName)<br/>
+                                        <small class="text-muted">@laptop.Student?.Email</small>
+                                    </td>
 
-                                            <span class="badge bg-success">Technical đã duyệt</span>
+                                    <td>
+                                        @if (laptop.StatusId == 4)
+                                        {
+                                            @* Laptop đang Fixing *@
+                                            @if (fixedTicket != null)
+                                            {
+                                                <span class="badge bg-success">✅ Đã sửa xong - Chờ niêm yết</span>
+                                            }
+                                            else if (processingTicket != null)
+                                            {
+                                                <span class="badge bg-info">Đang sửa chữa</span>
+                                            }
+                                            else if (pendingTicket != null)
+                                            {
+                                                <span class="badge bg-warning text-dark"> Chờ Student đồng ý sửa</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Cần sửa chữa</span>
+                                            }
+                                        }
+                                        else if (laptop.StatusId == 1)
+                                        {
+                                            @* Laptop Pending *@
+                                            @if (approvedTicket != null)
+                                            {
+                                                <span class="badge bg-success"> Technical đã duyệt</span>
+                                            }
+                                            else if (pendingTicket != null)
+                                            {
+                                                <span class="badge bg-info"> Technical đang xem</span>
+                                            }
+                                            else if (!hasTicket)
+                                            {
+                                                <span class="badge bg-warning text-dark"> Chờ gửi Technical</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Chưa rõ</span>
+                                            }
                                         }
                                     </td>
-                                    <td class="text-success fw-bold">@(laptop.Price.HasValue? laptop.Price.Value.ToString("#,##0") : "0") đ</td>
+
+                                    <td class="text-success fw-bold">
+                                        @(laptop.Price.HasValue ? laptop.Price.Value.ToString("#,##0") : "0") đ/ngày
+                                    </td>
+
                                     <td class="text-end pe-4">
-                                        @if (laptop.StatusId == 1)
+                                        @if (laptop.StatusId == 4)
                                         {
-                                            <form asp-action="SendToTechnical" method="post">
-                                                <input type="hidden" name="laptopId" value="@laptop.Id" />
-                                                <button class="btn btn-primary btn-sm">Gửi Technical</button>
-                                            </form>
+                                            @* Laptop Fixing *@
+                                            @if (fixedTicket != null)
+                                            {
+                                                @* Tech đã sửa xong → Cho phép Staff niêm yết *@
+                                                <form asp-action="PublishLaptop" method="post" style="display:inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="laptopId" value="@laptop.Id" />
+                                                    <button class="btn btn-success btn-sm" onclick="return confirm('Xác nhận đưa máy lên web?')">
+                                                        <i class="fas fa-check"></i> Niêm yết
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (processingTicket != null)
+                                            {
+                                                @* Đang sửa chữa *@
+                                                <button class="btn btn-secondary btn-sm" disabled>
+                                                    <i class="fas fa-tools"></i> Đang sửa...
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                @* Chờ Student đồng ý *@
+                                                <button class="btn btn-warning btn-sm" disabled>
+                                                    <i class="fas fa-hourglass-half"></i> Chờ Student
+                                                </button>
+                                            }
                                         }
-                                        else if (laptop.StatusId == 2)
+                                        else if (laptop.StatusId == 1)
                                         {
-                                            <form asp-action="PublishLaptop" method="post">
-                                                <input type="hidden" name="laptopId" value="@laptop.Id" />
-                                                <button class="btn btn-success btn-sm" onclick="return confirm('Xác nhận cho thuê?')">Cho Thuê</button>
-                                            </form>
+                                            @* Laptop Pending *@
+                                            @if (approvedTicket != null)
+                                            {
+                                                @* Technical đã duyệt → Cho phép Staff niêm yết *@
+                                                <form asp-action="PublishLaptop" method="post" style="display:inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="laptopId" value="@laptop.Id" />
+                                                    <button class="btn btn-success btn-sm" onclick="return confirm('Xác nhận đưa máy lên web?')">
+                                                        <i class="fas fa-check"></i> Niêm yết
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (pendingTicket != null)
+                                            {
+                                                @* Đang chờ Technical xem *@
+                                                <button class="btn btn-secondary btn-sm" disabled>
+                                                    <i class="fas fa-clock"></i> Chờ Technical
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                @* Chưa gửi cho Technical *@
+                                                <form asp-action="SendToTechnical" method="post" style="display:inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="laptopId" value="@laptop.Id" />
+                                                    <button class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-paper-plane"></i> Gửi Technical
+                                                    </button>
+                                                </form>
+                                            }
                                         }
                                     </td>
                                 </tr>
@@ -157,6 +264,15 @@
                         }
                     </tbody>
                 </table>
+                <div class="p-3 d-flex justify-content-end">
+                    @{
+                        var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                        var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+                    }
+                    <a asp-action="LaptopRequests" asp-route-pageNumber="@(Model.PageIndex - 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm me-2 @prevDisabled">Trước</a>
+                    <span class="align-self-center mx-2">Trang @Model.PageIndex / @Model.TotalPages</span>
+                    <a asp-action="LaptopRequests" asp-route-pageNumber="@(Model.PageIndex + 1)" asp-route-searchString="@ViewData["CurrentFilter"]" class="btn btn-outline-primary btn-sm ms-2 @nextDisabled">Sau</a>
+                </div>
             </div>
         </div>
     </div>

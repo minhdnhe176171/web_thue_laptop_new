@@ -24,8 +24,8 @@
                             <div id="customersList">
                                 @foreach (var customer in activeCustomers)
                                 {
-                                    <div class="customer-item p-3 border-bottom cursor-pointer" 
-                                         data-customer-id="@customer.CustomerId" 
+                                    <div class="customer-item p-3 border-bottom cursor-pointer"
+                                         data-customer-id="@customer.CustomerId"
                                          data-customer-name="@customer.CustomerName"
                                          onclick="selectCustomer(@customer.CustomerId, '@Html.Raw(System.Text.Json.JsonSerializer.Serialize(customer.CustomerName))')"
                                          style="cursor: pointer; transition: background-color 0.2s;">
@@ -34,7 +34,7 @@
                                 }
                             </div>
                         </div>
-                        
+
                         <!-- Khu vực chat -->
                         <div class="col-md-8 d-flex flex-column">
                             <div id="chatArea" class="flex-grow-1 p-3" style="overflow-y: auto; background-color: #ffffff; min-height: 500px;">
@@ -46,7 +46,7 @@
                             </div>
                             <div class="border-top p-3 bg-white">
                                 <div class="input-group">
-                                    <input type="text" id="messageInput" class="form-control" 
+                                    <input type="text" id="messageInput" class="form-control"
                                            placeholder="Nhập tin nhắn..." disabled />
                                     <button class="btn btn-success" id="sendButton" disabled>
                                         <i class="bi bi-send"></i> Gửi
@@ -87,7 +87,7 @@
 
         connection.on("ReceiveMessage", function (data) {
             console.log("Received message:", data);
-            
+
             // Nếu đang chọn customer này, hiển thị tin nhắn ngay
             if (data.customerId && data.customerId === selectedCustomerId) {
                 // Kiểm tra xem tin nhắn đã tồn tại chưa (tránh duplicate)
@@ -97,7 +97,7 @@
                     const messageText = msgDiv.querySelector('div:last-of-type')?.textContent;
                     return messageText && messageText.trim() === data.message.trim();
                 });
-                
+
                 if (!messageExists) {
                     displayMessage(data, data.senderType);
                 }
@@ -110,7 +110,7 @@
                     displayMessage(data, data.senderType);
                 }, 100);
             }
-            
+
             // Update customer list if new customer joined
             if (data.customerId) {
                 updateCustomerList(data.customerId, data.customerName);
@@ -129,15 +129,15 @@
 
         function selectCustomer(customerId, customerName) {
             console.log("Selecting customer:", customerId, customerName);
-            
+
             // Nếu đang chọn customer này rồi, không làm gì
             if (selectedCustomerId === customerId) {
                 return;
             }
-            
+
             selectedCustomerId = customerId;
             selectedCustomerName = customerName;
-            
+
             // Update UI
             document.querySelectorAll('.customer-item').forEach(item => {
                 item.style.backgroundColor = '';
@@ -146,13 +146,13 @@
             if (selectedItem) {
                 selectedItem.style.backgroundColor = '#e3f2fd';
             }
-            
+
             // Show chat area
             document.getElementById('noCustomerSelected').style.display = 'none';
             document.getElementById('messagesList').style.display = 'block';
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendButton').disabled = false;
-            
+
             // Load conversation history (chỉ load nếu chưa có tin nhắn nào)
             const messagesList = document.getElementById('messagesList');
             if (messagesList.children.length === 0) {
@@ -170,14 +170,14 @@
                 }
                 const messages = await response.json();
                 console.log("Loaded messages:", messages);
-                
+
                 const messagesList = document.getElementById('messagesList');
-                
+
                 // Chỉ load nếu chưa có tin nhắn nào, hoặc nếu đang chọn customer này
                 if (selectedCustomerId === customerId) {
                     // Lưu số lượng tin nhắn hiện tại
                     const currentMessageCount = messagesList.children.length;
-                    
+
                     // Chỉ xóa và load lại nếu chưa có tin nhắn nào
                     if (currentMessageCount === 0 && messages && messages.length > 0) {
                         messages.forEach(msg => {
@@ -191,7 +191,7 @@
                         });
                     }
                 }
-                
+
                 const chatArea = document.getElementById('chatArea');
                 if (chatArea) {
                     chatArea.scrollTop = chatArea.scrollHeight;
@@ -208,36 +208,36 @@
                 console.error("messagesList element not found");
                 return;
             }
-            
+
             const messageDiv = document.createElement('div');
             messageDiv.className = 'mb-3 ' + (senderType === 'customer' ? 'text-start' : 'text-end');
-            
+
             const messageContent = document.createElement('div');
-            messageContent.className = 'd-inline-block p-3 rounded ' + 
+            messageContent.className = 'd-inline-block p-3 rounded ' +
                 (senderType === 'customer' ? 'bg-light border' : 'bg-success text-white');
             messageContent.style.maxWidth = '70%';
-            
+
             const senderName = document.createElement('div');
             senderName.className = 'fw-bold small';
-            senderName.textContent = senderType === 'customer' ? 
-                (data.customerName || 'Khách hàng') : 
+            senderName.textContent = senderType === 'customer' ?
+                (data.customerName || 'Khách hàng') :
                 (data.staffName || staffName);
-            
+
             const messageText = document.createElement('div');
             messageText.textContent = data.message || '';
-            
+
             const timestamp = document.createElement('div');
             timestamp.className = 'small mt-1 opacity-75';
             const date = data.timestamp ? new Date(data.timestamp) : new Date();
-            timestamp.textContent = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + 
+            timestamp.textContent = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
                 ' ' + date.toLocaleDateString('vi-VN');
-            
+
             messageContent.appendChild(senderName);
             messageContent.appendChild(messageText);
             messageContent.appendChild(timestamp);
             messageDiv.appendChild(messageContent);
             messagesList.appendChild(messageDiv);
-            
+
             const chatArea = document.getElementById('chatArea');
             if (chatArea) {
                 chatArea.scrollTop = chatArea.scrollHeight;
@@ -264,10 +264,10 @@
 
         document.getElementById('sendButton').addEventListener('click', function (event) {
             if (!selectedCustomerId) return;
-            
+
             const message = document.getElementById('messageInput').value;
             if (message.trim() === '') return;
-            
+
             // Hiển thị tin nhắn ngay lập tức (optimistic update)
             displayMessage({
                 message: message,
@@ -275,10 +275,10 @@
                 staffName: staffName,
                 timestamp: new Date().toISOString()
             }, 'staff');
-            
+
             // Xóa input
             document.getElementById('messageInput').value = '';
-            
+
             // Gửi lên server
             connection.invoke('SendMessageToCustomer', selectedCustomerId, staffName, message, staffId)
                 .catch(function (err) {
@@ -293,11 +293,10 @@
             }
         });
     </script>
-    
+
     <style>
         .customer-item:hover {
             background-color: #e3f2fd !important;
         }
     </style>
 }
-

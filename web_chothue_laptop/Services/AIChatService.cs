@@ -84,7 +84,7 @@ NGUYÊN TẮC TRẢ LỜI:
             _httpClient = httpClient;
             _configuration = configuration;
             _logger = logger;
-            
+
             _openAiApiKey = _configuration["OpenAI:ApiKey"];
             _openAiBaseUrl = _configuration["OpenAI:BaseUrl"] ?? "https://api.openai.com/v1";
             _shopName = _configuration["ShopSettings:Name"] ?? "[Tên Shop]";
@@ -121,11 +121,11 @@ NGUYÊN TẮC TRẢ LỜI:
                 {
                     context = new ConversationContext();
                 }
-                
+
                 // Đếm số tin nhắn USER trước khi thêm tin nhắn hiện tại
                 // (Loại bỏ tin nhắn hiện tại nếu đã có để tránh duplicate)
                 var messagesWithoutCurrent = context.Messages.Where(m => m != userMessage).ToList();
-                
+
                 // Đếm số tin nhắn user (mỗi 2 tin nhắn là 1 cặp user-assistant)
                 // Hoặc đơn giản là đếm số tin nhắn trước khi thêm tin nhắn hiện tại
                 int userMessageCount = 0;
@@ -133,7 +133,7 @@ NGUYÊN TẮC TRẢ LỜI:
                 {
                     userMessageCount++; // Mỗi tin nhắn user
                 }
-                
+
                 // Thêm tin nhắn vào lịch sử (nếu chưa có)
                 if (!context.Messages.Contains(userMessage))
                 {
@@ -142,7 +142,7 @@ NGUYÊN TẮC TRẢ LỜI:
 
                 // Phân tích nhu cầu từ tin nhắn
                 var needs = _ragService.AnalyzeCustomerNeeds(userMessage, context.Messages);
-                
+
                 // Cập nhật context
                 if (!string.IsNullOrEmpty(needs.UsageType))
                     context.UsageType = needs.UsageType;
@@ -153,11 +153,11 @@ NGUYÊN TẮC TRẢ LỜI:
                 context.CurrentNeeds = needs;
 
                 // Kiểm tra xem có nhu cầu rõ ràng không (bao gồm cả yêu cầu đặc biệt)
-                bool hasValidNeeds = !string.IsNullOrEmpty(needs.UsageType) || 
+                bool hasValidNeeds = !string.IsNullOrEmpty(needs.UsageType) ||
                                      needs.MinBudget.HasValue || needs.MaxBudget.HasValue ||
                                      needs.CpuRequirement != null || needs.RamRequirement != null || needs.GpuRequirement != null ||
                                      needs.RequiresThinLight || needs.RequiresLongBattery || needs.RequiresGoodCooling;
-                
+
                 // Kiểm tra xem có phải câu hỏi về giá hoặc so sánh không
                 var userMessageLower = userMessage.ToLower();
                 bool isPriceQuery = userMessageLower.Contains("giá") || userMessageLower.Contains("bao nhiêu") ||
@@ -168,7 +168,7 @@ NGUYÊN TẮC TRẢ LỜI:
                                          userMessageLower.Contains("mạnh hơn") || userMessageLower.Contains("yếu hơn") ||
                                          userMessageLower.Contains("và") && (userMessageLower.Contains("laptop") || userMessageLower.Contains("máy"));
                 bool isSpecQuery = userMessageLower.Contains("rtx") || userMessageLower.Contains("gtx") ||
-                                   userMessageLower.Contains("i3") || userMessageLower.Contains("i5") || 
+                                   userMessageLower.Contains("i3") || userMessageLower.Contains("i5") ||
                                    userMessageLower.Contains("i7") || userMessageLower.Contains("i9") ||
                                    userMessageLower.Contains("ryzen") || userMessageLower.Contains("amd") ||
                                    userMessageLower.Contains("ram") || userMessageLower.Contains("gpu") ||
@@ -177,10 +177,10 @@ NGUYÊN TẮC TRẢ LỜI:
                                      userMessageLower.Contains("pin trâu") || userMessageLower.Contains("pin lâu") ||
                                      userMessageLower.Contains("tản nhiệt") || userMessageLower.Contains("ultrabook") ||
                                      needs.RequiresThinLight || needs.RequiresLongBattery || needs.RequiresGoodCooling;
-                
+
                 // Luôn query laptop nếu có câu hỏi về giá, so sánh, thông số, hoặc tính năng đặc biệt
                 bool shouldQueryLaptops = hasValidNeeds || isPriceQuery || isComparisonQuery || isSpecQuery || isFeatureQuery;
-                
+
                 // Chỉ tìm laptop khi cần thiết
                 List<RagService.LaptopInfo> matchingLaptops = new();
                 if (shouldQueryLaptops)
@@ -196,7 +196,7 @@ NGUYÊN TẮC TRẢ LỜI:
                         // vẫn query tất cả laptop có sẵn để AI có thể trả lời
                         matchingLaptops = await _ragService.GetAvailableLaptopsAsync();
                     }
-                    
+
                     // Nếu không tìm thấy laptop phù hợp, lấy tất cả laptop có sẵn
                     if (!matchingLaptops.Any())
                     {
@@ -208,24 +208,24 @@ NGUYÊN TẮC TRẢ LỜI:
                 // Giảm số lượng để tăng tốc độ phản hồi
                 int maxLaptopsForContext = (isComparisonQuery || isPriceQuery) ? 12 : 8;
                 var laptopsForContext = matchingLaptops.Take(maxLaptopsForContext).ToList();
-                
+
                 // Recommended laptops: 3 cho câu hỏi thông thường, nhiều hơn cho so sánh
                 int maxRecommended = isComparisonQuery ? 4 : 3;
                 var recommendedLaptops = matchingLaptops.Take(maxRecommended).ToList();
 
                 // Tạo context cho AI
                 var systemPrompt = SystemPromptTemplate.Replace("{SHOP_NAME}", _shopName);
-                
+
                 var messages = new List<object>
                 {
                     new { role = "system", content = systemPrompt }
                 };
-                
+
                 // Thêm danh sách laptop nếu có laptop và cần thiết
                 if (shouldQueryLaptops && laptopsForContext.Any())
                 {
                     var laptopContext = BuildLaptopContext(laptopsForContext);
-                    
+
                     // Thêm hướng dẫn cho AI dựa trên loại câu hỏi
                     string instruction = "";
                     if (isPriceQuery)
@@ -244,7 +244,7 @@ NGUYÊN TẮC TRẢ LỜI:
                     {
                         instruction = "KHÁCH HÀNG ĐÃ CUNG CẤP NHU CẦU. Hãy đề xuất laptop phù hợp từ danh sách trên.\n\n";
                     }
-                    
+
                     messages.Add(new { role = "system", content = $"{instruction}DANH SÁCH LAPTOP CÓ SẴN:\n{laptopContext}" });
                 }
                 else if (!shouldQueryLaptops)
@@ -260,10 +260,10 @@ NGUYÊN TẮC TRẢ LỜI:
                 // Thêm lịch sử hội thoại (chỉ lấy 6 tin nhắn gần nhất để giảm context và tăng tốc)
                 // Sử dụng messagesWithoutCurrent đã tính ở trên
                 var messagesToProcess = messagesWithoutCurrent.ToList();
-                
+
                 // Chỉ lấy 6 tin nhắn gần nhất (3 cặp user-assistant)
                 var recentMessages = messagesToProcess.Skip(Math.Max(0, messagesToProcess.Count - 6)).ToList();
-                
+
                 // Xây dựng conversation history theo cặp user-assistant
                 int messageIndex = 0;
                 while (messageIndex < recentMessages.Count)
@@ -274,7 +274,7 @@ NGUYÊN TẮC TRẢ LỜI:
                         messages.Add(new { role = "user", content = recentMessages[messageIndex] });
                         messageIndex++;
                     }
-                    
+
                     // Tin nhắn assistant (nếu có)
                     if (messageIndex < recentMessages.Count)
                     {
@@ -298,13 +298,13 @@ NGUYÊN TẮC TRẢ LỜI:
                 }
 
                 var response = await CallOpenAIAsync(messages);
-                
+
                 // Thêm tin nhắn vào context sau khi đã xử lý xong (tránh duplicate)
                 if (!context.Messages.Contains(userMessage))
                 {
                     context.Messages.Add(userMessage);
                 }
-                
+
                 // Recommend laptop nếu có nhu cầu rõ ràng, hoặc có câu hỏi về giá/so sánh/thông số
                 bool shouldRecommend = hasValidNeeds || isPriceQuery || isComparisonQuery || isSpecQuery;
                 return new ChatResponse
@@ -316,11 +316,11 @@ NGUYÊN TẮC TRẢ LỜI:
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing AI chat message");
-                
+
                 // Fallback response
                 var matchingLaptops = await _ragService.FindMatchingLaptopsAsync(context.CurrentNeeds ?? new RagService.CustomerNeeds());
                 var recommendedLaptops = matchingLaptops.Take(3).ToList();
-                
+
                 int messageCount = context?.Messages?.Count ?? 0;
                 return GenerateFallbackResponse(userMessage, recommendedLaptops, context.CurrentNeeds ?? new RagService.CustomerNeeds(), messageCount + 1);
             }
@@ -386,8 +386,8 @@ NGUYÊN TẮC TRẢ LỜI:
         }
 
         private ChatResponse GenerateFallbackResponse(
-            string userMessage, 
-            List<RagService.LaptopInfo> laptops, 
+            string userMessage,
+            List<RagService.LaptopInfo> laptops,
             RagService.CustomerNeeds needs,
             int messageCount = 0)
         {
@@ -397,10 +397,10 @@ NGUYÊN TẮC TRẢ LỜI:
             // messageCount ở đây là số tin nhắn USER (đã được tính đúng ở trên)
             bool isGreeting = message.Contains("chào") || message.Contains("xin chào") || message.Contains("hello") || message.Contains("hi");
             bool isFirstMessage = messageCount == 1; // Chỉ khi là tin nhắn user đầu tiên (== 1, không phải <= 1)
-            
+
             // Kiểm tra xem tin nhắn có liên quan đến laptop không (mở rộng)
-            bool isLaptopRelated = message.Contains("laptop") || message.Contains("máy tính") || 
-                                   message.Contains("gaming") || message.Contains("chơi game") || 
+            bool isLaptopRelated = message.Contains("laptop") || message.Contains("máy tính") ||
+                                   message.Contains("gaming") || message.Contains("chơi game") ||
                                    message.Contains("đồ họa") || message.Contains("design") ||
                                    message.Contains("lập trình") || message.Contains("programming") ||
                                    message.Contains("văn phòng") || message.Contains("office") ||
@@ -424,7 +424,7 @@ NGUYÊN TẮC TRẢ LỜI:
                                    message.Contains("thẻ sinh viên") || message.Contains("chính sách") ||
                                    needs.UsageType != null || needs.MinBudget.HasValue || needs.MaxBudget.HasValue ||
                                    needs.CpuRequirement != null || needs.RamRequirement != null || needs.GpuRequirement != null;
-            
+
             // Nếu là lời chào đầu tiên, trả về lời chào
             if (isFirstMessage && isGreeting)
             {
@@ -434,32 +434,32 @@ NGUYÊN TẮC TRẢ LỜI:
                     RecommendedLaptops = null
                 };
             }
-            
+
             // Nếu không liên quan đến laptop và không có thông tin nhu cầu
-            if (!isLaptopRelated && string.IsNullOrEmpty(needs.UsageType) && 
+            if (!isLaptopRelated && string.IsNullOrEmpty(needs.UsageType) &&
                 !needs.MinBudget.HasValue && !needs.MaxBudget.HasValue)
             {
                 // Trả lời thân thiện và hỏi về laptop
                 var responseMessage = new StringBuilder();
-                
+
                 if (isFirstMessage)
                 {
                     responseMessage.Append("Xin chào! ");
                 }
-                
+
                 responseMessage.Append("Tôi là trợ lý tư vấn cho thuê laptop. ");
                 responseMessage.Append("Tôi có thể giúp bạn tìm laptop phù hợp với nhu cầu. ");
                 responseMessage.Append("Bạn đang tìm laptop cho mục đích sử dụng nào? (văn phòng, đồ họa, gaming, hay lập trình?)");
-                
+
                 return new ChatResponse
                 {
                     Message = responseMessage.ToString(),
                     RecommendedLaptops = null
                 };
             }
-            
+
             // Chỉ recommend laptop khi có thông tin nhu cầu rõ ràng (bao gồm yêu cầu tính năng)
-            bool hasValidNeeds = !string.IsNullOrEmpty(needs.UsageType) || 
+            bool hasValidNeeds = !string.IsNullOrEmpty(needs.UsageType) ||
                                  needs.MinBudget.HasValue || needs.MaxBudget.HasValue ||
                                  needs.CpuRequirement != null || needs.RamRequirement != null || needs.GpuRequirement != null ||
                                  needs.RequiresThinLight || needs.RequiresLongBattery || needs.RequiresGoodCooling;
@@ -468,7 +468,7 @@ NGUYÊN TẮC TRẢ LỜI:
             if (laptops.Any() && hasValidNeeds)
             {
                 var sb = new StringBuilder();
-                
+
                 if (!string.IsNullOrEmpty(needs.UsageType))
                 {
                     sb.AppendLine($"Dựa trên nhu cầu {needs.UsageType} của bạn, tôi xin đề xuất {Math.Min(3, laptops.Count)} laptop phù hợp:\n");
@@ -504,9 +504,9 @@ NGUYÊN TẮC TRẢ LỜI:
                 // Kiểm tra các loại câu hỏi đặc biệt
                 bool isMacbookQuery = message.Contains("macbook") || message.Contains("mac book") || message.Contains("m3") || message.Contains("m2") || message.Contains("m1");
                 bool isThinkpadQuery = message.Contains("thinkpad") || message.Contains("think pad") || message.Contains("x1 carbon");
-                bool isAccessoryQuery = message.Contains("chuột") || message.Contains("túi chống sốc") || message.Contains("phụ kiện") || 
+                bool isAccessoryQuery = message.Contains("chuột") || message.Contains("túi chống sốc") || message.Contains("phụ kiện") ||
                                        message.Contains("màn hình rời") || message.Contains("màn hình để làm đồ họa");
-                bool isServiceQuery = message.Contains("máy hỏng") || message.Contains("hỗ trợ") || message.Contains("dịch vụ") || 
+                bool isServiceQuery = message.Contains("máy hỏng") || message.Contains("hỗ trợ") || message.Contains("dịch vụ") ||
                                      message.Contains("bảo hành") || message.Contains("đổi máy") ||
                                      message.Contains("sự cố") || message.Contains("báo lỗi") || message.Contains("kỹ thuật viên");
                 bool isPolicyQuery = message.Contains("thủ tục") || message.Contains("cọc tiền") || message.Contains("cọc") ||
@@ -514,9 +514,9 @@ NGUYÊN TẮC TRẢ LỜI:
                                     message.Contains("giấy tờ") || message.Contains("hóa đơn") || message.Contains("thanh toán") ||
                                     message.Contains("giao máy") || message.Contains("quầy");
                 bool isGenQuery = message.Contains("gen 14") || message.Contains("thế hệ 14") || message.Contains("intel gen");
-                
+
                 var responseBuilder = new StringBuilder();
-                
+
                 // Xử lý câu hỏi về máy không có trong DB
                 if (isMacbookQuery)
                 {
@@ -529,14 +529,14 @@ NGUYÊN TẮC TRẢ LỜI:
                         }
                     }
                     responseBuilder.AppendLine("\nCác laptop này có cấu hình tương đương, mỏng nhẹ và phù hợp cho công việc chuyên nghiệp. Bạn muốn tôi tư vấn chi tiết về laptop nào không?");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = laptops.Take(3).ToList()
                     };
                 }
-                
+
                 if (isThinkpadQuery)
                 {
                     responseBuilder.AppendLine("Shop hiện chưa có Thinkpad X1 Carbon. Thay vào đó, shop có các laptop business bền bỉ, bàn phím tốt phù hợp cho công việc văn phòng:");
@@ -548,14 +548,14 @@ NGUYÊN TẮC TRẢ LỜI:
                         }
                     }
                     responseBuilder.AppendLine("\nCác laptop này đều được kiểm tra kỹ, đảm bảo chất lượng và phù hợp cho công việc chuyên nghiệp. Bạn có thể cho tôi biết thêm về nhu cầu sử dụng để tôi tư vấn chính xác hơn không?");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = laptops.Take(3).ToList()
                     };
                 }
-                
+
                 if (isGenQuery)
                 {
                     responseBuilder.AppendLine("Shop hiện chưa có laptop dùng Intel Gen 14. Tuy nhiên, shop có các laptop với CPU thế hệ gần đây (Gen 12-13) hoặc AMD Ryzen mới nhất với hiệu năng tương đương:");
@@ -567,14 +567,14 @@ NGUYÊN TẮC TRẢ LỜI:
                         }
                     }
                     responseBuilder.AppendLine("\nBạn có thể cho tôi biết thêm về mục đích sử dụng để tôi đề xuất laptop phù hợp nhất không?");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = laptops.Take(3).ToList()
                     };
                 }
-                
+
                 // Xử lý câu hỏi về phụ kiện
                 if (isAccessoryQuery)
                 {
@@ -587,18 +587,18 @@ NGUYÊN TẮC TRẢ LỜI:
                         responseBuilder.AppendLine("Hiện shop chủ yếu cho thuê laptop. Bạn có thể kết nối laptop với màn hình ngoài qua cổng HDMI hoặc USB-C (tùy laptop). Nếu cần tư vấn về laptop phù hợp để kết nối màn hình ngoài cho công việc đồ họa, tôi có thể giúp bạn chọn laptop có GPU tốt và cổng kết nối phù hợp.");
                     }
                     responseBuilder.AppendLine("\nBạn đang tìm laptop cho mục đích sử dụng nào? Tôi có thể tư vấn laptop phù hợp cho bạn.");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = null
                     };
                 }
-                
+
                 // Xử lý câu hỏi về dịch vụ và bảo hành
                 if (isServiceQuery)
                 {
-                    if (message.Contains("máy hỏng") || message.Contains("sự cố") || message.Contains("bị lỗi") || 
+                    if (message.Contains("máy hỏng") || message.Contains("sự cố") || message.Contains("bị lỗi") ||
                         message.Contains("đang dùng mà máy") || message.Contains("dùng mà máy bị"))
                     {
                         // Câu hỏi cụ thể về máy hỏng khi đang thuê
@@ -614,14 +614,14 @@ NGUYÊN TẮC TRẢ LỜI:
                         responseBuilder.AppendLine("- Bảo hành đầy đủ trong thời gian thuê");
                     }
                     responseBuilder.AppendLine("\nBạn có đang tìm laptop để thuê không? Tôi có thể tư vấn laptop phù hợp với nhu cầu của bạn.");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = null
                     };
                 }
-                
+
                 // Xử lý câu hỏi về chính sách và thủ tục thuê
                 if (isPolicyQuery)
                 {
@@ -661,24 +661,24 @@ NGUYÊN TẮC TRẢ LỜI:
                         responseBuilder.AppendLine("- Bảo hành đầy đủ trong thời gian thuê");
                     }
                     responseBuilder.AppendLine("\nBạn có muốn tôi tư vấn laptop phù hợp với nhu cầu không?");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = null
                     };
                 }
-                
+
                 // Xử lý yêu cầu về tính năng đặc biệt (mỏng nhẹ, pin trâu, tản nhiệt)
                 bool hasFeatureRequest = message.Contains("mỏng nhẹ") || message.Contains("mỏng") || message.Contains("nhẹ") ||
                                         message.Contains("pin trâu") || message.Contains("pin lâu") ||
                                         message.Contains("tản nhiệt") || needs.RequiresThinLight || needs.RequiresLongBattery || needs.RequiresGoodCooling;
-                
+
                 if (hasFeatureRequest && laptops.Any())
                 {
                     // Tìm laptop phù hợp với yêu cầu tính năng
                     var filteredLaptops = laptops;
-                    
+
                     if (needs.RequiresThinLight || message.Contains("mỏng nhẹ") || message.Contains("mỏng") || message.Contains("nhẹ"))
                     {
                         // Ưu tiên laptop mỏng nhẹ (Ultrabook, XPS, Zenbook, etc.)
@@ -690,7 +690,7 @@ NGUYÊN TẮC TRẢ LỜI:
                             .OrderBy(l => l.Price)
                             .Take(3)
                             .ToList();
-                        
+
                         // Nếu không tìm thấy, lấy laptop có CPU i5/i7 (thường là laptop mỏng nhẹ)
                         if (!filteredLaptops.Any())
                         {
@@ -702,15 +702,15 @@ NGUYÊN TẮC TRẢ LỜI:
                                 .ToList();
                         }
                     }
-                    
+
                     // Nếu vẫn không có, lấy top 3 laptop
                     if (!filteredLaptops.Any())
                     {
                         filteredLaptops = laptops.Take(3).ToList();
                     }
-                    
+
                     responseBuilder.AppendLine("Dựa trên yêu cầu của bạn, tôi xin đề xuất các laptop phù hợp:\n");
-                    
+
                     int index = 1;
                     foreach (var laptop in filteredLaptops)
                     {
@@ -722,19 +722,19 @@ NGUYÊN TẮC TRẢ LỜI:
                         responseBuilder.AppendLine();
                         index++;
                     }
-                    
+
                     responseBuilder.AppendLine("Bạn có muốn biết thêm chi tiết về laptop nào không? Hoặc bạn có ngân sách cụ thể nào không?");
-                    
+
                     return new ChatResponse
                     {
                         Message = responseBuilder.ToString(),
                         RecommendedLaptops = filteredLaptops
                     };
                 }
-                
+
                 // Câu hỏi thông thường - hỏi thêm một cách tự nhiên
                 responseBuilder.Append("Tôi có thể giúp bạn tìm laptop phù hợp. ");
-                
+
                 // Phân tích một phần để hỏi thông minh hơn
                 if (message.Contains("marketing") || message.Contains("content") || message.Contains("mỏng nhẹ"))
                 {
@@ -748,19 +748,19 @@ NGUYÊN TẮC TRẢ LỜI:
                 {
                     responseBuilder.Append("Bạn cần laptop cho mục đích gì? (văn phòng, đồ họa, gaming, hay lập trình?) Và ngân sách của bạn là bao nhiêu?");
                 }
-                
+
                 return new ChatResponse
                 {
                     Message = responseBuilder.ToString(),
                     RecommendedLaptops = null
                 };
             }
-            
+
             // Nếu có nhu cầu nhưng không tìm thấy laptop phù hợp
             var noLaptopMessage = new StringBuilder();
             noLaptopMessage.Append("Xin lỗi, hiện tại chúng tôi không có laptop phù hợp với yêu cầu của bạn. ");
             noLaptopMessage.Append("Bạn có thể cho tôi biết thêm về ngân sách và mục đích sử dụng để tôi tìm các lựa chọn khác không?");
-            
+
             return new ChatResponse
             {
                 Message = noLaptopMessage.ToString(),
@@ -769,4 +769,3 @@ NGUYÊN TẮC TRẢ LỜI:
         }
     }
 }
-

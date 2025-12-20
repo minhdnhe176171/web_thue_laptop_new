@@ -38,7 +38,7 @@ namespace web_chothue_laptop.Controllers
                 // Ưu tiên dùng UserId nếu đã đăng nhập (để persist giữa các trang)
                 var userId = HttpContext.Session.GetString("UserId");
                 string conversationId;
-                
+
                 // Nếu request có sessionId (từ client), parse nó
                 if (!string.IsNullOrEmpty(request.SessionId))
                 {
@@ -77,13 +77,13 @@ namespace web_chothue_laptop.Controllers
                         conversationId = $"ai_chat:session:{sessionId}";
                     }
                 }
-                
+
                 // Lấy lịch sử hội thoại từ Redis
                 var messages = await _redisService.GetAIChatMessagesAsync(conversationId);
-                
+
                 // Tạo hoặc lấy context
                 var context = await _redisService.GetAIChatContextAsync(conversationId);
-                
+
                 if (context == null)
                 {
                     // Tạo context mới từ lịch sử tin nhắn
@@ -92,9 +92,9 @@ namespace web_chothue_laptop.Controllers
                     {
                         messageHistory.Add(msg.Message);
                     }
-                    context = new AIChatService.ConversationContext 
-                    { 
-                        Messages = messageHistory 
+                    context = new AIChatService.ConversationContext
+                    {
+                        Messages = messageHistory
                     };
                 }
                 else
@@ -103,7 +103,7 @@ namespace web_chothue_laptop.Controllers
                     // Đảm bảo context.Messages có đầy đủ lịch sử
                     var existingMessages = context.Messages.ToList();
                     var redisMessages = messages.Select(m => m.Message).ToList();
-                    
+
                     // Nếu Redis có nhiều tin nhắn hơn context, cập nhật context
                     if (redisMessages.Count > existingMessages.Count)
                     {
@@ -190,7 +190,7 @@ namespace web_chothue_laptop.Controllers
             try
             {
                 sessionId ??= HttpContext.Session.Id;
-                
+
                 // Tạo conversationId theo logic giống SendMessage
                 string conversationId;
                 var userId = HttpContext.Session.GetString("UserId");
@@ -202,9 +202,9 @@ namespace web_chothue_laptop.Controllers
                 {
                     conversationId = $"session:{sessionId}";
                 }
-                
+
                 var messages = await _redisService.GetAIChatMessagesAsync(conversationId);
-                
+
                 return Ok(messages);
             }
             catch (Exception ex)
@@ -222,7 +222,7 @@ namespace web_chothue_laptop.Controllers
             try
             {
                 var sessionId = HttpContext.Session.Id;
-                
+
                 // Tạo conversationId theo logic giống SendMessage
                 string conversationId;
                 var userId = HttpContext.Session.GetString("UserId");
@@ -234,9 +234,9 @@ namespace web_chothue_laptop.Controllers
                 {
                     conversationId = $"session:{sessionId}";
                 }
-                
+
                 await _redisService.ClearAIChatHistoryAsync(conversationId);
-                
+
                 return Ok(new { success = true, message = "Đã xóa lịch sử chat" });
             }
             catch (Exception ex)
@@ -252,5 +252,3 @@ namespace web_chothue_laptop.Controllers
         }
     }
 }
-
-

@@ -22,14 +22,14 @@
                     <!-- Avatar Section -->
                     <div class="text-center mb-4">
                         <div class="position-relative d-inline-block">
-                            <img id="avatarPreview" 
-                                 src="@(Model.AvatarUrl ?? "https://via.placeholder.com/200")" 
-                                 alt="Avatar" 
+                            <img id="avatarPreview"
+                                 src="@(Model.AvatarUrl ?? "https://via.placeholder.com/200")"
+                                 alt="Avatar"
                                  class="rounded-circle border border-3 border-primary"
                                  style="width: 200px; height: 200px; object-fit: cover; cursor: pointer;"
                                  onclick="document.getElementById('avatarInput').click()" />
                             <div class="position-absolute bottom-0 end-0">
-                                <button type="button" class="btn btn-primary btn-sm rounded-circle" 
+                                <button type="button" class="btn btn-primary btn-sm rounded-circle"
                                         onclick="document.getElementById('avatarInput').click()"
                                         title="Đổi avatar">
                                     <i class="bi bi-camera-fill"></i>
@@ -45,7 +45,7 @@
                     <!-- Profile Information -->
                     <form asp-action="UpdateProfile" method="post" id="profileForm">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label asp-for="FirstName" class="form-label"></label>
@@ -62,7 +62,7 @@
                         <div class="mb-3">
                             <label asp-for="Email" class="form-label"></label>
                             <input asp-for="Email" class="form-control" readonly />
-                            
+
                         </div>
 
                         <div class="mb-3">
@@ -110,13 +110,15 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
     <script>
         // Validate phone number and date of birth on input
         document.addEventListener('DOMContentLoaded', function() {
             const phoneInput = document.querySelector('input[name="Phone"]');
             const dobInput = document.getElementById('dobInput');
-            
+
             // Phone validation
             if (phoneInput) {
                 // Chỉ cho phép nhập số
@@ -142,37 +144,37 @@
                         const phone = this.value.trim();
                         if (phone && phone.length === 10) {
                             const userId = document.querySelector('input[name="UserId"]').value;
-                            
+
                             // Show loading
                             const existingErrorSpan = phoneInput.parentNode.querySelector('.text-danger.phone-error');
                             if (existingErrorSpan) {
                                 existingErrorSpan.remove();
                             }
-                            
+
                             try {
                                 const response = await fetch(`/Profile/CheckPhoneExists?phone=${encodeURIComponent(phone)}&userId=${userId}`);
                                 const result = await response.json();
-                                
+
                                 // Find the validation span (next sibling after input)
                                 let errorSpan = phoneInput.parentNode.querySelector('span[data-valmsg-for="Phone"]');
                                 if (!errorSpan) {
                                     errorSpan = phoneInput.nextElementSibling;
                                 }
-                                
+
                                 if (result !== true) {
                                     // Phone exists
                                     const errorMessage = typeof result === 'string' ? result : 'Số điện thoại này đã được sử dụng bởi tài khoản khác';
-                                    
+
                                     // Remove existing error spans
                                     const existingErrors = phoneInput.parentNode.querySelectorAll('.text-danger.phone-error');
                                     existingErrors.forEach(span => span.remove());
-                                    
+
                                     // Create or update error message
                                     const newErrorSpan = document.createElement('span');
                                     newErrorSpan.className = 'text-danger phone-error d-block mt-1';
                                     newErrorSpan.textContent = errorMessage;
                                     phoneInput.parentNode.appendChild(newErrorSpan);
-                                    
+
                                     // Also update validation span if exists
                                     if (errorSpan && errorSpan.classList.contains('field-validation-error')) {
                                         errorSpan.textContent = errorMessage;
@@ -183,7 +185,7 @@
                                     // Phone is available, remove error
                                     const existingErrors = phoneInput.parentNode.querySelectorAll('.text-danger.phone-error');
                                     existingErrors.forEach(span => span.remove());
-                                    
+
                                     if (errorSpan && errorSpan.classList.contains('field-validation-error')) {
                                         errorSpan.textContent = '';
                                         errorSpan.classList.remove('field-validation-error');
@@ -215,11 +217,11 @@
                     const today = new Date();
                     let age = today.getFullYear() - selectedDate.getFullYear();
                     const monthDiff = today.getMonth() - selectedDate.getMonth();
-                    
+
                     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate())) {
                         age--;
                     }
-                    
+
                     if (age < 16) {
                         alert('Bạn phải trên 16 tuổi để sử dụng dịch vụ này');
                         this.value = '';
@@ -236,11 +238,11 @@
                             const today = new Date();
                             let age = today.getFullYear() - selectedDate.getFullYear();
                             const monthDiff = today.getMonth() - selectedDate.getMonth();
-                            
+
                             if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < selectedDate.getDate())) {
                                 age--;
                             }
-                            
+
                             if (age < 16) {
                                 e.preventDefault();
                                 alert('Bạn phải trên 16 tuổi để sử dụng dịch vụ này');
@@ -294,7 +296,7 @@
             .then(data => {
                 if (data.success) {
                     statusDiv.innerHTML = '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
-                        data.message + 
+                        data.message +
                         '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
                     // Update hidden field
                     document.querySelector('input[name="AvatarUrl"]').value = data.avatarUrl;
@@ -313,4 +315,3 @@
         });
     </script>
 }
-

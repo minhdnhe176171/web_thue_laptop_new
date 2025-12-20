@@ -66,7 +66,7 @@ namespace web_chothue_laptop.Controllers
                     // Lưu URL vào database
                     laptop.ImageUrl = imageUrl;
                     laptop.UpdatedDate = DateTime.Now;
-                    
+
                     await _context.SaveChangesAsync();
 
                     results.Add(new { laptopId = laptopIds[i], laptopName = laptop.Name, success = true, imageUrl = imageUrl });
@@ -80,13 +80,12 @@ namespace web_chothue_laptop.Controllers
                 }
             }
 
-            return Json(new 
-            { 
-                success = true, 
+            return Json(new
+            {
+                success = true,
                 message = $"Upload hoàn tất: {successCount} thành công, {failCount} thất bại",
-                results = results 
+                results = results
             });
         }
     }
 }
-

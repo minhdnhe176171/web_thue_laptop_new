@@ -6,7 +6,7 @@ namespace web_chothue_laptop.Services
     public class RagService
     {
         private readonly Swp391LaptopContext _context;
-        
+
         // Cache đơn giản trong memory để tăng tốc độ
         private static List<LaptopInfo>? _cachedLaptops;
         private static DateTime _cacheExpiry = DateTime.MinValue;
@@ -40,7 +40,7 @@ namespace web_chothue_laptop.Services
             public string? CpuRequirement { get; set; }
             public string? RamRequirement { get; set; }
             public string? GpuRequirement { get; set; }
-            
+
             // Các yêu cầu đặc biệt
             public bool RequiresThinLight { get; set; } // Mỏng nhẹ
             public bool RequiresLongBattery { get; set; } // Pin lâu
@@ -84,7 +84,7 @@ namespace web_chothue_laptop.Services
             {
                 var detail = laptop.LaptopDetails.FirstOrDefault();
                 var brandName = laptop.Brand?.BrandName ?? "Không rõ";
-                
+
                 var info = new LaptopInfo
                 {
                     Id = laptop.Id,
@@ -120,7 +120,7 @@ namespace web_chothue_laptop.Services
 
             return laptopInfos;
         }
-        
+
         /// <summary>
         /// Xóa cache (gọi khi có thay đổi về laptop hoặc booking)
         /// </summary>
@@ -157,10 +157,10 @@ namespace web_chothue_laptop.Services
                     if (usageLower.Contains("gaming") || usageLower.Contains("chơi game"))
                     {
                         // Gaming cần GPU mạnh, CPU tốt, RAM lớn
-                        if (laptop.Gpu.ToLower().Contains("rtx") || laptop.Gpu.ToLower().Contains("gtx") || 
+                        if (laptop.Gpu.ToLower().Contains("rtx") || laptop.Gpu.ToLower().Contains("gtx") ||
                             laptop.Gpu.ToLower().Contains("radeon") || laptop.Gpu.ToLower().Contains("discrete"))
                             score += 30;
-                        if (laptop.Cpu.ToLower().Contains("i7") || laptop.Cpu.ToLower().Contains("i9") || 
+                        if (laptop.Cpu.ToLower().Contains("i7") || laptop.Cpu.ToLower().Contains("i9") ||
                             laptop.Cpu.ToLower().Contains("ryzen 7") || laptop.Cpu.ToLower().Contains("ryzen 9"))
                             score += 20;
                         if (laptop.Ram.Contains("16") || laptop.Ram.Contains("32"))
@@ -169,7 +169,7 @@ namespace web_chothue_laptop.Services
                     else if (usageLower.Contains("đồ họa") || usageLower.Contains("graphics") || usageLower.Contains("design"))
                     {
                         // Đồ họa cần GPU mạnh, màn hình lớn, RAM lớn
-                        if (laptop.Gpu.ToLower().Contains("rtx") || laptop.Gpu.ToLower().Contains("quadro") || 
+                        if (laptop.Gpu.ToLower().Contains("rtx") || laptop.Gpu.ToLower().Contains("quadro") ||
                             laptop.Gpu.ToLower().Contains("discrete") || laptop.Gpu.ToLower().Contains("radeon"))
                             score += 30;
                         if (laptop.Ram.Contains("16") || laptop.Ram.Contains("32"))
@@ -182,7 +182,7 @@ namespace web_chothue_laptop.Services
                     else if (usageLower.Contains("lập trình") || usageLower.Contains("programming") || usageLower.Contains("coding"))
                     {
                         // Lập trình cần CPU tốt, RAM đủ, màn hình tốt
-                        if (laptop.Cpu.ToLower().Contains("i5") || laptop.Cpu.ToLower().Contains("i7") || 
+                        if (laptop.Cpu.ToLower().Contains("i5") || laptop.Cpu.ToLower().Contains("i7") ||
                             laptop.Cpu.ToLower().Contains("ryzen 5") || laptop.Cpu.ToLower().Contains("ryzen 7"))
                             score += 25;
                         if (laptop.Ram.Contains("8") || laptop.Ram.Contains("16"))
@@ -197,7 +197,7 @@ namespace web_chothue_laptop.Services
                             score += 30;
                         if (laptop.Ram.Contains("8") || laptop.Ram.Contains("16"))
                             score += 20;
-                        if (laptop.Cpu.ToLower().Contains("i3") || laptop.Cpu.ToLower().Contains("i5") || 
+                        if (laptop.Cpu.ToLower().Contains("i3") || laptop.Cpu.ToLower().Contains("i5") ||
                             laptop.Cpu.ToLower().Contains("ryzen 3") || laptop.Cpu.ToLower().Contains("ryzen 5"))
                             score += 15;
                     }
@@ -207,7 +207,7 @@ namespace web_chothue_laptop.Services
                 if (!string.IsNullOrEmpty(needs.CpuRequirement))
                 {
                     var cpuLower = needs.CpuRequirement.ToLower();
-                    
+
                     // Xử lý Macbook - tìm máy tương đương (mỏng nhẹ, premium, hiệu năng cao)
                     if (cpuLower == "macbook")
                     {
@@ -267,12 +267,12 @@ namespace web_chothue_laptop.Services
                     if (laptop.Gpu.ToLower().Contains(gpuLower))
                         score += 20;
                 }
-                
+
                 // Xử lý yêu cầu về tính năng đặc biệt
                 if (needs.RequiresThinLight)
                 {
                     // Ưu tiên laptop mỏng nhẹ
-                    if (laptop.Name.ToLower().Contains("ultra") || laptop.Name.ToLower().Contains("xps") || 
+                    if (laptop.Name.ToLower().Contains("ultra") || laptop.Name.ToLower().Contains("xps") ||
                         laptop.Name.ToLower().Contains("zenbook") || laptop.Name.ToLower().Contains("envy") ||
                         laptop.Name.ToLower().Contains("inspiron") || laptop.Brand.ToLower().Contains("dell") ||
                         laptop.Brand.ToLower().Contains("hp") || laptop.Brand.ToLower().Contains("asus"))
@@ -282,7 +282,7 @@ namespace web_chothue_laptop.Services
                         laptop.Cpu.ToLower().Contains("ryzen 5") || laptop.Cpu.ToLower().Contains("ryzen 7"))
                         score += 20;
                 }
-                
+
                 if (needs.RequiresLongBattery)
                 {
                     // Laptop mỏng nhẹ thường có pin tốt hơn
@@ -292,7 +292,7 @@ namespace web_chothue_laptop.Services
                     if (laptop.Cpu.ToLower().Contains("i5") || laptop.Cpu.ToLower().Contains("i7"))
                         score += 20; // CPU tiết kiệm pin
                 }
-                
+
                 if (needs.RequiresGoodCooling)
                 {
                     // Ưu tiên laptop gaming có tản nhiệt tốt
@@ -305,8 +305,8 @@ namespace web_chothue_laptop.Services
                 }
 
                 // Nếu có bất kỳ yêu cầu nào hoặc không có filter nào, thêm vào danh sách
-                if (score > 0 || (!needs.MinBudget.HasValue && !needs.MaxBudget.HasValue && 
-                    string.IsNullOrEmpty(needs.UsageType) && !needs.RequiresThinLight && 
+                if (score > 0 || (!needs.MinBudget.HasValue && !needs.MaxBudget.HasValue &&
+                    string.IsNullOrEmpty(needs.UsageType) && !needs.RequiresThinLight &&
                     !needs.RequiresLongBattery && !needs.RequiresGoodCooling))
                 {
                     matches.Add((laptop, score));
@@ -328,7 +328,7 @@ namespace web_chothue_laptop.Services
         {
             var needs = new CustomerNeeds();
             var messageLower = message.ToLower();
-            
+
             // Kết hợp với lịch sử hội thoại để hiểu context tốt hơn
             var fullContext = string.Join(" ", conversationHistory) + " " + messageLower;
 
@@ -336,37 +336,37 @@ namespace web_chothue_laptop.Services
             if (fullContext.Contains("gaming") || fullContext.Contains("chơi game") || fullContext.Contains("game") ||
                 fullContext.Contains("streaming") || fullContext.Contains("cày game") || fullContext.Contains("gameplay"))
                 needs.UsageType = "gaming";
-            else if (fullContext.Contains("đồ họa") || fullContext.Contains("design") || fullContext.Contains("photoshop") || 
+            else if (fullContext.Contains("đồ họa") || fullContext.Contains("design") || fullContext.Contains("photoshop") ||
                      fullContext.Contains("illustrator") || fullContext.Contains("premiere") || fullContext.Contains("after effects") ||
                      fullContext.Contains("autocad") || fullContext.Contains("3d") || fullContext.Contains("render") ||
                      fullContext.Contains("video editing") || fullContext.Contains("chỉnh sửa video") ||
                      fullContext.Contains("màn hình rời") || fullContext.Contains("màn hình để làm đồ họa"))
                 needs.UsageType = "đồ họa";
-            else if (fullContext.Contains("lập trình") || fullContext.Contains("coding") || fullContext.Contains("programming") || 
+            else if (fullContext.Contains("lập trình") || fullContext.Contains("coding") || fullContext.Contains("programming") ||
                      fullContext.Contains("dev") || fullContext.Contains("developer") || fullContext.Contains("code") ||
                      fullContext.Contains("phát triển phần mềm") || fullContext.Contains("software development"))
                 needs.UsageType = "lập trình";
-            else if (fullContext.Contains("marketing") || fullContext.Contains("content creator") || 
+            else if (fullContext.Contains("marketing") || fullContext.Contains("content creator") ||
                      fullContext.Contains("di chuyển nhiều") || fullContext.Contains("làm việc ngoài"))
                 needs.UsageType = "marketing"; // Đặc biệt: mỏng nhẹ + pin tốt
-            
+
             // Phát hiện yêu cầu đặc biệt về tính năng
             if (fullContext.Contains("mỏng nhẹ") || fullContext.Contains("mỏng") || fullContext.Contains("nhẹ") ||
                 fullContext.Contains("ultrabook") || fullContext.Contains("thin") || fullContext.Contains("light"))
                 needs.RequiresThinLight = true;
-            
+
             if (fullContext.Contains("pin trâu") || fullContext.Contains("pin lâu") || fullContext.Contains("pin tốt") ||
                 fullContext.Contains("battery") || fullContext.Contains("pin dùng lâu"))
                 needs.RequiresLongBattery = true;
-            
+
             if (fullContext.Contains("tản nhiệt") || fullContext.Contains("tản nhiệt tốt") ||
                 fullContext.Contains("cooling") || fullContext.Contains("nhiệt độ"))
                 needs.RequiresGoodCooling = true;
-            else if (fullContext.Contains("văn phòng") || fullContext.Contains("office") || fullContext.Contains("word") || 
+            else if (fullContext.Contains("văn phòng") || fullContext.Contains("office") || fullContext.Contains("word") ||
                      fullContext.Contains("excel") || fullContext.Contains("học tập") || fullContext.Contains("học") ||
                      fullContext.Contains("powerpoint") || fullContext.Contains("presentation") || fullContext.Contains("soạn thảo"))
                 needs.UsageType = "văn phòng";
-            
+
             // Phát hiện câu hỏi về giá trực tiếp (ngay cả khi không có usage type)
             // (Không cần lưu vào needs, chỉ để tham khảo)
 
@@ -393,18 +393,18 @@ namespace web_chothue_laptop.Services
                     if (decimal.TryParse(match.Groups[1].Value, out var amount))
                     {
                         var budget = amount * pattern.Multiplier;
-                        
+
                         // Xác định min/max dựa trên từ khóa
                         var contextLower = fullContext.ToLower();
                         // messageLower đã được khai báo ở đầu hàm, không khai báo lại
-                        
+
                         // Tìm context xung quanh số tiền (50 ký tự trước và sau)
                         var startIdx = Math.Max(0, match.Index - 50);
                         var endIdx = Math.Min(fullContext.Length, match.Index + match.Length + 50);
                         var nearbyContext = fullContext.Substring(startIdx, endIdx - startIdx).ToLower();
-                        
+
                         // Kiểm tra từ khóa "dưới" (ưu tiên cao nhất)
-                        if (nearbyContext.Contains("dưới") || nearbyContext.Contains("tối đa") || 
+                        if (nearbyContext.Contains("dưới") || nearbyContext.Contains("tối đa") ||
                             nearbyContext.Contains("max") || nearbyContext.Contains("nhỏ hơn") ||
                             nearbyContext.Contains("ít hơn") || nearbyContext.Contains("khoảng dưới") ||
                             nearbyContext.Contains("không quá") || nearbyContext.Contains("dưới mức") ||
@@ -415,9 +415,9 @@ namespace web_chothue_laptop.Services
                                 needs.MaxBudget = budget;
                         }
                         // Kiểm tra từ khóa "trên"
-                        else if (nearbyContext.Contains("trên") || nearbyContext.Contains("tối thiểu") || 
-                                 nearbyContext.Contains("min") || nearbyContext.Contains("lớn hơn") || 
-                                 nearbyContext.Contains("nhiều hơn") || nearbyContext.Contains("khoảng trên") || 
+                        else if (nearbyContext.Contains("trên") || nearbyContext.Contains("tối thiểu") ||
+                                 nearbyContext.Contains("min") || nearbyContext.Contains("lớn hơn") ||
+                                 nearbyContext.Contains("nhiều hơn") || nearbyContext.Contains("khoảng trên") ||
                                  nearbyContext.Contains("ít nhất") || nearbyContext.Contains("từ mức") ||
                                  messageLower.Contains("trên") && (messageLower.IndexOf("trên") < messageLower.IndexOf(match.Value.ToLower()) + 20))
                         {
@@ -427,7 +427,7 @@ namespace web_chothue_laptop.Services
                         }
                         // Kiểm tra khoảng giá
                         else if (nearbyContext.Contains("đến") || nearbyContext.Contains("-") ||
-                                 nearbyContext.Contains("khoảng") || nearbyContext.Contains("tầm") || 
+                                 nearbyContext.Contains("khoảng") || nearbyContext.Contains("tầm") ||
                                  nearbyContext.Contains("khoản") || nearbyContext.Contains("giữa") ||
                                  messageLower.Contains("từ") || messageLower.Contains("khoảng"))
                         {
@@ -509,5 +509,3 @@ namespace web_chothue_laptop.Services
         }
     }
 }
-
-

@@ -11,7 +11,7 @@
     <nav class="sidebar-nav">
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="nav-link @(isCreateAccount ? "active" : "")" 
+                <a class="nav-link @(isCreateAccount ? "active" : "")"
                    asp-controller="CreateAccount" asp-action="Index">
                     ➕ Tạo tài khoản
                 </a>
@@ -20,31 +20,31 @@
                 <span style="padding: 8px 20px; font-size: 0.75rem; color: #6c757d; font-weight: 600; text-transform: uppercase;">Danh sách theo vai trò</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(currentAction == "student" ? "active" : "")" 
+                <a class="nav-link @(currentAction == "student" ? "active" : "")"
                    asp-controller="ManageAccount" asp-action="Student">
                     👨‍🎓 Student
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(currentAction == "customer" ? "active" : "")" 
+                <a class="nav-link @(currentAction == "customer" ? "active" : "")"
                    asp-controller="ManageAccount" asp-action="Customer">
                     👤 Customer
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(currentAction == "staff" ? "active" : "")" 
+                <a class="nav-link @(currentAction == "staff" ? "active" : "")"
                    asp-controller="ManageAccount" asp-action="Staff">
                     👔 Staff
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(currentAction == "manager" ? "active" : "")" 
+                <a class="nav-link @(currentAction == "manager" ? "active" : "")"
                    asp-controller="ManageAccount" asp-action="Manager">
                     👨‍💼 Manager
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(currentAction == "technical" ? "active" : "")" 
+                <a class="nav-link @(currentAction == "technical" ? "active" : "")"
                    asp-controller="ManageAccount" asp-action="Technical">
                     🔧 Technical
                 </a>
@@ -67,10 +67,10 @@
         margin-bottom: 20px;
     }
 
-    .sidebar-header h5 {
-        color: #495057;
-        font-weight: 600;
-    }
+        .sidebar-header h5 {
+            color: #495057;
+            font-weight: 600;
+        }
 
     .sidebar-nav .nav-link {
         color: #495057;
@@ -81,17 +81,16 @@
         display: block;
     }
 
-    .sidebar-nav .nav-link:hover {
-        background-color: #e9ecef;
-        border-left-color: #0d6efd;
-        color: #0d6efd;
-    }
+        .sidebar-nav .nav-link:hover {
+            background-color: #e9ecef;
+            border-left-color: #0d6efd;
+            color: #0d6efd;
+        }
 
-    .sidebar-nav .nav-link.active {
-        background-color: #e7f1ff;
-        border-left-color: #0d6efd;
-        color: #0d6efd;
-        font-weight: 600;
-    }
+        .sidebar-nav .nav-link.active {
+            background-color: #e7f1ff;
+            border-left-color: #0d6efd;
+            color: #0d6efd;
+            font-weight: 600;
+        }
 </style>
-

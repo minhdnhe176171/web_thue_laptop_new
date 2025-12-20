@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace web_chothue_laptop.ViewModels
 {
@@ -18,7 +19,6 @@ namespace web_chothue_laptop.ViewModels
         public long? BrandId { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn giá")]
-        [Range(100000, 1000000, ErrorMessage = "Giá phải từ 100,000 đến 1,000,000 VNĐ")]
         [Display(Name = "Giá")]
         public decimal? Price { get; set; }
 
@@ -27,6 +27,11 @@ namespace web_chothue_laptop.ViewModels
         [Display(Name = "Thời gian đến hạn")]
         public DateTime? Deadline { get; set; }
 
+        [Display(Name = "Hình ảnh laptop")]
+        public IFormFile? ImageFile { get; set; }
+
+        public string? ExistingImageUrl { get; set; }
+
         [StringLength(100, ErrorMessage = "CPU không được vượt quá 100 ký tự")]
         [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "CPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
         [Display(Name = "CPU")]
@@ -34,6 +39,11 @@ namespace web_chothue_laptop.ViewModels
 
         [Display(Name = "RAM")]
         public string? RamSize { get; set; }
+
+        [StringLength(50, ErrorMessage = "Loại RAM không được vượt quá 50 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "Loại RAM chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
+        [Display(Name = "Loại RAM")]
+        public string? RamType { get; set; }
 
         [StringLength(100, ErrorMessage = "Thông tin lưu trữ không được vượt quá 100 ký tự")]
         [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "Lưu trữ chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
@@ -44,5 +54,15 @@ namespace web_chothue_laptop.ViewModels
         [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "GPU chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
         [Display(Name = "GPU")]
         public string? Gpu { get; set; }
+
+        [StringLength(50, ErrorMessage = "Thông tin màn hình không được vượt quá 50 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-\.]+$", ErrorMessage = "Màn hình chỉ được chứa chữ cái, số, dấu cách, dấu gạch ngang và dấu chấm")]
+        [Display(Name = "Màn hình")]
+        public string? ScreenSize { get; set; }
+
+        [StringLength(100, ErrorMessage = "Hệ điều hành không được vượt quá 100 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-\.]+$", ErrorMessage = "Hệ điều hành chỉ được chứa chữ cái, số, dấu cách, dấu gạch ngang và dấu chấm")]
+        [Display(Name = "Hệ điều hành")]
+        public string? Os { get; set; }
     }
 }

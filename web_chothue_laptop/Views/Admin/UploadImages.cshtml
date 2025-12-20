@@ -16,7 +16,7 @@
         </div>
         <div class="card-body">
             <div class="alert alert-info">
-                <strong>Hướng dẫn:</strong> Chọn laptop và file ảnh tương ứng, sau đó click "Upload Ảnh". 
+                <strong>Hướng dẫn:</strong> Chọn laptop và file ảnh tương ứng, sau đó click "Upload Ảnh".
                 Ảnh sẽ được upload lên Cloudinary và URL tự động cập nhật vào database.
             </div>
 
@@ -38,7 +38,7 @@
                                 var laptop = Model[i];
                                 <tr>
                                     <td>
-                                        <input type="checkbox" class="form-check-input laptop-checkbox" 
+                                        <input type="checkbox" class="form-check-input laptop-checkbox"
                                                value="@laptop.Id" data-index="@i">
                                     </td>
                                     <td>
@@ -49,8 +49,8 @@
                                     <td>
                                         @if (!string.IsNullOrEmpty(laptop.ImageUrl))
                                         {
-                                            <img src="@laptop.ImageUrl" 
-                                                 style="max-width: 100px; max-height: 60px; object-fit: cover; border: 1px solid #dee2e6; border-radius: 3px;" 
+                                            <img src="@laptop.ImageUrl"
+                                                 style="max-width: 100px; max-height: 60px; object-fit: cover; border: 1px solid #dee2e6; border-radius: 3px;"
                                                  alt="@laptop.Name">
                                         }
                                         else
@@ -59,7 +59,7 @@
                                         }
                                     </td>
                                     <td>
-                                        <input type="file" class="form-control form-control-sm image-file" 
+                                        <input type="file" class="form-control form-control-sm image-file"
                                                name="imageFiles[@i]" accept="image/*" data-index="@i">
                                     </td>
                                 </tr>
@@ -96,7 +96,7 @@
         // Upload form
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const checkedBoxes = document.querySelectorAll('.laptop-checkbox:checked');
             if (checkedBoxes.length === 0) {
                 alert('Vui lòng chọn ít nhất một laptop');
@@ -111,7 +111,7 @@
                 const index = checkbox.getAttribute('data-index');
                 const laptopId = checkbox.value;
                 const fileInput = document.querySelector(`input.image-file[data-index="${index}"]`);
-                
+
                 if (fileInput && fileInput.files[0]) {
                     laptopIds.push(laptopId);
                     imageFiles.push(fileInput.files[0]);
@@ -142,7 +142,7 @@
 
                 if (result.success) {
                     let html = `<div class="alert alert-success"><strong>${result.message}</strong></div>`;
-                    
+
                     if (result.results) {
                         html += '<div class="mt-3"><h6>Chi tiết:</h6><ul class="list-group">';
                         result.results.forEach(r => {
@@ -161,7 +161,7 @@
                     }
 
                     resultDiv.innerHTML = html;
-                    
+
                     // Reload page after 3 seconds
                     setTimeout(() => {
                         window.location.reload();
@@ -182,10 +182,3 @@
         font-weight: 600;
     }
 </style>
-
-
-
-
-
-
-

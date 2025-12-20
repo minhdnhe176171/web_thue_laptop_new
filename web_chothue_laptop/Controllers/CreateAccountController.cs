@@ -61,7 +61,7 @@ namespace web_chothue_laptop.Controllers
                         emailExists = await _context.Managers.AnyAsync(m => m.Email == model.Email);
                         break;
                 }
-                
+
                 if (emailExists)
                 {
                     ModelState.AddModelError("Email", "Email này đã được sử dụng trong hệ thống. Vui lòng chọn email khác.");
@@ -84,7 +84,7 @@ namespace web_chothue_laptop.Controllers
                     try
                     {
                         availableRoles = await _context.Roles.Select(r => r.RoleName).ToListAsync();
-                        _logger.LogWarning("Role ID is 0 for account type: {AccountType}. Available roles: {Roles}", 
+                        _logger.LogWarning("Role ID is 0 for account type: {AccountType}. Available roles: {Roles}",
                             model.AccountType, string.Join(", ", availableRoles));
                     }
                     catch (Exception ex)
@@ -92,12 +92,12 @@ namespace web_chothue_laptop.Controllers
                         _logger.LogError(ex, "Error loading roles from database");
                         availableRoles.Add("Lỗi khi tải danh sách roles từ database");
                     }
-                    
-                    string rolesMessage = availableRoles.Any() 
-                        ? string.Join(", ", availableRoles) 
+
+                    string rolesMessage = availableRoles.Any()
+                        ? string.Join(", ", availableRoles)
                         : "Không có role nào trong database. Vui lòng kiểm tra dữ liệu.";
-                    
-                    ModelState.AddModelError("AccountType", 
+
+                    ModelState.AddModelError("AccountType",
                         $"Loại tài khoản không hợp lệ. Vui lòng kiểm tra lại. (Các role có sẵn: {rolesMessage})");
                     return View("~/Views/Admin/CreateAccount.cshtml", model);
                 }
@@ -185,7 +185,7 @@ namespace web_chothue_laptop.Controllers
             {
                 _logger.LogError(sqlEx, "SQL error creating account");
                 string errorMessage = "Đã xảy ra lỗi khi tạo tài khoản.";
-                
+
                 // Check for specific SQL errors
                 if (sqlEx.Number == 2627 || sqlEx.Number == 2601) // Unique constraint violation
                 {
@@ -203,7 +203,7 @@ namespace web_chothue_laptop.Controllers
                 {
                     errorMessage = $"Lỗi SQL Server: {sqlEx.Message}";
                 }
-                
+
                 ModelState.AddModelError("", errorMessage);
                 return View("~/Views/Admin/CreateAccount.cshtml", model);
             }
@@ -232,39 +232,39 @@ namespace web_chothue_laptop.Controllers
                 _logger.LogInformation("Available roles in database: {Roles}", string.Join(", ", allRoles));
 
                 // Try exact match first (case-insensitive)
-                var role = await _context.Roles.FirstOrDefaultAsync(r => 
+                var role = await _context.Roles.FirstOrDefaultAsync(r =>
                     r.RoleName.ToLower() == accountType.ToLower());
-                
+
                 // If not found, try partial matching
                 if (role == null)
                 {
-                    role = await _context.Roles.FirstOrDefaultAsync(r => 
+                    role = await _context.Roles.FirstOrDefaultAsync(r =>
                         r.RoleName.ToLower().Contains(accountType.ToLower()) ||
                         accountType.ToLower().Contains(r.RoleName.ToLower()));
                 }
-                
+
                 if (role == null)
                 {
-                    _logger.LogWarning("Role not found for account type: {AccountType}. Available roles: {Roles}", 
+                    _logger.LogWarning("Role not found for account type: {AccountType}. Available roles: {Roles}",
                         accountType, string.Join(", ", allRoles));
                 }
                 else
                 {
-                    _logger.LogInformation("Found role: {RoleName} (ID: {RoleId}) for account type: {AccountType}", 
+                    _logger.LogInformation("Found role: {RoleName} (ID: {RoleId}) for account type: {AccountType}",
                         role.RoleName, role.Id, accountType);
                 }
-                
+
                 return role?.Id ?? 0;
             }
             catch (SqlException sqlEx)
             {
-                _logger.LogError(sqlEx, "SQL error getting role ID for account type: {AccountType}. Error: {Message}", 
+                _logger.LogError(sqlEx, "SQL error getting role ID for account type: {AccountType}. Error: {Message}",
                     accountType, sqlEx.Message);
                 return 0;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting role ID for account type: {AccountType}. Error: {Message}", 
+                _logger.LogError(ex, "Error getting role ID for account type: {AccountType}. Error: {Message}",
                     accountType, ex.Message);
                 return 0;
             }
@@ -323,4 +323,3 @@ namespace web_chothue_laptop.Controllers
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }
-
