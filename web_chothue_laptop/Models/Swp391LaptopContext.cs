@@ -48,13 +48,8 @@ public partial class Swp391LaptopContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
 
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
-        }
-    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Booking>(entity =>
@@ -77,6 +72,9 @@ public partial class Swp391LaptopContext : DbContext
                 .HasColumnName("ID_NO_URL");
             entity.Property(e => e.LaptopId).HasColumnName("LAPTOP_ID");
             entity.Property(e => e.RejectReason).HasColumnName("REJECT_REASON");
+            entity.Property(e => e.ReturnDueDate)
+                .HasColumnType("datetime")
+                .HasColumnName("RETURN_DUE_DATE");
             entity.Property(e => e.StaffId).HasColumnName("STAFF_ID");
             entity.Property(e => e.StartTime)
                 .HasColumnType("datetime")
@@ -232,9 +230,13 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("NAME");
+            entity.Property(e => e.NewPrice)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("NEW_PRICE");
             entity.Property(e => e.Price)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("PRICE");
+            entity.Property(e => e.RejectReason).HasColumnName("REJECT_REASON");
             entity.Property(e => e.StatusId).HasColumnName("STATUS_ID");
             entity.Property(e => e.StudentId).HasColumnName("STUDENT_ID");
             entity.Property(e => e.UpdatedDate)

@@ -1,4 +1,4 @@
-﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Laptop>
+﻿@model web_chothue_laptop.Models.PaginatedList<web_chothue_laptop.Models.Booking>
 
 @{
     ViewData["Title"] = "Trả Máy Cho Sinh Viên";
@@ -95,7 +95,7 @@
     </div>
 
     <div class="staff-content">
-        <h3 class="fw-bold text-primary mb-4">Danh Sách Máy Hết Hạn Ký Gửi</h3>
+        <h3 class="fw-bold text-primary mb-4">Danh Sách Máy Chờ Trả Về Sinh Viên</h3>
 
         @if (TempData["SuccessMessage"] != null)
         {
@@ -108,7 +108,7 @@
 
         <form asp-action="DueForReturnLaptops" method="get" class="mb-3">
             <div class="input-group" style="max-width: 500px;">
-                <input type="text" name="searchString" class="form-control" placeholder="Tìm tên máy, tên sinh viên..." value="@ViewData["CurrentFilter"]">
+                <input type="text" name="searchString" class="form-control" placeholder="Tìm tên máy, sinh viên, khách hàng..." value="@ViewData["CurrentFilter"]">
                 <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Tìm kiếm</button>
                 @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"] as string))
                 {
@@ -123,9 +123,11 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light text-secondary">
                             <tr>
-                                <th class="ps-4 py-3">Tên Laptop</th>
+                                <th class="ps-4 py-3">Mã Đơn</th>
+                                <th>Khách Hàng</th>
+                                <th>Laptop</th>
                                 <th>Chủ Máy</th>
-                                <th>Ngày Hết Hạn</th>
+                                <th>Ngày Thuê</th>
                                 <th>Trạng Thái</th>
                                 <th>Hành Động</th>
                             </tr>
@@ -133,20 +135,28 @@
                         <tbody>
                             @if (Model != null && Model.Count > 0)
                             {
-                                @foreach (var item in Model)
+                                @foreach (var booking in Model)
                                 {
+                                    // Kiểm tra xem đã tạo thông báo chưa (dùng RejectReason để lưu thông tin lịch hẹn)
+                                    bool hasNotification = !string.IsNullOrEmpty(booking.RejectReason) && booking.RejectReason.StartsWith("RETURN_SCHEDULE|");
+                                    
+                                    // Kiểm tra Student đã xác nhận chưa
+                                    bool isConfirmedByStudent = false;
+                                    if (hasNotification && booking.RejectReason.Contains("|CONFIRMED|"))
+                                    {
+                                        isConfirmedByStudent = true;
+                                    }
+                                    
                                     <tr>
                                         <td class="ps-4">
-                                            <span class="fw-bold text-dark">@item.Name</span><br />
-                                            <small class="text-muted">ID: @item.Id</small>
+                                            <span class="badge bg-success">#@booking.Id</span>
                                         </td>
                                         <td>
-                                            @if (item.Student != null)
+                                            @if (booking.Customer != null)
                                             {
-                                                <span class="fw-bold">@item.Student.LastName @item.Student.FirstName</span>
-                                    
+                                                <span class="fw-bold">@booking.Customer.LastName @booking.Customer.FirstName</span>
                                                 <br />
-                                                <small class="text-muted">@item.Student.Email</small>
+                                                <small class="text-muted">@booking.Customer.Email</small>
                                             }
                                             else
                                             {
@@ -154,19 +164,64 @@
                                             }
                                         </td>
                                         <td>
-                                            <span class="badge bg-danger">@item.EndTime?.ToString("dd/MM/yyyy HH:mm")</span>
+                                            <span class="fw-bold text-dark">@booking.Laptop?.Name</span><br />
+                                            <small class="text-muted">@booking.Laptop?.Brand?.BrandName</small>
                                         </td>
                                         <td>
-    <span class="badge bg-danger">Đã hết hạn</span>
-</td>
+                                            @if (booking.Laptop?.Student != null)
+                                            {
+                                                <span class="fw-bold">@booking.Laptop.Student.LastName @booking.Laptop.Student.FirstName</span>
+                                                <br />
+                                                <small class="text-muted">@booking.Laptop.Student.Email</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-danger">Không xác định</span>
+                                            }
+                                        </td>
                                         <td>
-                                            <button type="button"
-                                                    class="btn btn-outline-primary btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#returnModal"
-                                                    onclick="setModalData('@item.Id', '@item.Name', '@item.Student?.LastName @item.Student?.FirstName')">
-                                                <i class="fas fa-calendar-check me-1"></i> Tạo Lịch Trả
-                                            </button>
+                                            <small>
+                                                <i class="fas fa-calendar-check text-success"></i> @booking.StartTime.ToString("dd/MM/yyyy")<br />
+                                                <i class="fas fa-calendar-times text-danger"></i> @booking.EndTime.ToString("dd/MM/yyyy")
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if (isConfirmedByStudent)
+                                            {
+                                                <span class="badge bg-success">Student đã xác nhận</span>
+                                            }
+                                            else if (hasNotification)
+                                            {
+                                                <span class="badge bg-warning text-dark">Đã gửi thông báo</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info">Đã hoàn thành</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (isConfirmedByStudent)
+                                            {
+                                                <small class="text-success fw-bold">
+                                                    <i class="fas fa-check-double"></i> Đã xong
+                                                </small>
+                                            }
+                                            else if (!hasNotification)
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-outline-primary btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#returnModal"
+                                                        onclick="setModalData('@booking.Id', '@booking.Laptop?.Id', '@booking.Laptop?.Name', '@booking.Laptop?.Student?.LastName @booking.Laptop?.Student?.FirstName', '@booking.Laptop?.Student?.Id')">
+                                                    <i class="fas fa-calendar-check me-1"></i> Tạo Đơn
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-warning">
+                                                    <i class="fas fa-clock"></i> Chờ SV xác nhận
+                                                </small>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -174,9 +229,9 @@
                             else
                             {
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">
+                                    <td colspan="7" class="text-center py-5 text-muted">
                                         <i class="fas fa-box-open fa-2x mb-3"></i><br />
-                                        Không có máy nào đến hạn trả.
+                                        Không có đơn nào đang chờ trả máy về cho sinh viên.
                                     </td>
                                 </tr>
                             }
@@ -208,17 +263,20 @@
     </div>
 </div>
 
+<!-- Modal Tạo Đơn Trả Máy -->
 <div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
-            <form asp-action="CreateReturnSchedule" method="post">
+            <form asp-action="CreateReturnNotification" asp-controller="Staff" method="post">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title fw-bold"><i class="fas fa-clock me-2"></i>Tạo Lịch Hẹn Trả Máy</h5>
+                    <h5 class="modal-title fw-bold"><i class="fas fa-clock me-2"></i>Tạo Đơn Trả Máy Về Cho Student</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="BookingId" id="modalBookingId" />
                     <input type="hidden" name="LaptopId" id="modalLaptopId" />
+                    <input type="hidden" name="StudentId" id="modalStudentId" />
 
                     <div class="mb-3">
                         <label class="form-label text-muted small text-uppercase fw-bold">Máy cần trả</label>
@@ -235,22 +293,22 @@
                             <label class="form-label text-muted small text-uppercase fw-bold">Địa điểm nhận (Cố định)</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="fas fa-map-marker-alt text-danger"></i></span>
-                                <input type="text" class="form-control" name="PickupLocation" value="Toà Alpha, L300" readonly />
+                                <input type="text" class="form-control" name="PickupLocation" value="Tòa Alpha, L300" readonly />
                             </div>
                         </div>
                         <div class="col-md-12 mb-3">
                             <label class="form-label text-muted small text-uppercase fw-bold">Thời gian hẹn</label>
                             <input type="datetime-local" class="form-control border-primary" name="AppointmentTime" required
-                                   value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                                   value="@DateTime.Now.AddHours(1).ToString("yyyy-MM-ddTHH:mm")" />
                         </div>
                     </div>
                     <div class="alert alert-info small mb-0">
-                        <i class="fas fa-info-circle me-1"></i> Hệ thống sẽ gửi thông báo đến sinh viên ngay sau khi xác nhận.
+                        <i class="fas fa-info-circle me-1"></i> Thông tin sẽ được gửi đến Student. Student cần xác nhận đã nhận máy.
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary px-4">Xác Nhận</button>
+                    <button type="submit" class="btn btn-primary px-4">Gửi Đơn</button>
                 </div>
             </form>
         </div>
@@ -258,9 +316,11 @@
 </div>
 
 <script>
-    function setModalData(id, laptopName, studentName) {
-        document.getElementById('modalLaptopId').value = id;
+    function setModalData(bookingId, laptopId, laptopName, studentName, studentId) {
+        document.getElementById('modalBookingId').value = bookingId;
+        document.getElementById('modalLaptopId').value = laptopId;
         document.getElementById('modalLaptopName').value = laptopName;
         document.getElementById('modalStudentName').value = studentName;
+        document.getElementById('modalStudentId').value = studentId;
     }
 </script>

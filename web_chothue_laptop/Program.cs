@@ -4,28 +4,20 @@ using web_chothue_laptop.Hubs;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-
 var builder = WebApplication.CreateBuilder(args);
 
-// ==============================================
-// 1. ADD SERVICES TO THE CONTAINER
-// ==============================================
-
+// Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// [QUAN TRỌNG] Thêm dịch vụ này để VNPAY Library lấy được IP của khách hàng
-builder.Services.AddHttpContextAccessor();
-
-// Cấu hình Authentication (Cookie)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login"; // Chưa đăng nhập thì về đây
-        options.AccessDeniedPath = "/Account/AccessDenied"; // Không đủ quyền thì về đây
+        options.LoginPath = "/Account/Login"; // Nếu chưa đăng nhập thì đá về đây
+        options.AccessDeniedPath = "/Account/AccessDenied"; // Nếu không đủ quyền (Staff vào trang Tech) thì đá về đây
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
 
-// Cấu hình Session (Bắt buộc cho quy trình thanh toán nếu có lưu temp data)
+// Add Session
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -34,14 +26,13 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Kết nối Database SQL Server
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// SignalR (Real-time)
+// Add SignalR
 builder.Services.AddSignalR();
 
-// Kết nối Redis (Cache & Chat History)
+// Add Redis
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
@@ -60,57 +51,59 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     {
         var logger = sp.GetRequiredService<ILogger<Program>>();
         logger.LogWarning(ex, "Failed to connect to Redis. Chat history will not be persisted. Error: {Message}", ex.Message);
-        // Trả về kết nối giả lập để app không bị crash nếu Redis chết
+        // Return a dummy connection multiplexer that won't crash the app
+        // In production, you might want to handle this differently
         return ConnectionMultiplexer.Connect("localhost:6379,abortConnect=false");
     }
 });
 
-// Đăng ký các Service tự viết (DI)
+// Register Services
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
-// Nếu bạn muốn dùng VnPayLibrary qua DI thì thêm dòng dưới (không bắt buộc nếu dùng 'new VnPayLibrary()')
-// builder.Services.AddScoped<VnPayLibrary>(); 
+builder.Services.AddScoped<RagService>();
+builder.Services.AddHttpClient<AIChatService>();
+builder.Services.AddScoped<AIChatService>();
 
 var app = builder.Build();
 
-// ==============================================
-// 2. CONFIGURE THE HTTP REQUEST PIPELINE
-// ==============================================
-
+// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
 
 app.UseStaticFiles();
-
 app.UseRouting();
 
-// [QUAN TRỌNG] Session phải đặt trước Authentication/Authorization và sau Routing
 app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map SignalR Hubs
 app.MapHub<ChatHub>("/chathub");
 app.MapHub<BookingHub>("/bookinghub");
+app.MapHub<AIChatHub>("/aichathub");
 
-// Map Controller Routes
-// Route cụ thể đặt trước, route mặc định đặt cuối cùng
+
+
 app.MapControllerRoute(
     name: "createAccount",
     pattern: "CreateAccount/{action=Index}/{id?}",
     defaults: new { controller = "CreateAccount" });
 
+// ManageAccount routes
 app.MapControllerRoute(
     name: "manageAccount",
     pattern: "ManageAccount/{action=Index}/{id?}",
     defaults: new { controller = "ManageAccount" });
 
+// Default route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+//app.MapControllerRoute(
+//    name: "manager",
+//    pattern: "{controller=Manager}/{action=LaptopRequests}/{id?}");
 
 app.Run();

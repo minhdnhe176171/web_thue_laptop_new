@@ -32,7 +32,22 @@
                             }
                             var userRole = Context.Session.GetString("UserRole")?.ToLower() ?? "";
                             var isCustomer = userRoleId == 2 || userRole.Contains("customer") || userRole.Contains("student");
+                            var isStudent = userRoleId == 3 || userRole.Contains("student");
                             var isStaff = userRoleId == 4 || userRole.Contains("staff");
+                            
+                            @* Hiển thị nút Thông báo cho Student *@
+                            @if (isStudent)
+                            {
+                                <li class="nav-item d-flex align-items-center position-relative">
+                                    <a class="nav-link text-white fw-semibold d-flex align-items-center" 
+                                       asp-controller="Student" 
+                                       asp-action="Notifications"
+                                       style="line-height: 1.5;">
+                                        <i class="bi bi-bell me-1"></i> Thông báo nhận máy
+                                        @await Component.InvokeAsync("NotificationBadge")
+                                    </a>
+                                </li>
+                            }
                             
                             @* Hiển thị nút chat - controller sẽ tự động redirect nếu không đúng quyền *@
                             @if (!isStaff)
@@ -85,7 +100,7 @@
         </div>
     </footer>
 
-    <!-- Floating Chat Button - Hiển thị cho tất cả user đã đăng nhập -->
+    <!-- Floating Chat Button - Hiển thị cho tất cả user đã đăng nhập (ở dưới AI chat box) -->
     @if (Context.Session.GetString("UserId") != null)
     {
         var userRoleIdStr = Context.Session.GetString("UserRoleId");
@@ -98,6 +113,7 @@
         var isStaff = userRoleId == 4 || userRole.Contains("staff");
         
         @* Hiển thị nút chat cho tất cả user - controller sẽ tự động redirect nếu không đúng quyền *@
+        @* Nút này ở dưới AI chat box, cùng bên phải *@
         @if (!isStaff)
         {
             <a href="@Url.Action("CustomerChat", "Chat")" class="btn btn-primary floating-chat-button" 
@@ -113,6 +129,10 @@
             </a>
         }
     }
+
+    <!-- AI Chat Widget - Hiển thị cho TẤT CẢ khách hàng (kể cả chưa đăng nhập) -->
+    @await Html.PartialAsync("_AIChatWidget")
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

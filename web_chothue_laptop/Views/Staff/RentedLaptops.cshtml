@@ -162,6 +162,7 @@
                                 <th>Chủ Máy</th>
                                 <th>Ngày Trả</th>
                                 <th>Trạng Thái</th>
+                                <th>Hành Động</th>
                                 <th>Tổng Tiền</th>
                             </tr>
                         </thead>
@@ -201,13 +202,22 @@
                                                 <span class="badge bg-info text-dark">Còn @daysLeft ngày</span>
                                             }
                                         </td>
+                                        <td class="text-center">
+                                            <form asp-action="CompleteBooking" asp-controller="Staff" method="post" style="display:inline" onsubmit="return confirm('Xác nhận hoàn thành đơn thuê này? Máy sẽ chuyển sang trạng thái chờ trả về.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="bookingId" value="@booking.Id" />
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-check-circle"></i> Hoàn thành
+                                                </button>
+                                            </form>
+                                        </td>
                                         <td class="text-success fw-bold">@(booking.TotalPrice?.ToString("#,##0") ?? "0") đ</td>
                                     </tr>
                                 }
                             }
                             else
                             {
-                                <tr><td colspan="7" class="text-center py-5 text-muted">Không có laptop nào đang được thuê</td></tr>
+                                <tr><td colspan="8" class="text-center py-5 text-muted">Không có laptop nào đang được thuê</td></tr>
                             }
                         </tbody>
                     </table>
