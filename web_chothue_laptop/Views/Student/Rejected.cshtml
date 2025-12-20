@@ -3,7 +3,7 @@
     ViewData["Title"] = "Laptop Bị Từ Chối";
     var currentPage = ViewBag.CurrentPage as string ?? "Rejected";
     
-    // Pagination settings
+    
     int pageSize = 5;
     int page = ViewBag.Page ?? 1;
     var laptopsPaged = Model.Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -157,8 +157,11 @@
             <a class="btn btn-primary" asp-controller="Student" asp-action="Create">
                 <i class="fas fa-plus"></i> Tạo laptop cho thuê
             </a>
-            <a class="btn btn-secondary" asp-controller="Student" asp-action="Index">
-                <i class="fas fa-arrow-left"></i> Quay lại
+            <a class="btn btn-success" asp-controller="Student" asp-action="MyRentals">
+                <i class="fas fa-handshake"></i> Laptop Đang Cho Thuê
+            </a>
+            <a class="btn btn-secondary" asp-controller="Student" asp-action="Report">
+                <i class="fas fa-arrow-left"></i> Báo cáo
             </a>
         </div>
 
