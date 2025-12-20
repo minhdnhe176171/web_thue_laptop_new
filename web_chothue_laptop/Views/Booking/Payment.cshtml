@@ -98,7 +98,7 @@
                         <hr class="my-4">
 
                         <!-- Chú ý -->
-                        <div class="alert alert-warning mb-4">
+                        <div class="alert alert-info mb-4">
                             <h6 class="alert-heading">
                                 <i class="bi bi-info-circle"></i> <strong>Chú ý:</strong>
                             </h6>
@@ -106,68 +106,23 @@
                                 Vui lòng đến <strong>Thư viện trường tòa Delta</strong> để gặp Staff để làm thủ tục nhận máy.
                             </p>
                             <p class="mb-0">
-                                Bạn có thể <strong>thanh toán trước qua QR code</strong>, hoặc <strong>thanh toán trực tiếp khi nhận máy</strong>.
+                                Bạn có thể <strong>thanh toán trước qua QR code online</strong> để tiết kiệm thời gian khi nhận máy.
                             </p>
                         </div>
 
                         <hr class="my-4">
 
-                        <!-- Chọn phương thức thanh toán -->
+                        <!-- Thanh toán online -->
                         <div class="mb-4">
                             <h5 class="text-muted mb-3">
-                                <i class="bi bi-credit-card"></i> Chọn Phương Thức Thanh Toán
+                                <i class="bi bi-credit-card"></i> Thanh Toán Online
                             </h5>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="radio" name="paymentMethod" id="paymentMethodDirect" value="direct" checked>
-                                <label class="form-check-label" for="paymentMethodDirect">
-                                    <strong>Thanh toán trực tiếp khi nhận máy</strong>
-                                    <p class="small text-muted mb-0">Bạn sẽ thanh toán trực tiếp cho Staff khi đến nhận máy tại Thư viện trường tòa Delta.</p>
-                                </label>
-                            </div>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="radio" name="paymentMethod" id="paymentMethodOnline" value="online">
-                                <label class="form-check-label" for="paymentMethodOnline">
-                                    <strong>Thanh toán online bằng QR code</strong>
-                                    <p class="small text-muted mb-0">Thanh toán trước qua QR code để tiết kiệm thời gian khi nhận máy.</p>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Phần thanh toán online (ẩn mặc định) -->
-                        <div id="onlinePaymentSection" style="display: none;">
-                            <hr class="my-4">
                             <div class="text-center mb-4">
-                                <p class="text-muted mb-3">Bạn có thể thanh toán trước bằng QR code online</p>
-                                <a asp-controller="Booking" asp-action="OnlinePayment" asp-route-bookingId="@booking.Id" class="btn btn-success btn-lg mb-3">
-                                    <i class="bi bi-qr-code-scan"></i> Bấm Vào Đây Để Đến Trang Thanh Toán Online
+                                <p class="text-muted mb-3">Bấm vào đây để thanh toán online qua QR code</p>
+                                <a asp-controller="Booking" asp-action="OnlinePayment" asp-route-bookingId="@booking.Id" class="btn btn-success btn-lg px-5 py-3">
+                                    <i class="bi bi-qr-code-scan"></i> Bấm Vào Đây Để Thanh Toán Online
                                 </a>
                             </div>
-                            
-                            <hr class="my-4">
-                            
-                            <!-- Nút thanh toán PayOS -->
-                            <div class="text-center">
-                                <p class="text-muted mb-3">Hoặc thanh toán nhanh qua PayOS</p>
-                                <a asp-controller="Booking" asp-action="PayWithPayOS" asp-route-bookingId="@booking.Id" 
-                                   class="btn btn-success btn-lg px-5">
-                                    <i class="bi bi-wallet2"></i> Thanh Toán PayOS
-                                </a>
-                                <p class="small text-muted mt-2 mb-0">
-                                    <i class="bi bi-info-circle"></i> Hỗ trợ thẻ ATM, thẻ tín dụng, ví điện tử
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Thông báo trạng thái -->
-                        <div id="paymentStatusAlert" class="alert alert-warning" role="alert" style="display: none;">
-                            <i class="bi bi-hourglass-split"></i> <span id="statusMessage">Đang chờ thanh toán...</span>
-                        </div>
-
-                        <!-- Nút kiểm tra trạng thái -->
-                        <div class="text-center mt-4">
-                            <button type="button" class="btn btn-primary btn-lg" id="checkStatusBtn" onclick="checkPaymentStatus(@booking.Id)">
-                                <i class="bi bi-arrow-clockwise"></i> Kiểm Tra Trạng Thái
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -186,26 +141,6 @@
 <script>
     let checkInterval;
 
-    // Xử lý chọn phương thức thanh toán
-    document.addEventListener('DOMContentLoaded', function() {
-        const paymentMethodDirect = document.getElementById('paymentMethodDirect');
-        const paymentMethodOnline = document.getElementById('paymentMethodOnline');
-        const onlinePaymentSection = document.getElementById('onlinePaymentSection');
-
-        if (paymentMethodDirect && paymentMethodOnline && onlinePaymentSection) {
-            paymentMethodDirect.addEventListener('change', function() {
-                if (this.checked) {
-                    onlinePaymentSection.style.display = 'none';
-                }
-            });
-
-            paymentMethodOnline.addEventListener('change', function() {
-                if (this.checked) {
-                    onlinePaymentSection.style.display = 'block';
-                }
-            });
-        }
-    });
 
     function checkPaymentStatus(bookingId) {
         const statusAlert = document.getElementById('paymentStatusAlert');
@@ -284,9 +219,6 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                statusAlert.className = 'alert alert-danger';
-                statusMessage.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Có lỗi xảy ra khi kiểm tra trạng thái.';
-                statusAlert.style.display = 'block';
             });
     }
 

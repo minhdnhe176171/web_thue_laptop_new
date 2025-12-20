@@ -150,66 +150,6 @@
                         }
                         else
                         {
-                            <!-- QR Code VietQR MBBank -->
-                            var accountName = ViewBag.AccountName as string ?? "Ha Hoang Hiep";
-                            var accountNumber = ViewBag.AccountNumber as string ?? "0862735289";
-                            var bankName = ViewBag.BankName as string ?? "MBBank";
-                            var phoneNumber = ViewBag.PhoneNumber as string ?? "0862735289";
-                            
-                            @if (!string.IsNullOrEmpty(qrCodeUrl))
-                            {
-                                <div class="mb-4">
-                                    <h5 class="text-muted mb-3">
-                                        <i class="bi bi-qr-code"></i> Quét Mã QR Để Chuyển Khoản
-                                    </h5>
-                                    <div class="alert alert-info mb-3">
-                                        <p class="mb-2">
-                                            <strong>Vui lòng quét mã QR bên dưới bằng ứng dụng ngân hàng của bạn để chuyển khoản vào tài khoản MBBank.</strong>
-                                        </p>
-                                        <p class="mb-0 small">
-                                            <i class="bi bi-info-circle"></i> Sau khi chuyển khoản thành công, hệ thống sẽ tự động cập nhật trạng thái đơn hàng.
-                                        </p>
-                                    </div>
-
-                                    <!-- Thông tin tài khoản nhận tiền -->
-                                    <div class="alert alert-success mb-3">
-                                        <h6 class="alert-heading">
-                                            <i class="bi bi-bank"></i> Thông Tin Tài Khoản Nhận Tiền
-                                        </h6>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <p class="mb-1 small">
-                                                    <strong>Ngân hàng:</strong> @bankName
-                                                </p>
-                                                <p class="mb-1 small">
-                                                    <strong>Số tài khoản:</strong> <span class="badge bg-primary">@accountNumber</span>
-                                                </p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p class="mb-1 small">
-                                                    <strong>Chủ tài khoản:</strong> @accountName
-                                                </p>
-                                                <p class="mb-0 small">
-                                                    <strong>Số điện thoại:</strong> @phoneNumber
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="text-center mb-3">
-                                        <div class="bg-white p-4 rounded shadow-sm d-inline-block">
-                                            <img src="@qrCodeUrl" alt="QR Code Chuyển Khoản MBBank" class="img-fluid" style="max-width: 400px; min-width: 300px;" id="qrCodeImage" />
-                                        </div>
-                                        <p class="text-muted small mt-2">
-                                            <i class="bi bi-camera"></i> Quét mã QR bằng ứng dụng ngân hàng để chuyển khoản
-                                        </p>
-                                    </div>
-                                    
-                                </div>
-
-                                <hr class="my-4">
-                            }
-
                             <!-- Nút thanh toán PayOS -->
                             <div class="mb-4">
                                 <h5 class="text-muted mb-3">
@@ -220,57 +160,16 @@
                                         <strong>Thanh toán nhanh chóng và an toàn qua PayOS.</strong>
                                     </p>
                                     <p class="mb-0 small">
-                                        <i class="bi bi-info-circle"></i> Hỗ trợ thanh toán qua thẻ ATM, thẻ tín dụng, ví điện tử và nhiều phương thức khác.
+                                        <i class="bi bi-info-circle"></i> Hỗ trợ thanh toán qua thẻ ATM, thẻ tín dụng, ví điện tử và nhiều phương thức khác. Bạn sẽ được chuyển đến trang thanh toán PayOS và nhận mã QR để quét.
                                     </p>
                                 </div>
                                 
                                 <div class="text-center">
                                     <a asp-controller="Booking" asp-action="PayWithPayOS" asp-route-bookingId="@booking.Id" 
                                        class="btn btn-success btn-lg px-5 py-3">
-                                        <i class="bi bi-wallet2"></i> Thanh Toán PayOS
+                                        <i class="bi bi-qr-code-scan"></i> Thanh Toán PayOS
                                     </a>
                                 </div>
-                            </div>
-
-                            <hr class="my-4">
-
-                            <!-- Nút thanh toán VNPay -->
-                            <div class="mb-4">
-                                <h5 class="text-muted mb-3">
-                                    <i class="bi bi-credit-card"></i> Thanh Toán Qua VNPay
-                                </h5>
-                                <div class="alert alert-info mb-3">
-                                    <p class="mb-2">
-                                        <strong>Thanh toán nhanh chóng và an toàn qua VNPay.</strong>
-                                    </p>
-                                    <p class="mb-0 small">
-                                        <i class="bi bi-info-circle"></i> Hỗ trợ thanh toán qua thẻ ATM, thẻ tín dụng, ví điện tử và nhiều phương thức khác.
-                                    </p>
-                                </div>
-                                
-                                <div class="text-center">
-                                    <a asp-controller="Booking" asp-action="PayWithVNPay" asp-route-bookingId="@booking.Id" 
-                                       class="btn btn-primary btn-lg px-5 py-3">
-                                        <i class="bi bi-wallet2"></i> Thanh Toán VNPay
-                                    </a>
-                                </div>
-                            </div>
-
-                            <hr class="my-4">
-                        }
-
-                        <!-- Thông báo trạng thái (chỉ hiện khi chưa thanh toán) -->
-                        @if (!isPaid)
-                        {
-                            <div id="paymentStatusAlert" class="alert alert-warning" role="alert" style="display: none;">
-                                <i class="bi bi-hourglass-split"></i> <span id="statusMessage">Đang chờ thanh toán...</span>
-                            </div>
-
-                            <!-- Nút kiểm tra trạng thái -->
-                            <div class="text-center mt-4">
-                                <button type="button" class="btn btn-primary btn-lg" id="checkStatusBtn" onclick="checkPaymentStatus(@booking.Id)">
-                                    <i class="bi bi-arrow-clockwise"></i> Kiểm Tra Trạng Thái
-                                </button>
                             </div>
                         }
                     </div>
@@ -319,9 +218,6 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                statusAlert.className = 'alert alert-danger';
-                statusMessage.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Có lỗi xảy ra khi kiểm tra trạng thái.';
-                statusAlert.style.display = 'block';
             });
     }
 

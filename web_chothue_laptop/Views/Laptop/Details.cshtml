@@ -146,6 +146,15 @@
                                             <small>Bạn đã có một đơn đặt thuê laptop này đang chờ duyệt</small>
                                         </p>
                                     }
+                                    else if (currentCustomerBooking.StatusId == 12) // Banked (Đã chuyển khoản)
+                                    {
+                                        <button class="btn btn-success btn-lg w-100" disabled>
+                                            <i class="bi bi-check-circle"></i> @statusVi
+                                        </button>
+                                        <p class="text-muted text-center mt-2 mb-0">
+                                            <small>Bạn đã chuyển khoản thành công. Vui lòng chờ lấy máy từ @currentCustomerBooking.StartTime.ToString("dd/MM/yyyy") đến @currentCustomerBooking.EndTime.ToString("dd/MM/yyyy")</small>
+                                        </p>
+                                    }
                                     else if (currentCustomerBooking.StatusId == 2 || currentCustomerBooking.StatusId == 10) // Approved hoặc Rented
                                     {
                                         <button class="btn btn-info btn-lg w-100" disabled>

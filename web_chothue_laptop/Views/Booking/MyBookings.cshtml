@@ -432,9 +432,33 @@
                                                 }
                                             </td>
                                             <td class="text-center">
-                                                <a asp-controller="Booking" asp-action="Payment" asp-route-id="@booking.Id" class="btn btn-sm btn-success">
-                                                    <i class="bi bi-credit-card"></i> Thanh Toán
-                                                </a>
+                                                @{
+                                                    var now = DateTime.Now;
+                                                    var isTimeValid = booking.StartTime <= now && booking.EndTime >= now;
+                                                }
+                                                @if (string.IsNullOrEmpty(booking.IdNoUrl) || string.IsNullOrEmpty(booking.StudentUrl))
+                                                {
+                                                    <a asp-controller="Booking" asp-action="UploadDocuments" asp-route-id="@booking.Id" class="btn btn-sm btn-warning">
+                                                        <i class="bi bi-cloud-upload"></i> Upload Tài Liệu
+                                                    </a>
+                                                }
+                                                else if (!isTimeValid)
+                                                {
+                                                    if (booking.EndTime < now)
+                                                    {
+                                                        <span class="badge bg-danger">Đã hết hạn</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-info">Chưa đến hạn</span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <a asp-controller="Booking" asp-action="Payment" asp-route-id="@booking.Id" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-credit-card"></i> Thanh Toán
+                                                    </a>
+                                                }
                                             </td>
                                         </tr>
                                     }

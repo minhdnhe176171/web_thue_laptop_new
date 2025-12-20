@@ -101,10 +101,10 @@
                                     
                                     // Kiểm tra booking của customer hiện tại cho laptop này (chỉ booking đang active)
                                     var customerBooking = customerBookings.ContainsKey(laptop.Id) ? customerBookings[laptop.Id] : null;
-                                    // Kiểm tra xem laptop có đang được customer khác thuê không
+                                    // Kiểm tra xem laptop có đang được customer khác thuê không (bao gồm cả đã chuyển khoản - banked)
                                     var isRentedByOthers = rentedLaptopIds.Contains(laptop.Id) && 
                                         (currentCustomer == null || customerBooking == null || 
-                                         (customerBooking.StatusId != 2 && customerBooking.StatusId != 10));
+                                         (customerBooking.StatusId != 2 && customerBooking.StatusId != 10 && customerBooking.StatusId != 12));
                                     
                                     if (isExpired)
                                     {

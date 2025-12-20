@@ -30,12 +30,11 @@ namespace web_chothue_laptop.Controllers
                     .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
             }
             
-            // Lấy TẤT CẢ laptop ID đang có người thuê (bất kỳ user nào) - StatusId = 2 (Approved) hoặc 10 (Rented)
-            // Điều kiện: StartTime <= hiện tại và EndTime >= hiện tại (đang trong thời gian thuê)
+            // Lấy TẤT CẢ laptop ID đang có người thuê (bất kỳ user nào) - StatusId = 2 (Approved), 10 (Rented), hoặc 12 (Banked - đã chuyển khoản)
+            // Điều kiện: EndTime >= hiện tại (chưa hết hạn thuê) - bao gồm cả trường hợp đã chuyển khoản nhưng chưa đến ngày lấy máy
             var rentedLaptopIds = await _context.Bookings
-                .Where(b => (b.StatusId == 2 || b.StatusId == 10)
-                    && b.StartTime <= DateTime.Now 
-                    && b.EndTime >= DateTime.Now)
+                .Where(b => (b.StatusId == 2 || b.StatusId == 10 || b.StatusId == 12) // Approved, Rented, hoặc Banked (đã chuyển khoản)
+                    && b.EndTime >= DateTime.Today)
                 .Select(b => b.LaptopId)
                 .Distinct()
                 .ToListAsync();
@@ -72,12 +71,12 @@ namespace web_chothue_laptop.Controllers
             if (currentCustomer != null)
             {
                 var laptopIds = paginatedLaptops.Select(l => l.Id).ToList();
-                // Chỉ lấy booking đang active: pending (1), approved (2), rented (10)
+                // Chỉ lấy booking đang active: pending (1), approved (2), rented (10), banked (12 - đã chuyển khoản)
                 var bookings = await _context.Bookings
                     .Include(b => b.Status)
                     .Where(b => b.CustomerId == currentCustomer.Id 
                         && laptopIds.Contains(b.LaptopId)
-                        && (b.StatusId == 1 || b.StatusId == 2 || b.StatusId == 10))
+                        && (b.StatusId == 1 || b.StatusId == 2 || b.StatusId == 10 || b.StatusId == 12))
                     .OrderByDescending(b => b.CreatedDate)
                     .ToListAsync();
                 

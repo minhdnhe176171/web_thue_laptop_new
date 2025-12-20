@@ -4,6 +4,7 @@ using web_chothue_laptop.Models;
 using web_chothue_laptop.ViewModels;
 using web_chothue_laptop.Services;
 using System.Net;
+using System.IO;
 using Net.payOS.Types;
 
 namespace web_chothue_laptop.Controllers
@@ -15,14 +16,16 @@ namespace web_chothue_laptop.Controllers
         private readonly VnpayService _vnpayService;
         private readonly PayOSService _payOSService;
         private readonly IConfiguration _configuration;
+        private readonly CloudinaryService _cloudinaryService;
 
-        public BookingController(Swp391LaptopContext context, ILogger<BookingController> logger, VnpayService vnpayService, PayOSService payOSService, IConfiguration configuration)
+        public BookingController(Swp391LaptopContext context, ILogger<BookingController> logger, VnpayService vnpayService, PayOSService payOSService, IConfiguration configuration, CloudinaryService cloudinaryService)
         {
             _context = context;
             _logger = logger;
             _vnpayService = vnpayService;
             _payOSService = payOSService;
             _configuration = configuration;
+            _cloudinaryService = cloudinaryService;
         }
 
         // GET: Booking/Create/5
@@ -58,16 +61,15 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Details", "Laptop", new { id = id });
             }
 
-            // Kiểm tra xem laptop có đang được người khác thuê không (bất kỳ ai)
+            // Kiểm tra xem laptop có đang được người khác thuê không (bất kỳ ai) - bao gồm cả đã chuyển khoản (banked)
             var isRentedByOthers = await _context.Bookings
                 .AnyAsync(b => b.LaptopId == laptop.Id
-                    && (b.StatusId == 2 || b.StatusId == 10)
-                    && b.StartTime <= DateTime.Now
+                    && (b.StatusId == 2 || b.StatusId == 10 || b.StatusId == 12) // approved, rented, banked (đã chuyển khoản)
                     && b.EndTime >= DateTime.Today);
 
             if (isRentedByOthers)
             {
-                TempData["ErrorMessage"] = "Laptop này hiện đang được thuê bởi người khác. Vui lòng chọn laptop khác hoặc thử lại sau.";
+                TempData["ErrorMessage"] = "Laptop này đã có người chuyển tiền và chờ lấy máy. Vui lòng đặt máy khác.";
                 return RedirectToAction("Details", "Laptop", new { id = id });
             }
 
@@ -80,6 +82,24 @@ namespace web_chothue_laptop.Controllers
             {
                 TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
                 return RedirectToAction("Login", "Account");
+            }
+
+            // VALIDATE: Mỗi customer chỉ được thuê 1 máy tại một thời điểm (bất kỳ laptop nào)
+            // Kiểm tra xem customer đã có booking nào đang active (đã thanh toán thành công hoặc đang thuê) với bất kỳ laptop nào không
+            var activeBookingAnyLaptop = await _context.Bookings
+                .Include(b => b.Status)
+                .Include(b => b.Laptop)
+                .Where(b => b.CustomerId == customer.Id
+                    && (b.StatusId == 12 // banked (đã thanh toán thành công)
+                        || b.StatusId == 10 // rented (đang thuê)
+                        || (b.StatusId == 2 && b.EndTime >= DateTime.Today)) // approved và chưa hết hạn
+                    && b.EndTime >= DateTime.Today)
+                .FirstOrDefaultAsync();
+
+            if (activeBookingAnyLaptop != null)
+            {
+                TempData["ErrorMessage"] = $"Bạn đang có một đơn thuê laptop đang hoạt động (từ {activeBookingAnyLaptop.StartTime:dd/MM/yyyy} đến {activeBookingAnyLaptop.EndTime:dd/MM/yyyy}). Vui lòng hoàn thành việc trả máy trước khi đặt thuê laptop mới.";
+                return RedirectToAction("MyBookings");
             }
 
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
@@ -223,16 +243,15 @@ namespace web_chothue_laptop.Controllers
                 return View(model);
             }
 
-            // Kiểm tra lại xem laptop có đang được người khác thuê không (double check trước khi tạo booking)
+            // Kiểm tra lại xem laptop có đang được người khác thuê không (double check trước khi tạo booking) - bao gồm cả đã chuyển khoản (banked)
             var isRentedByOthers = await _context.Bookings
                 .AnyAsync(b => b.LaptopId == model.LaptopId
-                    && (b.StatusId == 2 || b.StatusId == 10)
-                    && b.StartTime <= DateTime.Now
+                    && (b.StatusId == 2 || b.StatusId == 10 || b.StatusId == 12) // approved, rented, banked (đã chuyển khoản)
                     && b.EndTime >= DateTime.Today);
 
             if (isRentedByOthers)
             {
-                ModelState.AddModelError("", "Laptop này hiện đang được thuê bởi người khác. Vui lòng chọn laptop khác hoặc thử lại sau.");
+                ModelState.AddModelError("", "Laptop này đã có người chuyển tiền và chờ lấy máy. Vui lòng đặt máy khác.");
                 model.PricePerDay = model.Laptop.Price;
 
                 // Tính lại thời gian có thể thuê
@@ -261,6 +280,36 @@ namespace web_chothue_laptop.Controllers
             {
                 TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
                 return RedirectToAction("Login", "Account");
+            }
+
+            // VALIDATE: Mỗi customer chỉ được thuê 1 máy tại một thời điểm (bất kỳ laptop nào)
+            // Kiểm tra xem customer đã có booking nào đang active (đã thanh toán thành công hoặc đang thuê) với bất kỳ laptop nào không
+            var activeBookingAnyLaptop = await _context.Bookings
+                .Include(b => b.Status)
+                .Include(b => b.Laptop)
+                .Where(b => b.CustomerId == customer.Id
+                    && (b.StatusId == 12 // banked (đã thanh toán thành công)
+                        || b.StatusId == 10 // rented (đang thuê)
+                        || (b.StatusId == 2 && b.EndTime >= DateTime.Today)) // approved và chưa hết hạn
+                    && b.EndTime >= DateTime.Today)
+                .FirstOrDefaultAsync();
+
+            if (activeBookingAnyLaptop != null)
+            {
+                ModelState.AddModelError("", $"Bạn đang có một đơn thuê laptop đang hoạt động (từ {activeBookingAnyLaptop.StartTime:dd/MM/yyyy} đến {activeBookingAnyLaptop.EndTime:dd/MM/yyyy}). Vui lòng hoàn thành việc trả máy trước khi đặt thuê laptop mới.");
+                model.PricePerDay = model.Laptop.Price;
+
+                // Tính lại thời gian có thể thuê
+                DateTime? availableStartDate = DateTime.Today;
+                DateTime? availableEndDate = null;
+                if (model.Laptop.EndTime.HasValue)
+                {
+                    availableEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
+                }
+                ViewBag.AvailableStartDate = availableStartDate;
+                ViewBag.AvailableEndDate = availableEndDate;
+
+                return View(model);
             }
 
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
@@ -549,10 +598,209 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("MyBookings");
             }
 
+            // Kiểm tra đã upload ảnh CCCD và thẻ sinh viên chưa
+            if (string.IsNullOrEmpty(booking.IdNoUrl) || string.IsNullOrEmpty(booking.StudentUrl))
+            {
+                TempData["ErrorMessage"] = "Vui lòng upload ảnh CCCD và thẻ sinh viên trước khi thanh toán.";
+                return RedirectToAction("UploadDocuments", new { id = booking.Id });
+            }
+
+            // Kiểm tra thời gian hợp lệ - chỉ cho phép thanh toán khi đơn đang trong thời gian hợp lệ
+            var now = DateTime.Now;
+            if (booking.EndTime < now)
+            {
+                TempData["ErrorMessage"] = $"Đơn hàng này đã hết thời hạn thanh toán. Thời gian thuê đã kết thúc vào {booking.EndTime:dd/MM/yyyy HH:mm}.";
+                return RedirectToAction("MyBookings");
+            }
+            if (booking.StartTime > now)
+            {
+                TempData["ErrorMessage"] = $"Đơn hàng này chưa đến thời gian thanh toán. Thời gian thuê bắt đầu từ {booking.StartTime:dd/MM/yyyy HH:mm}.";
+                return RedirectToAction("MyBookings");
+            }
+
             ViewBag.Booking = booking;
             ViewBag.CustomerId = customer.Id;
 
             return View();
+        }
+
+        // GET: Booking/UploadDocuments/5 - Trang upload ảnh CCCD và thẻ sinh viên
+        public async Task<IActionResult> UploadDocuments(long? id)
+        {
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để upload tài liệu.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy booking với đầy đủ thông tin
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == id && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Kiểm tra booking phải ở trạng thái Approved (StatusId = 2)
+            if (booking.StatusId != 2)
+            {
+                TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể upload tài liệu.";
+                return RedirectToAction("MyBookings");
+            }
+
+            ViewBag.Booking = booking;
+            ViewBag.CustomerId = customer.Id;
+
+            return View();
+        }
+
+        // POST: Booking/UploadDocuments/5 - Xử lý upload ảnh CCCD và thẻ sinh viên
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadDocuments(long? id, IFormFile? idNoFile, IFormFile? studentCardFile)
+        {
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để upload tài liệu.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy booking
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == id && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Kiểm tra booking phải ở trạng thái Approved (StatusId = 2)
+            if (booking.StatusId != 2)
+            {
+                TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể upload tài liệu.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Kiểm tra đã có file upload
+            bool hasNewUpload = false;
+
+            try
+            {
+                // Upload ảnh CCCD nếu có
+                if (idNoFile != null && idNoFile.Length > 0)
+                {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                    var fileExtension = Path.GetExtension(idNoFile.FileName).ToLowerInvariant();
+                    
+                    if (!allowedExtensions.Contains(fileExtension))
+                    {
+                        TempData["ErrorMessage"] = "File ảnh CCCD không đúng định dạng. Chỉ chấp nhận: .jpg, .jpeg, .png, .gif, .webp";
+                        ViewBag.Booking = booking;
+                        ViewBag.CustomerId = customer.Id;
+                        return View();
+                    }
+
+                    var idNoUrl = await _cloudinaryService.UploadImageAsync(idNoFile, "booking-documents");
+                    booking.IdNoUrl = idNoUrl;
+                    hasNewUpload = true;
+                }
+
+                // Upload ảnh thẻ sinh viên nếu có
+                if (studentCardFile != null && studentCardFile.Length > 0)
+                {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                    var fileExtension = Path.GetExtension(studentCardFile.FileName).ToLowerInvariant();
+                    
+                    if (!allowedExtensions.Contains(fileExtension))
+                    {
+                        TempData["ErrorMessage"] = "File ảnh thẻ sinh viên không đúng định dạng. Chỉ chấp nhận: .jpg, .jpeg, .png, .gif, .webp";
+                        ViewBag.Booking = booking;
+                        ViewBag.CustomerId = customer.Id;
+                        return View();
+                    }
+
+                    var studentUrl = await _cloudinaryService.UploadImageAsync(studentCardFile, "booking-documents");
+                    booking.StudentUrl = studentUrl;
+                    hasNewUpload = true;
+                }
+
+                // Kiểm tra bắt buộc phải có cả 2 ảnh
+                if (string.IsNullOrEmpty(booking.IdNoUrl) || string.IsNullOrEmpty(booking.StudentUrl))
+                {
+                    if (hasNewUpload)
+                    {
+                        await _context.SaveChangesAsync();
+                        TempData["WarningMessage"] = "Vui lòng upload đầy đủ cả ảnh CCCD và thẻ sinh viên trước khi tiếp tục.";
+                    }
+                    else
+                    {
+                        TempData["ErrorMessage"] = "Vui lòng chọn file để upload.";
+                    }
+                    ViewBag.Booking = booking;
+                    ViewBag.CustomerId = customer.Id;
+                    return View();
+                }
+
+                // Lưu thay đổi
+                booking.UpdatedDate = DateTime.Now;
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Upload ảnh thành công! Bạn có thể tiến hành thanh toán ngay bây giờ.";
+                return RedirectToAction("Payment", new { id = booking.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading documents for booking {BookingId}", id);
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi upload ảnh. Vui lòng thử lại.";
+                ViewBag.Booking = booking;
+                ViewBag.CustomerId = customer.Id;
+                return View();
+            }
         }
 
         // GET: Booking/PaymentSuccess - Trang thanh toán thành công
@@ -971,6 +1219,29 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("MyBookings");
             }
 
+            // Kiểm tra đã upload ảnh CCCD và thẻ sinh viên chưa (chỉ kiểm tra khi StatusId = 2, chưa thanh toán)
+            if (booking.StatusId == 2 && (string.IsNullOrEmpty(booking.IdNoUrl) || string.IsNullOrEmpty(booking.StudentUrl)))
+            {
+                TempData["ErrorMessage"] = "Vui lòng upload ảnh CCCD và thẻ sinh viên trước khi thanh toán.";
+                return RedirectToAction("UploadDocuments", new { id = booking.Id });
+            }
+
+            // Kiểm tra thời gian hợp lệ - chỉ cho phép thanh toán khi đơn đang trong thời gian hợp lệ (chỉ kiểm tra khi StatusId = 2, chưa thanh toán)
+            if (booking.StatusId == 2)
+            {
+                var now = DateTime.Now;
+                if (booking.EndTime < now)
+                {
+                    TempData["ErrorMessage"] = $"Đơn hàng này đã hết thời hạn thanh toán. Thời gian thuê đã kết thúc vào {booking.EndTime:dd/MM/yyyy HH:mm}.";
+                    return RedirectToAction("MyBookings");
+                }
+                if (booking.StartTime > now)
+                {
+                    TempData["ErrorMessage"] = $"Đơn hàng này chưa đến thời gian thanh toán. Thời gian thuê bắt đầu từ {booking.StartTime:dd/MM/yyyy HH:mm}.";
+                    return RedirectToAction("MyBookings");
+                }
+            }
+
             ViewBag.Booking = booking;
             ViewBag.CustomerId = customer.Id;
 
@@ -1115,6 +1386,29 @@ namespace web_chothue_laptop.Controllers
             {
                 TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể thanh toán.";
                 return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
+
+            // Kiểm tra đã upload ảnh CCCD và thẻ sinh viên chưa (chỉ kiểm tra khi StatusId = 2, chưa thanh toán)
+            if (booking.StatusId == 2 && (string.IsNullOrEmpty(booking.IdNoUrl) || string.IsNullOrEmpty(booking.StudentUrl)))
+            {
+                TempData["ErrorMessage"] = "Vui lòng upload ảnh CCCD và thẻ sinh viên trước khi thanh toán.";
+                return RedirectToAction("UploadDocuments", new { id = bookingId.Value });
+            }
+
+            // Kiểm tra thời gian hợp lệ - chỉ cho phép thanh toán khi đơn đang trong thời gian hợp lệ (chỉ kiểm tra khi StatusId = 2, chưa thanh toán)
+            if (booking.StatusId == 2)
+            {
+                var now = DateTime.Now;
+                if (booking.EndTime < now)
+                {
+                    TempData["ErrorMessage"] = $"Đơn hàng này đã hết thời hạn thanh toán. Thời gian thuê đã kết thúc vào {booking.EndTime:dd/MM/yyyy HH:mm}.";
+                    return RedirectToAction("MyBookings");
+                }
+                if (booking.StartTime > now)
+                {
+                    TempData["ErrorMessage"] = $"Đơn hàng này chưa đến thời gian thanh toán. Thời gian thuê bắt đầu từ {booking.StartTime:dd/MM/yyyy HH:mm}.";
+                    return RedirectToAction("MyBookings");
+                }
             }
 
             // Kiểm tra nếu đã thanh toán

@@ -21,6 +21,7 @@ namespace web_chothue_laptop.Helpers
                 "active" => "Đang hoạt động",
                 "inactive" => "Không hoạt động",
                 "approved" => "Đã Duyệt",
+                "banked" => "Đã chuyển khoản",
                 "closed" => "Đã đóng",
                 _ => statusName // Giữ nguyên nếu không tìm thấy mapping
             };
@@ -42,6 +43,7 @@ namespace web_chothue_laptop.Helpers
                 "pending" or "đang chờ" => "bg-warning",
                 "cancelled" or "canceled" or "đã hủy" => "bg-secondary",
                 "approved" or "đã duyệt" => "bg-success",
+                "banked" or "đã chuyển khoản" => "bg-success",
                 "closed" or "đã đóng" or "đã hoàn thành" => "bg-secondary",
                 _ => "bg-secondary"
             };
@@ -103,9 +105,9 @@ namespace web_chothue_laptop.Helpers
                 "pending" or "đang chờ" => "bg-warning",
                 "cancelled" or "canceled" or "đã hủy" => "bg-secondary",
                 "approved" or "đã duyệt" => "bg-success",
-                "banked" => "bg-info", // "banked" hiển thị là "Đã chuyển khoản" nên dùng bg-info
+                "banked" => "bg-success", // "banked" hiển thị là "Đã chuyển khoản" nên dùng bg-success
                 "đã hoàn thành" => "bg-info", // Đảm bảo "Đã hoàn thành" có màu bg-info
-                "đã chuyển khoản" => "bg-info", // Đảm bảo "Đã chuyển khoản" có màu bg-info
+                "đã chuyển khoản" => "bg-success", // Đảm bảo "Đã chuyển khoản" có màu bg-success
                 _ => GetStatusBadgeClass(statusName) // Nếu không tìm thấy, dùng method gốc
             };
         }
