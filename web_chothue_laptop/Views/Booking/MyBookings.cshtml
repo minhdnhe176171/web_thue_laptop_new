@@ -2,12 +2,11 @@
 @using web_chothue_laptop.Models
 @{
     ViewData["Title"] = "Theo Dõi Đơn Thuê";
-    var paginatedPending = ViewBag.PaginatedPending as PaginatedList<Booking>;
-    var paginatedApproved = ViewBag.PaginatedApproved as PaginatedList<Booking>;
-    var paginatedRented = ViewBag.PaginatedRented as PaginatedList<Booking>;
-    var paginatedCompleted = ViewBag.PaginatedCompleted as PaginatedList<Booking>;
-    var paginatedCancelled = ViewBag.PaginatedCancelled as PaginatedList<Booking>;
-    var pageIndex = ViewBag.PageIndex as int? ?? 1;
+    var pendingBookings = ViewBag.PendingBookings as List<Booking> ?? new List<Booking>();
+    var approvedBookings = ViewBag.ApprovedBookings as List<Booking> ?? new List<Booking>();
+    var rentedBookings = ViewBag.RentedBookings as List<Booking> ?? new List<Booking>();
+    var completedBookings = ViewBag.CompletedBookings as List<Booking> ?? new List<Booking>();
+    var cancelledBookings = ViewBag.CancelledBookings as List<Booking> ?? new List<Booking>();
 }
 
 <div class="container py-4">
@@ -34,53 +33,15 @@
 
     <h2 class="mb-4">Theo Dõi Đơn Thuê</h2>
 
-    <!-- Form tìm kiếm và filter -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" action="@Url.Action("MyBookings", "Booking")" class="row g-3">
-                <input type="hidden" name="tab" value="@ViewBag.Tab" />
-                <div class="col-md-6">
-                    <label for="search" class="form-label">Tìm kiếm</label>
-                    <input type="text" class="form-control" id="search" name="search" 
-                           value="@ViewBag.Search" placeholder="Mã đơn, tên laptop, hãng...">
-                </div>
-                <div class="col-md-4">
-                    <label for="status" class="form-label">Trạng thái</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="1" selected="@(ViewBag.Status?.ToString() == "1")">Chờ Duyệt</option>
-                        <option value="2" selected="@(ViewBag.Status?.ToString() == "2")">Đã Duyệt</option>
-                        <option value="10" selected="@(ViewBag.Status?.ToString() == "10")">Đang Thuê</option>
-                        <option value="8" selected="@(ViewBag.Status?.ToString() == "8")">Đã Hoàn Thành</option>
-                        <option value="3" selected="@(ViewBag.Status?.ToString() == "3")">Đã Bị Hủy</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i> Tìm kiếm
-                    </button>
-                </div>
-                @if (!string.IsNullOrWhiteSpace(ViewBag.Search?.ToString()) || !string.IsNullOrWhiteSpace(ViewBag.Status?.ToString()))
-                {
-                    <div class="col-12">
-                        <a href="@Url.Action("MyBookings", "Booking")" class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-x-circle"></i> Xóa bộ lọc
-                        </a>
-                    </div>
-                }
-            </form>
-        </div>
-    </div>
-
     <!-- Thông báo đơn được duyệt -->
-    @if (ViewBag.ApprovedCount != null && (int)ViewBag.ApprovedCount > 0)
+    @if (approvedBookings.Any())
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <h5 class="alert-heading">
                 <i class="bi bi-check-circle"></i> Thông Báo Quan Trọng
             </h5>
             <p class="mb-2">
-                <strong>Bạn có @ViewBag.ApprovedCount đơn hàng đã được duyệt!</strong>
+                <strong>Bạn có @approvedBookings.Count đơn hàng đã được duyệt!</strong>
             </p>
             <p class="mb-2">
                 Vui lòng vào phần <strong>"Đã Duyệt"</strong> để xử lý thanh toán, hoặc 
@@ -90,7 +51,7 @@
             </p>
             <hr>
             <p class="mb-0 small">
-                <i class="bi bi-info-circle"></i> Sau khi thanh toán thành công, vui lòng đến gặp Staff để nhận máy và xác nhận đã nhận máy.
+                <i class="bi bi-info-circle"></i> Sau khi thanh toán, đơn hàng sẽ chuyển sang trạng thái "Đang Thuê".
             </p>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -99,190 +60,59 @@
     <!-- Tabs Navigation -->
     <ul class="nav nav-tabs mb-4" id="bookingTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "all" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "all", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
-                Tất Cả
-                @{
-                    var allBookingsCount = ViewBag.PaginatedBookings as PaginatedList<Booking>;
-                    if (allBookingsCount != null && allBookingsCount.Any())
-                    {
-                        <span class="badge bg-primary ms-2">@allBookingsCount.Count</span>
-                    }
-                }
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "pending" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "pending", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
                 Chờ Duyệt 
-                @if (ViewBag.PendingCount != null && (int)ViewBag.PendingCount > 0)
+                @if (pendingBookings.Any())
                 {
-                    <span class="badge bg-warning text-dark ms-2">@ViewBag.PendingCount</span>
+                    <span class="badge bg-warning text-dark ms-2">@pendingBookings.Count</span>
                 }
-            </a>
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "approved" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "approved", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
                 Đã Duyệt
-                @if (ViewBag.ApprovedCount != null && (int)ViewBag.ApprovedCount > 0)
+                @if (approvedBookings.Any())
                 {
-                    <span class="badge bg-success ms-2">@ViewBag.ApprovedCount</span>
+                    <span class="badge bg-success ms-2">@approvedBookings.Count</span>
                 }
-            </a>
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "rented" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "rented", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <button class="nav-link" id="rented-tab" data-bs-toggle="tab" data-bs-target="#rented" type="button" role="tab">
                 Đang Thuê
-                @if (ViewBag.RentedCount != null && (int)ViewBag.RentedCount > 0)
+                @if (rentedBookings.Any())
                 {
-                    <span class="badge bg-info ms-2">@ViewBag.RentedCount</span>
+                    <span class="badge bg-info ms-2">@rentedBookings.Count</span>
                 }
-            </a>
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "completed" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "completed", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
                 Đã Hoàn Thành
-                @if (ViewBag.CompletedCount != null && (int)ViewBag.CompletedCount > 0)
+                @if (completedBookings.Any())
                 {
-                    <span class="badge bg-secondary ms-2">@ViewBag.CompletedCount</span>
+                    <span class="badge bg-secondary ms-2">@completedBookings.Count</span>
                 }
-            </a>
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "cancelled" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "cancelled", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <button class="nav-link" id="cancelled-tab" data-bs-toggle="tab" data-bs-target="#cancelled" type="button" role="tab">
                 Đã Bị Hủy
-                @if (ViewBag.CancelledCount != null && (int)ViewBag.CancelledCount > 0)
+                @if (cancelledBookings.Any())
                 {
-                    <span class="badge bg-danger ms-2">@ViewBag.CancelledCount</span>
+                    <span class="badge bg-danger ms-2">@cancelledBookings.Count</span>
                 }
-            </a>
+            </button>
         </li>
     </ul>
 
     <!-- Tabs Content -->
     <div class="tab-content" id="bookingTabsContent">
-        <!-- Tab: Tất Cả (với filter và phân trang) -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "all" ? "show active" : "")" id="all" role="tabpanel">
-            <div class="card shadow-sm">
-                <div class="card-body p-0">
-                    @{
-                        var paginatedBookings = ViewBag.PaginatedBookings as PaginatedList<Booking>;
-                        var totalPages = paginatedBookings?.TotalPages ?? 1;
-                        var hasPreviousPage = paginatedBookings?.HasPreviousPage ?? false;
-                        var hasNextPage = paginatedBookings?.HasNextPage ?? false;
-                    }
-                    @if (paginatedBookings != null && paginatedBookings.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light">
-                                    <tr>
-                                        <th class="ps-4">Mã Đơn</th>
-                                        <th>Laptop</th>
-                                        <th>Thời Gian Thuê</th>
-                                        <th>Tổng Tiền</th>
-                                        <th>Ngày Tạo</th>
-                                        <th>Trạng Thái</th>
-                                        <th class="text-center">Hành Động</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var booking in paginatedBookings)
-                                    {
-                                        <tr>
-                                            <td class="ps-4">
-                                                <span class="badge bg-secondary rounded-pill">#@booking.Id</span>
-                                            </td>
-                                            <td>
-                                                <strong>@booking.Laptop?.Name</strong>
-                                                <div class="small text-muted">@booking.Laptop?.Brand?.BrandName</div>
-                                            </td>
-                                            <td>
-                                                <div>Từ: <strong>@booking.StartTime.ToString("dd/MM/yyyy")</strong></div>
-                                                <div>Đến: <strong>@booking.EndTime.ToString("dd/MM/yyyy")</strong></div>
-                                            </td>
-                                            <td>
-                                                @if (booking.TotalPrice.HasValue)
-                                                {
-                                                    <span class="text-primary fw-bold">@booking.TotalPrice.Value.ToString("N0") VNĐ</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">Chưa có</span>
-                                                }
-                                            </td>
-                                            <td>@(booking.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
-                                            <td>
-                                                @if (booking.Status != null)
-                                                {
-                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" và "banked" là "Đã chuyển khoản" trong theo dõi đơn thuê
-                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
-                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
-                                                    <span class="badge @badgeClass">@statusVi</span>
-                                                }
-                                            </td>
-                                            <td class="text-center">
-                                                @if (booking.StatusId == 2)
-                                                {
-                                                    <a asp-controller="Booking" asp-action="Payment" asp-route-id="@booking.Id" class="btn btn-sm btn-success">
-                                                        <i class="bi bi-credit-card"></i> Thanh Toán
-                                                    </a>
-                                                }
-                                                else if (booking.StatusId == 10)
-                                                {
-                                                    <a href="@Url.Action("Details", "Laptop", new { id = booking.LaptopId })" class="btn btn-sm btn-primary">
-                                                        <i class="bi bi-eye"></i> Xem Chi Tiết
-                                                    </a>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-center py-5">
-                            <p class="text-muted mb-0">Không tìm thấy đơn thuê nào.</p>
-                        </div>
-                    }
-                    
-                    <!-- Phân trang - Luôn hiển thị -->
-                    @if (paginatedBookings != null)
-                    {
-                        var displayPages = Math.Max(totalPages, 3);
-                        var hasPreviousDisplay = pageIndex > 1;
-                        var hasNextDisplay = pageIndex < displayPages;
-                        <nav aria-label="Page navigation" class="p-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <li class="page-item @(!hasPreviousDisplay ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, status = ViewBag.Status, tab = "all" })" aria-label="Previous">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                @for (int i = 1; i <= displayPages; i++)
-                                {
-                                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, status = ViewBag.Status, tab = "all" })">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(!hasNextDisplay ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, status = ViewBag.Status, tab = "all" })" aria-label="Next">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                    }
-                </div>
-            </div>
-        </div>
-
         <!-- Tab: Chờ Duyệt -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "pending" ? "show active" : "")" id="pending" role="tabpanel">
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
-                    @if (paginatedPending != null && paginatedPending.Any())
+                    @if (pendingBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -297,7 +127,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in paginatedPending)
+                                    @foreach (var booking in pendingBookings)
                                     {
                                         <tr>
                                             <td class="ps-4">
@@ -325,10 +155,8 @@
                                             <td>
                                                 @if (booking.Status != null)
                                                 {
-                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" và "banked" là "Đã chuyển khoản" trong theo dõi đơn thuê
-                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
-                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
+                                                    var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
+                                                    var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
                                                 }
                                             </td>
@@ -344,43 +172,15 @@
                             <p class="text-muted mb-0">Bạn chưa có đơn nào đang chờ duyệt.</p>
                         </div>
                     }
-                    
-                    <!-- Phân trang - Luôn hiển thị -->
-                    @if (paginatedPending != null)
-                    {
-                        var displayPagesPending = Math.Max(paginatedPending.TotalPages, 3);
-                        var hasPreviousPending = pageIndex > 1;
-                        var hasNextPending = pageIndex < displayPagesPending;
-                        <nav aria-label="Page navigation" class="p-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <li class="page-item @(!hasPreviousPending ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "pending" })" aria-label="Previous">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                @for (int i = 1; i <= displayPagesPending; i++)
-                                {
-                                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "pending" })">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(!hasNextPending ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "pending" })" aria-label="Next">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                    }
                 </div>
             </div>
         </div>
 
         <!-- Tab: Đã Duyệt -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "approved" ? "show active" : "")" id="approved" role="tabpanel">
+        <div class="tab-pane fade" id="approved" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
-                    @if (paginatedApproved != null && paginatedApproved.Any())
+                    @if (approvedBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -396,7 +196,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in paginatedApproved)
+                                    @foreach (var booking in approvedBookings)
                                     {
                                         <tr>
                                             <td class="ps-4">
@@ -424,41 +224,15 @@
                                             <td>
                                                 @if (booking.Status != null)
                                                 {
-                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" và "banked" là "Đã chuyển khoản" trong theo dõi đơn thuê
-                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
-                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
+                                                    var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
+                                                    var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
                                                 }
                                             </td>
                                             <td class="text-center">
-                                                @{
-                                                    var now = DateTime.Now;
-                                                    var isTimeValid = booking.StartTime <= now && booking.EndTime >= now;
-                                                }
-                                                @if (string.IsNullOrEmpty(booking.IdNoUrl) || string.IsNullOrEmpty(booking.StudentUrl))
-                                                {
-                                                    <a asp-controller="Booking" asp-action="UploadDocuments" asp-route-id="@booking.Id" class="btn btn-sm btn-warning">
-                                                        <i class="bi bi-cloud-upload"></i> Upload Tài Liệu
-                                                    </a>
-                                                }
-                                                else if (!isTimeValid)
-                                                {
-                                                    if (booking.EndTime < now)
-                                                    {
-                                                        <span class="badge bg-danger">Đã hết hạn</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-info">Chưa đến hạn</span>
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    <a asp-controller="Booking" asp-action="Payment" asp-route-id="@booking.Id" class="btn btn-sm btn-success">
-                                                        <i class="bi bi-credit-card"></i> Thanh Toán
-                                                    </a>
-                                                }
+                                                <a asp-controller="Booking" asp-action="Payment" asp-route-id="@booking.Id" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-credit-card"></i> Thanh Toán
+                                                </a>
                                             </td>
                                         </tr>
                                     }
@@ -472,43 +246,15 @@
                             <p class="text-muted mb-0">Bạn chưa có đơn nào đã được duyệt.</p>
                         </div>
                     }
-                    
-                    <!-- Phân trang - Luôn hiển thị -->
-                    @if (paginatedApproved != null)
-                    {
-                        var displayPagesApproved = Math.Max(paginatedApproved.TotalPages, 3);
-                        var hasPreviousApproved = pageIndex > 1;
-                        var hasNextApproved = pageIndex < displayPagesApproved;
-                        <nav aria-label="Page navigation" class="p-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <li class="page-item @(!hasPreviousApproved ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "approved" })" aria-label="Previous">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                @for (int i = 1; i <= displayPagesApproved; i++)
-                                {
-                                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "approved" })">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(!hasNextApproved ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "approved" })" aria-label="Next">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                    }
                 </div>
             </div>
         </div>
 
         <!-- Tab: Đang Thuê -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "rented" ? "show active" : "")" id="rented" role="tabpanel">
+        <div class="tab-pane fade" id="rented" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
-                    @if (paginatedRented != null && paginatedRented.Any())
+                    @if (rentedBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -524,7 +270,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in paginatedRented)
+                                    @foreach (var booking in rentedBookings)
                                     {
                                         <tr>
                                             <td class="ps-4">
@@ -561,10 +307,8 @@
                                             <td>
                                                 @if (booking.Status != null)
                                                 {
-                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" và "banked" là "Đã chuyển khoản" trong theo dõi đơn thuê
-                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
-                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
+                                                    var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
+                                                    var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
                                                 }
                                             </td>
@@ -585,43 +329,15 @@
                             <p class="text-muted mb-0">Bạn chưa có đơn nào đang thuê.</p>
                         </div>
                     }
-                    
-                    <!-- Phân trang - Luôn hiển thị -->
-                    @if (paginatedRented != null)
-                    {
-                        var displayPagesRented = Math.Max(paginatedRented.TotalPages, 3);
-                        var hasPreviousRented = pageIndex > 1;
-                        var hasNextRented = pageIndex < displayPagesRented;
-                        <nav aria-label="Page navigation" class="p-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <li class="page-item @(!hasPreviousRented ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "rented" })" aria-label="Previous">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                @for (int i = 1; i <= displayPagesRented; i++)
-                                {
-                                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "rented" })">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(!hasNextRented ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "rented" })" aria-label="Next">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                    }
                 </div>
             </div>
         </div>
 
         <!-- Tab: Đã Hoàn Thành -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "completed" ? "show active" : "")" id="completed" role="tabpanel">
+        <div class="tab-pane fade" id="completed" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
-                    @if (paginatedCompleted != null && paginatedCompleted.Any())
+                    @if (completedBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -636,7 +352,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in paginatedCompleted)
+                                    @foreach (var booking in completedBookings)
                                     {
                                         <tr>
                                             <td class="ps-4">
@@ -664,10 +380,8 @@
                                             <td>
                                                 @if (booking.Status != null)
                                                 {
-                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" và "banked" là "Đã chuyển khoản" trong theo dõi đơn thuê
-                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
-                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
+                                                    var statusVi = StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
+                                                    var badgeClass = StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
                                                 }
                                             </td>
@@ -683,43 +397,15 @@
                             <p class="text-muted mb-0">Bạn chưa có đơn nào đã hoàn thành.</p>
                         </div>
                     }
-                    
-                    <!-- Phân trang - Luôn hiển thị -->
-                    @if (paginatedCompleted != null)
-                    {
-                        var displayPagesCompleted = Math.Max(paginatedCompleted.TotalPages, 3);
-                        var hasPreviousCompleted = pageIndex > 1;
-                        var hasNextCompleted = pageIndex < displayPagesCompleted;
-                        <nav aria-label="Page navigation" class="p-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <li class="page-item @(!hasPreviousCompleted ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "completed" })" aria-label="Previous">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                @for (int i = 1; i <= displayPagesCompleted; i++)
-                                {
-                                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "completed" })">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(!hasNextCompleted ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "completed" })" aria-label="Next">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
-                    }
                 </div>
             </div>
         </div>
 
         <!-- Tab: Đã Bị Hủy -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "cancelled" ? "show active" : "")" id="cancelled" role="tabpanel">
+        <div class="tab-pane fade" id="cancelled" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
-                    @if (paginatedCancelled != null && paginatedCancelled.Any())
+                    @if (cancelledBookings.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -735,7 +421,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var booking in paginatedCancelled)
+                                    @foreach (var booking in cancelledBookings)
                                     {
                                         <tr>
                                             <td class="ps-4">
@@ -763,10 +449,6 @@
                                             <td>
                                                 @if (booking.Status != null)
                                                 {
-                                                    // Dùng GetVietnameseStatusForHistory để hiển thị "closed" là "Đã hoàn thành" và "banked" là "Đã chuyển khoản" trong theo dõi đơn thuê
-                                                    // Dùng GetStatusBadgeClassForHistory để có màu đúng cho theo dõi đơn thuê
-                                                    var statusVi = StatusHelper.GetVietnameseStatusForHistory(booking.Status.StatusName);
-                                                    var badgeClass = StatusHelper.GetStatusBadgeClassForHistory(booking.Status.StatusName);
                                                     var statusVi = web_chothue_laptop.Helpers.StatusHelper.GetVietnameseStatus(booking.Status.StatusName);
                                                     var badgeClass = web_chothue_laptop.Helpers.StatusHelper.GetStatusBadgeClass(booking.Status.StatusName);
                                                     <span class="badge @badgeClass">@statusVi</span>
@@ -795,34 +477,6 @@
                         <div class="text-center py-5">
                             <p class="text-muted mb-0">Bạn chưa có đơn nào bị hủy.</p>
                         </div>
-                    }
-                    
-                    <!-- Phân trang - Luôn hiển thị -->
-                    @if (paginatedCancelled != null)
-                    {
-                        var displayPagesCancelled = Math.Max(paginatedCancelled.TotalPages, 3);
-                        var hasPreviousCancelled = pageIndex > 1;
-                        var hasNextCancelled = pageIndex < displayPagesCancelled;
-                        <nav aria-label="Page navigation" class="p-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <li class="page-item @(!hasPreviousCancelled ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "cancelled" })" aria-label="Previous">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                @for (int i = 1; i <= displayPagesCancelled; i++)
-                                {
-                                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "cancelled" })">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(!hasNextCancelled ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "cancelled" })" aria-label="Next">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </nav>
                     }
                 </div>
             </div>
