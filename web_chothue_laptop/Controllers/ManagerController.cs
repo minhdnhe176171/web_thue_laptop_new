@@ -470,6 +470,80 @@ namespace web_chothue_laptop.Controllers
 
             return RedirectToAction(nameof(RentalHistory), new { id = id });
         }
+
+        // GET: Manager/SalesReport
+        // Màn hình báo cáo doanh số - Các đơn đã Close (Customer đã trả máy)
+        public async Task<IActionResult> SalesReport(string? search, DateTime? fromDate, DateTime? toDate, int page = 1)
+        {
+            // Query các booking đã Close (StatusId = 8)
+            var query = _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Student)
+                .Include(b => b.Customer)
+                .Include(b => b.Staff)
+                .Include(b => b.Status)
+                .Where(b => b.StatusId == 8) // Close - Đã trả máy
+                .AsQueryable();
+
+            // Tìm kiếm theo tên laptop, customer, hoặc mã booking
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim().ToLower();
+                query = query.Where(b =>
+                    b.Id.ToString().Contains(search) ||
+                    (b.Laptop != null && b.Laptop.Name.ToLower().Contains(search)) ||
+                    (b.Laptop != null && b.Laptop.Brand != null && b.Laptop.Brand.BrandName.ToLower().Contains(search)) ||
+                    (b.Customer != null && (
+                        b.Customer.FirstName.ToLower().Contains(search) ||
+                        b.Customer.LastName.ToLower().Contains(search) ||
+                        b.Customer.Email.ToLower().Contains(search)
+                    ))
+                );
+            }
+
+            // Lọc theo ngày
+            if (fromDate.HasValue)
+            {
+                query = query.Where(b => b.UpdatedDate >= fromDate.Value || b.EndTime >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                var endOfDay = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(b => b.UpdatedDate <= endOfDay || b.EndTime <= endOfDay);
+            }
+
+            // Thống kê tổng hợp
+            var totalRevenue = await query.SumAsync(b => b.TotalPrice ?? 0);
+            var totalBookings = await query.CountAsync();
+            var avgRevenue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+
+            // Pagination
+            int pageSize = 10;
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var bookings = await query
+                .OrderByDescending(b => b.UpdatedDate ?? b.EndTime)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Pass data to view
+            ViewBag.TotalRevenue = totalRevenue;
+            ViewBag.TotalBookings = totalBookings;
+            ViewBag.AvgRevenue = avgRevenue;
+            ViewBag.Search = search;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+
+            return View(bookings);
+        }
     }
 }
 
