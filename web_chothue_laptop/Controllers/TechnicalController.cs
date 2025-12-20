@@ -150,7 +150,10 @@ namespace web_chothue_laptop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateInspectionInfo(long ticketId, string description, IFormFile? inspectionImage)
         {
-            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
+            // Load ticket và kèm theo dữ liệu Laptop để update
+            var ticket = await _context.TechnicalTickets
+                .Include(t => t.Laptop)
+                .FirstOrDefaultAsync(t => t.Id == ticketId);
 
             if (ticket == null)
             {
@@ -166,26 +169,52 @@ namespace web_chothue_laptop.Controllers
             }
             ticket.Description = description;
 
-            // 2. Xử lý Upload ảnh (Nếu có file mới)
+            // 2. Xử lý Upload ảnh (Lưu vào wwwroot và update DB)
             if (inspectionImage != null && inspectionImage.Length > 0)
             {
                 try
                 {
-                    // [TODO]: Thay thế logic này bằng Service Upload của bạn (VD: Cloudinary)
-                    // Hiện tại code chỉ demo logic, bạn cần code phần lưu file vật lý hoặc Cloudinary ở đây
-                    // Ví dụ: string imageUrl = await _cloudinaryService.UploadImage(inspectionImage);
-                    // ticket.Laptop.ImageUrl = imageUrl;
+                    // Kiểm tra Laptop có tồn tại không
+                    if (ticket.Laptop != null)
+                    {
+                        // Tạo tên file duy nhất để tránh trùng lặp (dùng GUID hoặc TimeStamp)
+                        var fileName = $"laptop_{ticket.Laptop.Id}_{Guid.NewGuid()}{Path.GetExtension(inspectionImage.FileName)}";
+
+                        // Định nghĩa thư mục lưu trữ (Ví dụ: wwwroot/images/laptops)
+                        var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
+
+                        // Tạo thư mục nếu chưa tồn tại
+                        if (!Directory.Exists(uploadFolder))
+                        {
+                            Directory.CreateDirectory(uploadFolder);
+                        }
+
+                        var filePath = Path.Combine(uploadFolder, fileName);
+
+                        // Lưu file vật lý vào server
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await inspectionImage.CopyToAsync(stream);
+                        }
+
+                        // CẬP NHẬT ĐƯỜNG DẪN VÀO DATABASE (Cột IMAGE_URL)
+                        // Lưu đường dẫn tương đối để web có thể hiển thị
+                        ticket.Laptop.ImageUrl = "/images/laptops/" + fileName;
+                    }
                 }
                 catch (Exception ex)
                 {
                     TempData["ErrorMessage"] = "Lỗi upload ảnh: " + ex.Message;
+                    return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
                 }
             }
 
             ticket.UpdatedDate = DateTime.Now;
+
+            // Lưu thay đổi vào Database (bao gồm cả Description và ImageUrl mới)
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Đã cập nhật thông tin kiểm tra.";
+            TempData["SuccessMessage"] = "Đã cập nhật thông tin kiểm tra và hình ảnh.";
 
             // Quay lại trang chi tiết
             return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
@@ -202,29 +231,63 @@ namespace web_chothue_laptop.Controllers
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
             if (ticket != null)
             {
+                // 1. Cập nhật ticket sang Approved
                 ticket.StatusId = 2; // Approved
-                ticket.TechnicalResponse = "Đã đạt chuẩn. Chuyển sang Staff.";
+                ticket.TechnicalResponse = "Đã đạt chuẩn. Chuyển sang Staff để duyệt lên web.";
                 ticket.UpdatedDate = DateTime.Now;
-                if (ticket.Laptop != null) ticket.Laptop.StatusId = 2;
+                
+                // 2. GIỮ NGUYÊN Laptop.StatusId = 1 (Pending) - Chờ Staff duyệt
+                // KHÔNG tự động chuyển sang Approved
+                // if (ticket.Laptop != null) ticket.Laptop.StatusId = 2; // ❌ XÓA DÒNG NÀY
+                
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Đã duyệt! Thiết bị đã được chuyển sang Staff.";
+                TempData["SuccessMessage"] = "Đã duyệt! Thiết bị đã được chuyển sang Staff để duyệt lên web.";
             }
             return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RejectLaptop(long ticketId, string reason)
+        public async Task<IActionResult> RejectLaptop(long ticketId, string reason, string rejectType)
         {
-            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
-            if (ticket != null)
+            var ticket = await _context.TechnicalTickets
+                .Include(t => t.Laptop)
+                    .ThenInclude(l => l.Student)
+                .FirstOrDefaultAsync(t => t.Id == ticketId);
+                
+            if (ticket != null && ticket.Laptop != null)
             {
-                ticket.StatusId = 3; // Rejected
-                ticket.TechnicalResponse = "TỪ CHỐI: " + reason;
-                ticket.UpdatedDate = DateTime.Now;
-                if (ticket.Laptop != null) ticket.Laptop.StatusId = 3;
+                if (rejectType == "fixing")
+                {
+                    // Trường hợp: Cần sửa chữa (Fixing)
+                    // KHÔNG ĐỔI Ticket.StatusId - Giữ nguyên = 1 (Pending)
+                    // ticket.StatusId = 3; // ❌ XÓA DÒNG NÀY
+                    
+                    ticket.TechnicalResponse = "CẦN SỬA CHỮA: " + reason;
+                    ticket.UpdatedDate = DateTime.Now;
+                    
+                    // Chỉ đổi Laptop.StatusId = 4 (Fixing)
+                    ticket.Laptop.StatusId = 4; // Fixing
+                    ticket.Laptop.RejectReason = "Cần sửa chữa: " + reason;
+                    ticket.Laptop.UpdatedDate = DateTime.Now;
+                    
+                    TempData["WarningMessage"] = "Đã gửi yêu cầu sửa chữa cho Student. Chờ Student đồng ý.";
+                }
+                else
+                {
+                    // Trường hợp: Từ chối hoàn toàn (Rejected)
+                    ticket.StatusId = 3; // Rejected
+                    ticket.TechnicalResponse = "TỪ CHỐI: " + reason;
+                    ticket.UpdatedDate = DateTime.Now;
+                    
+                    ticket.Laptop.StatusId = 3; // Rejected
+                    ticket.Laptop.RejectReason = reason;
+                    ticket.Laptop.UpdatedDate = DateTime.Now;
+                    
+                    TempData["WarningMessage"] = "Đã từ chối thiết bị hoàn toàn. Lý do đã được gửi cho Student.";
+                }
+                
                 await _context.SaveChangesAsync();
-                TempData["WarningMessage"] = "Đã từ chối thiết bị.";
             }
             return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
         }
@@ -287,11 +350,31 @@ namespace web_chothue_laptop.Controllers
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return NotFound();
 
-            if (statusId == 5) // Fixed
+            if (statusId == 5) // Fixed - Sửa xong
             {
-                if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean) { TempData["ErrorMessage"] = "Chưa hoàn thành QC!"; return View(ticket); }
-                technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed. Chuyển về Pending để duyệt.";
-                statusId = 1;
+                if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean) 
+                { 
+                    TempData["ErrorMessage"] = "Chưa hoàn thành QC!"; 
+                    return View(ticket); 
+                }
+                
+                technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed.";
+                
+                // Kiểm tra laptop có đang ở trạng thái Fixing không
+                if (ticket.Laptop != null && ticket.Laptop.StatusId == 4)
+                {
+                    // Nếu đang Fixing → Chuyển sang Available (9)
+                    ticket.Laptop.StatusId = 9; // Available - Đưa lên web
+                    ticket.Laptop.RejectReason = null; // Xóa lý do từ chối
+                    technicalResponse += " Laptop đã được chuyển sang Available.";
+                }
+                else
+                {
+                    // Nếu không phải Fixing → Chuyển về Pending để duyệt lại
+                    statusId = 1;
+                    if (ticket.Laptop != null) ticket.Laptop.StatusId = 1;
+                    technicalResponse += " Chuyển về Pending để duyệt.";
+                }
             }
             else if (statusId == 6) // Need parts
             {
@@ -312,11 +395,18 @@ namespace web_chothue_laptop.Controllers
             }
 
             await _context.SaveChangesAsync();
+            
             if (statusId == 1)
             {
                 TempData["SuccessMessage"] = "Đã sửa xong! Thiết bị quay lại mục Yêu Cầu Kiểm Tra.";
                 return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
             }
+            else if (ticket.Laptop?.StatusId == 9)
+            {
+                TempData["SuccessMessage"] = "Đã sửa xong! Laptop đã được niêm yết lên web.";
+                return RedirectToAction(nameof(Index), new { activeTab = "repair" });
+            }
+            
             return RedirectToAction(nameof(Index), new { activeTab = "repair" });
         }
     }

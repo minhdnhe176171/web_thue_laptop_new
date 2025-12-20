@@ -1,0 +1,28 @@
+﻿@model web_chothue_laptop.Models.Staff
+@{
+    ViewData["Title"] = "Chi tiết Staff";
+    Layout = "_ManagerLayout";
+}
+
+<h3>@Model.FirstName @Model.LastName</h3>
+
+<hr />
+
+<h5>Booking đã xử lý</h5>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Booking ID</th>
+            <th>Ngày tạo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var b in Model.Bookings)
+        {
+            <tr>
+                <td>@b.Id</td>
+                <td>@b.CreatedDate?.ToString("dd/MM/yyyy")</td>
+            </tr>
+        }
+    </tbody>
+</table>

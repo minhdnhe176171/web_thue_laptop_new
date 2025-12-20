@@ -32,7 +32,22 @@
                             }
                             var userRole = Context.Session.GetString("UserRole")?.ToLower() ?? "";
                             var isCustomer = userRoleId == 2 || userRole.Contains("customer") || userRole.Contains("student");
+                            var isStudent = userRoleId == 3 || userRole.Contains("student");
                             var isStaff = userRoleId == 4 || userRole.Contains("staff");
+                            
+                            @* Hiển thị nút Thông báo cho Student *@
+                            @if (isStudent)
+                            {
+                                <li class="nav-item d-flex align-items-center position-relative">
+                                    <a class="nav-link text-white fw-semibold d-flex align-items-center" 
+                                       asp-controller="Student" 
+                                       asp-action="Notifications"
+                                       style="line-height: 1.5;">
+                                        <i class="bi bi-bell me-1"></i> Thông báo nhận máy
+                                        @await Component.InvokeAsync("NotificationBadge")
+                                    </a>
+                                </li>
+                            }
                             
                             @* Hiển thị nút chat - controller sẽ tự động redirect nếu không đúng quyền *@
                             @if (!isStaff)

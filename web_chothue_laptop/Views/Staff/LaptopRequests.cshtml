@@ -78,10 +78,13 @@
         <div class="sidebar-header"><i class="fas fa-user-shield"></i> Staff Dashboard</div>
         <div class="sidebar-menu">
             <a href="@Url.Action("Index", "Staff")"><i class="fas fa-check-square"></i> Duyệt Đơn Thuê</a>
-            <a href="@Url.Action("LaptopRequests", "Staff")" class="active"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
+            <a href="@Url.Action("LaptopRequests", "Staff")"><i class="fas fa-laptop-medical"></i> Máy Chờ Kiểm Tra</a>
             <a href="@Url.Action("RentedLaptops", "Staff")"><i class="fas fa-list"></i> Máy Đang Thuê</a>
+
+            <a href="@Url.Action("DueForReturnLaptops", "Staff")"><i class="fas fa-undo"></i> Trả Máy Về SV</a>
+
             <a href="@Url.Action("Deliveries", "Staff")"><i class="fas fa-truck"></i> Quản lý Giao Máy</a>
-            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Giao Máy Nhanh</a>
+            <a href="@Url.Action("QuickHandover", "Staff")"><i class="fas fa-bolt"></i> Thanh toán</a>
         </div>
     </div>
 
@@ -115,11 +118,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th class="ps-4 py-3">Tên Laptop</th>
-                            <th>Chủ Máy (Student)</th>
-                            <th>Trạng Thái</th>
-                            <th>Giá Thuê</th>
-                            <th class="text-end pe-4">Xử Lý</th>
+                            <th class="ps-4 py-3" style="width: 30%;">Tên Laptop</th>
+                            <th style="width: 20%;">Chủ Máy</th>
+                            <th style="width: 20%;">Trạng Thái</th>
+                            <th style="width: 15%;">Giá Thuê</th>
+                            <th class="text-end pe-4" style="width: 15%;">Xử Lý</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -133,6 +136,7 @@
                                         <small class="text-muted">ID: @laptop.Id</small>
                                     </td>
                                     <td>@(laptop.Student?.LastName + " " + laptop.Student?.FirstName)</td>
+
                                     <td>
                                         @if (laptop.StatusId == 1)
                                         {
@@ -140,25 +144,57 @@
                                         }
                                         else if (laptop.StatusId == 2)
                                         {
-
                                             <span class="badge bg-success">Technical đã duyệt</span>
                                         }
+                                        else if (laptop.StatusId == 4)
+                                        {
+                                            @if (laptop.TechnicalTickets != null && laptop.TechnicalTickets.Any(t => t.StatusId != 2 && t.StatusId != 8 && t.StatusId != 3))
+                                            {
+                                                <span class="badge bg-info text-dark">Technical đang kiểm tra</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Cần gửi lại phiếu</span>
+                                            }
+                                        }
                                     </td>
-                                    <td class="text-success fw-bold">@(laptop.Price.HasValue? laptop.Price.Value.ToString("#,##0") : "0") đ</td>
+
+                                    <td class="text-success fw-bold">
+                                        @(laptop.Price.HasValue? laptop.Price.Value.ToString("#,##0") : "0") đ
+                                    </td>
+
                                     <td class="text-end pe-4">
                                         @if (laptop.StatusId == 1)
                                         {
                                             <form asp-action="SendToTechnical" method="post">
                                                 <input type="hidden" name="laptopId" value="@laptop.Id" />
-                                                <button class="btn btn-primary btn-sm">Gửi Technical</button>
+                                                <button class="btn btn-primary btn-sm text-nowrap">Gửi Technical</button>
                                             </form>
                                         }
                                         else if (laptop.StatusId == 2)
                                         {
                                             <form asp-action="PublishLaptop" method="post">
                                                 <input type="hidden" name="laptopId" value="@laptop.Id" />
-                                                <button class="btn btn-success btn-sm" onclick="return confirm('Xác nhận cho thuê?')">Cho Thuê</button>
+                                                <button class="btn btn-success btn-sm text-nowrap" onclick="return confirm('Xác nhận cho thuê?')">Cho Thuê</button>
                                             </form>
+                                        }
+                                        else if (laptop.StatusId == 4)
+                                        {
+                                            @if (laptop.TechnicalTickets != null && laptop.TechnicalTickets.Any(t => t.StatusId != 2 && t.StatusId != 8 && t.StatusId != 3))
+                                            {
+                                                <button class="btn btn-secondary btn-sm text-nowrap" disabled>
+                                                    <i class="fas fa-clock"></i> Đang chờ Tech...
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="SendToTechnical" method="post">
+                                                    <input type="hidden" name="laptopId" value="@laptop.Id" />
+                                                    <button class="btn btn-warning btn-sm shadow-sm border border-dark text-nowrap" title="Bấm để gửi lại phiếu">
+                                                        <i class="fas fa-sync-alt"></i> Gửi Lại Phiếu
+                                                    </button>
+                                                </form>
+                                            }
                                         }
                                     </td>
                                 </tr>
