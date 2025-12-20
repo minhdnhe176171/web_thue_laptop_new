@@ -110,7 +110,8 @@ namespace web_chothue_laptop.Controllers
             if (string.IsNullOrEmpty(userId))
             {
                 TempData["ErrorMessage"] = "Vui lòng đăng nhập để đặt thuê laptop.";
-                return RedirectToAction("Login", "Account");
+                return RedirectToAction("Login", "Account"); 
+
             }
 
             // Load lại laptop
