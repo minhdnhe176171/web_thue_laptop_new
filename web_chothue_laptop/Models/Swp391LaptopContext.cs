@@ -73,6 +73,9 @@ public partial class Swp391LaptopContext : DbContext
                 .HasColumnName("ID_NO_URL");
             entity.Property(e => e.LaptopId).HasColumnName("LAPTOP_ID");
             entity.Property(e => e.RejectReason).HasColumnName("REJECT_REASON");
+            entity.Property(e => e.ReturnDueDate)
+                .HasColumnType("datetime")
+                .HasColumnName("RETURN_DUE_DATE");
             entity.Property(e => e.StaffId).HasColumnName("STAFF_ID");
             entity.Property(e => e.StartTime)
                 .HasColumnType("datetime")

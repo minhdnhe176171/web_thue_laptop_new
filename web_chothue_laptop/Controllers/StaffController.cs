@@ -824,7 +824,7 @@ namespace web_chothue_laptop.Controllers
         }
         
         /// <summary>
-        /// Tạo thông báo trả máy về cho Student
+        /// Tạo thông báo trả máy về cho Student (Địa điểm cố định: Tòa Alpha, L300)
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -850,14 +850,15 @@ namespace web_chothue_laptop.Controllers
 
             try
             {
-                // Lưu thông tin lịch hẹn vào RejectReason (sử dụng field có sẵn)
-                var notificationInfo = $"RETURN_SCHEDULE|{pickupLocation}|{appointmentTime:yyyy-MM-dd HH:mm}";
-                booking.RejectReason = notificationInfo;
+                // ✅ LƯU THỜI GIAN VÀO RETURN_DUE_DATE (Không dùng RejectReason nữa)
+                booking.ReturnDueDate = appointmentTime;
                 booking.UpdatedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Đã gửi thông báo trả máy đến Student. Chờ Student xác nhận nhận máy tại {pickupLocation} lúc {appointmentTime:HH:mm dd/MM/yyyy}.";
+                // ✅ Thông báo với địa điểm cố định
+                const string FIXED_LOCATION = "Tòa Alpha, L300";
+                TempData["SuccessMessage"] = $"Đã gửi thông báo trả máy đến Student. Chờ Student xác nhận nhận máy tại {FIXED_LOCATION} lúc {appointmentTime:HH:mm dd/MM/yyyy}.";
                 return RedirectToAction(nameof(DueForReturnLaptops));
             }
             catch (Exception ex)

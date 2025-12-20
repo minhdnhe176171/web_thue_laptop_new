@@ -120,20 +120,29 @@ else
 {
     @foreach (var laptop in Model)
     {
-        // Lấy booking Close (StatusId = 8) có thông báo trả máy
+        // ✅ Lấy booking Close (StatusId = 8) có thông báo trả máy (kiểm tra ReturnDueDate)
         var closeBooking = laptop.Bookings?
-            .Where(b => b.StatusId == 8 && !string.IsNullOrEmpty(b.RejectReason) && b.RejectReason.StartsWith("RETURN_SCHEDULE|"))
+            .Where(b => b.StatusId == 8 && b.ReturnDueDate.HasValue)
             .OrderByDescending(b => b.UpdatedDate)
             .FirstOrDefault();
 
         if (closeBooking != null)
         {
-            // Parse thông tin từ RejectReason
-            var parts = closeBooking.RejectReason.Split('|');
-            var pickupLocation = parts.Length > 1 ? parts[1] : "Tòa Alpha, L300";
-            var appointmentTime = parts.Length > 2 && DateTime.TryParse(parts[2], out var dt) ? dt : DateTime.Now;
-            var isConfirmed = parts.Length > 3 && parts[3] == "CONFIRMED";
-            var confirmedDate = parts.Length > 4 && DateTime.TryParse(parts[4], out var cd) ? cd : (DateTime?)null;
+            // ✅ Lấy thời gian từ ReturnDueDate
+            const string FIXED_LOCATION = "Tòa Alpha, L300"; // ✅ Địa điểm cố định
+            var appointmentTime = closeBooking.ReturnDueDate ?? DateTime.Now;
+            
+            // ✅ Parse flag xác nhận từ RejectReason (nếu có)
+            var isConfirmed = !string.IsNullOrEmpty(closeBooking.RejectReason) && closeBooking.RejectReason.Contains("CONFIRMED");
+            DateTime? confirmedDate = null;
+            if (isConfirmed && closeBooking.RejectReason != null)
+            {
+                var parts = closeBooking.RejectReason.Split('|');
+                if (parts.Length > 1 && DateTime.TryParse(parts[1], out var cd))
+                {
+                    confirmedDate = cd;
+                }
+            }
 
             <div class="notification-card">
                 <div class="notification-header">
@@ -211,7 +220,7 @@ else
                                         @appointmentTime.ToString("HH:mm dd/MM/yyyy")
                                     </td>
                                     <td>
-                                        <strong class="text-primary">@pickupLocation</strong><br />
+                                        <strong class="text-primary">@FIXED_LOCATION</strong><br />
                                         <small class="text-muted">FPT University Hà Nội</small>
                                     </td>
                                 </tr>
@@ -241,7 +250,7 @@ else
                             </h6>
                             <ul class="mb-0">
                                 <li>Thời gian hẹn: <strong>@appointmentTime.ToString("HH:mm dd/MM/yyyy")</strong></li>
-                                <li>Địa điểm: <strong>@pickupLocation - FPT University</strong></li>
+                                <li>Địa điểm: <strong>@FIXED_LOCATION - FPT University</strong></li>
                                 <li>Vui lòng mang theo CMND/CCCD để xác nhận</li>
                                 <li>Kiểm tra tình trạng máy trước khi nhận</li>
                             </ul>
