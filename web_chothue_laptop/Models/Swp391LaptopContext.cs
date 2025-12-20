@@ -48,6 +48,7 @@ public partial class Swp391LaptopContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.UseSqlServer("Server=;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("server=DESKTOP-FHDMQHT;database=swp391_laptop;uid=sa;pwd=123;TrustServerCertificate=true");
 
