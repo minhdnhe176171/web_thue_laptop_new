@@ -97,31 +97,32 @@
 
                         <hr class="my-4">
 
-                        <!-- Địa điểm & Hướng dẫn -->
+                        <!-- Chú ý -->
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle"></i> <strong>Chú ý:</strong>
+                            </h6>
+                            <p class="mb-2">
+                                Vui lòng đến <strong>Thư viện trường tòa Delta</strong> để gặp Staff để làm thủ tục nhận máy.
+                            </p>
+                            <p class="mb-0">
+                                Bạn có thể <strong>thanh toán trước qua QR code online</strong> để tiết kiệm thời gian khi nhận máy.
+                            </p>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Thanh toán online -->
                         <div class="mb-4">
                             <h5 class="text-muted mb-3">
-                                <i class="bi bi-geo-alt"></i> Địa Điểm & Hướng Dẫn
+                                <i class="bi bi-credit-card"></i> Thanh Toán Online
                             </h5>
-                            <div class="alert alert-info mb-0">
-                                <p class="mb-2">
-                                    <strong>Vui lòng đến Thư viện trường tòa Delta, gặp Staff để thanh toán và nhận máy.</strong>
-                                </p>
-                                <p class="mb-0 small">
-                                    <i class="bi bi-info-circle"></i> Đưa màn hình này cho Staff xem hoặc cung cấp mã đơn hàng cho Staff.
-                                </p>
+                            <div class="text-center mb-4">
+                                <p class="text-muted mb-3">Bấm vào đây để thanh toán online qua QR code</p>
+                                <a asp-controller="Booking" asp-action="OnlinePayment" asp-route-bookingId="@booking.Id" class="btn btn-success btn-lg px-5 py-3">
+                                    <i class="bi bi-qr-code-scan"></i> Bấm Vào Đây Để Thanh Toán Online
+                                </a>
                             </div>
-                        </div>
-
-                        <!-- Thông báo trạng thái -->
-                        <div id="paymentStatusAlert" class="alert alert-warning" role="alert" style="display: none;">
-                            <i class="bi bi-hourglass-split"></i> <span id="statusMessage">Đang chờ Staff xác nhận thanh toán...</span>
-                        </div>
-
-                        <!-- Nút kiểm tra trạng thái -->
-                        <div class="text-center mt-4">
-                            <button type="button" class="btn btn-primary btn-lg" id="checkStatusBtn" onclick="checkPaymentStatus(@booking.Id)">
-                                <i class="bi bi-arrow-clockwise"></i> Kiểm Tra Trạng Thái
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -139,6 +140,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
 <script>
     let checkInterval;
+
 
     function checkPaymentStatus(bookingId) {
         const statusAlert = document.getElementById('paymentStatusAlert');
@@ -159,6 +161,51 @@
                         setTimeout(() => {
                             window.location.href = '/Booking/MyBookings';
                         }, 3000);
+                    } else if (data.status === 'paid') {
+                        // Đã thanh toán thành công
+                        statusAlert.className = 'alert alert-success';
+                        statusMessage.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message;
+                        statusAlert.style.display = 'block';
+                        checkBtn.style.display = 'none';
+                        
+                        setTimeout(() => {
+                            window.location.href = '/Booking/MyBookings';
+                        }, 3000);
+                    } else if (data.status === 'approved_not_paid') {
+                        // StatusId = 2 - đã duyệt nhưng chưa thanh toán
+                        // Thử manual check payment để cập nhật nếu đã thanh toán
+                        fetch(`/Booking/ManualCheckPayment`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            },
+                            body: JSON.stringify({ bookingId: bookingId })
+                        })
+                        .then(response => response.json())
+                        .then(manualData => {
+                            if (manualData.success && manualData.status === 'paid') {
+                                // Đã thanh toán thành công
+                                statusAlert.className = 'alert alert-success';
+                                statusMessage.innerHTML = '<i class="bi bi-check-circle"></i> ' + manualData.message;
+                                statusAlert.style.display = 'block';
+                                checkBtn.style.display = 'none';
+                                setTimeout(() => {
+                                    window.location.href = '/Booking/MyBookings';
+                                }, 3000);
+                            } else {
+                                // Vẫn chưa thanh toán
+                                statusAlert.className = 'alert alert-info';
+                                statusMessage.innerHTML = '<i class="bi bi-info-circle"></i> ' + data.message;
+                                statusAlert.style.display = 'block';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Manual check error:', error);
+                            statusAlert.className = 'alert alert-info';
+                            statusMessage.innerHTML = '<i class="bi bi-info-circle"></i> ' + data.message;
+                            statusAlert.style.display = 'block';
+                        });
                     } else {
                         statusAlert.className = 'alert alert-warning';
                         statusMessage.innerHTML = '<i class="bi bi-hourglass-split"></i> ' + data.message;
@@ -172,19 +219,17 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                statusAlert.className = 'alert alert-danger';
-                statusMessage.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Có lỗi xảy ra khi kiểm tra trạng thái.';
-                statusAlert.style.display = 'block';
             });
     }
 
-    // Tự động kiểm tra trạng thái mỗi 5 giây nếu đang ở trang này
+    // Tự động kiểm tra trạng thái mỗi 3 giây nếu đang ở trang này
+    // Để phát hiện khi thanh toán thành công
     @if (booking != null)
     {
         <text>
         checkInterval = setInterval(() => {
             checkPaymentStatus(@booking.Id);
-        }, 5000);
+        }, 3000);
         </text>
     }
 

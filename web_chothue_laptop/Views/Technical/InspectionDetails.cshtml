@@ -12,121 +12,85 @@
         </a>
     </div>
 
-    <form asp-action="UpdateInspectionInfo" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="ticketId" value="@Model.Id" />
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0">Chi Tiết Yêu Cầu Kiểm Tra #@Model.Id</h4>
+        </div>
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-4 text-center border-end">
+                    <img src="@(Model.Laptop?.ImageUrl ?? "https://res.cloudinary.com/drzc5ulxv/image/upload/v1765469106/tickets/bi1hujemmwiffwp2ffwc.png")"
+                         class="img-fluid rounded shadow-sm mb-3"
+                         style="max-height: 250px; object-fit: contain;">
 
-        <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Chi Tiết Yêu Cầu Kiểm Tra #@Model.Id</h4>
-                <span class="badge bg-white text-primary">@Model.Status?.StatusName</span>
-            </div>
+                    <h3 class="text-primary fw-bold">@Model.Laptop?.Name</h3>
+                    <span class="badge bg-secondary fs-6 mb-3">@(Model.Laptop?.Brand?.BrandName ?? "N/A")</span>
 
-            <div class="card-body p-4">
-                <div class="row">
-                    <div class="col-md-4 text-center border-end">
-
-                        <div class="mb-3">
-                            <label for="imageInput" style="cursor: pointer;" title="Nhấn để tải ảnh mới">
-                                <img src="@(Model.Laptop?.ImageUrl ?? "https://res.cloudinary.com/drzc5ulxv/image/upload/v1765469106/tickets/bi1hujemmwiffwp2ffwc.png")"...id="previewImage")"
-                                     class="img-fluid rounded shadow-sm mb-2"
-                                     style="max-height: 250px; object-fit: contain;"
-                                     id="previewImage">
-                                <div class="small text-muted fst-italic"><i class="bi bi-camera"></i> Nhấn vào ảnh để cập nhật</div>
-                            </label>
-                            <input type="file" id="imageInput" name="inspectionImage" class="d-none" accept="image/*"
-                                   onchange="document.getElementById('previewImage').src = window.URL.createObjectURL(this.files[0])">
-
-                        </div>
-
-                        <h3 class="text-primary fw-bold">@Model.Laptop?.Name</h3>
-                        <span class="badge bg-secondary fs-6 mb-3">@(Model.Laptop?.Brand?.BrandName ?? "N/A")</span>
-
-                        <div class="text-start mt-3 px-3">
-                            <p class="mb-1"><strong>Chủ máy:</strong> @(Model.Laptop?.Student?.LastName + " " + Model.Laptop?.Student?.FirstName)</p>
-                            <p class="mb-1"><strong>Email:</strong> @Model.Laptop?.Student?.Email</p>
-                            <p class="mb-1"><strong>Ngày tạo:</strong> @Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</p>
-                        </div>
+                    <div class="text-start mt-3 px-3">
+                        <p class="mb-1"><strong>Chủ máy:</strong> @(Model.Laptop?.Student?.LastName + " " + Model.Laptop?.Student?.FirstName)</p>
+                        <p class="mb-1"><strong>Email:</strong> @Model.Laptop?.Student?.Email</p>
+                        <p class="mb-1"><strong>Ngày tạo:</strong> @Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm")</p>
                     </div>
+                </div>
 
-                    <div class="col-md-8 ps-md-4">
-                        <h5 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Cấu hình phần cứng</h5>
+                <div class="col-md-8 ps-md-4">
+                    <h5 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Cấu hình phần cứng</h5>
 
-                        @if (specs != null)
-                        {
-                            <div class="row g-3 mb-4">
-                                <div class="col-sm-6">
-                                    <div class="p-3 bg-light rounded h-100">
-                                        <small class="text-muted d-block text-uppercase">CPU</small>
-                                        <span class="fw-bold fs-5">@specs.Cpu</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="p-3 bg-light rounded h-100">
-                                        <small class="text-muted d-block text-uppercase">RAM</small>
-                                        <span class="fw-bold fs-5">@specs.RamSize @specs.RamType</span>
-                                    </div>
-                                </div>
-
-                                <div class="col-sm-6">
-                                    <div class="p-3 bg-light rounded h-100">
-                                        <small class="text-muted d-block text-uppercase">Ổ Cứng</small>
-                                        <span class="fw-bold fs-5">@specs.Storage</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="p-3 bg-light rounded h-100">
-                                        <small class="text-muted d-block text-uppercase">Card Đồ Họa</small>
-                                        <span class="fw-bold fs-5">@specs.Gpu</span>
-                                    </div>
-                                </div>
-
-                                <div class="col-sm-6">
-                                    <div class="p-3 bg-light rounded h-100">
-                                        <small class="text-muted d-block text-uppercase">Màn hình</small>
-                                        <span class="fw-bold fs-5">@specs.ScreenSize</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="p-3 bg-light rounded h-100">
-                                        <small class="text-muted d-block text-uppercase">Hệ điều hành</small>
-                                        <span class="fw-bold fs-5">@specs.Os</span>
-                                    </div>
+                    @if (specs != null)
+                    {
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">CPU</small>
+                                    <span class="fw-bold fs-5">@specs.Cpu</span>
                                 </div>
                             </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-warning">Chưa cập nhật thông số kỹ thuật chi tiết.</div>
-                        }
-
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-0 flex-grow-1">Mô tả tình trạng</h5>
-                            <button type="submit" class="btn btn-sm btn-primary ms-2">
-                                <i class="bi bi-save"></i> Lưu Thay Đổi
-                            </button>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">RAM</small>
+                                    <span class="fw-bold fs-5">@specs.RamSize @specs.RamType</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">Ổ Cứng</small>
+                                    <span class="fw-bold fs-5">@specs.Storage</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded h-100">
+                                    <small class="text-muted d-block text-uppercase">Card Đồ Họa</small>
+                                    <span class="fw-bold fs-5">@specs.Gpu</span>
+                                </div>
+                            </div>
                         </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">Chưa cập nhật thông số kỹ thuật chi tiết.</div>
+                    }
 
-                        <div class="mb-3">
-                            <textarea name="description" class="form-control" rows="5" required
-                                      placeholder="Mô tả chi tiết tình trạng máy...">@Model.Description</textarea>
-                            <div class="form-text text-muted">Kỹ thuật viên có thể chỉnh sửa mô tả thực tế tại đây trước khi duyệt.</div>
-                        </div>
+                    <h5 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">Mô tả tình trạng</h5>
+                    <div class="alert alert-info border-0 shadow-sm">
+                        <i class="bi bi-info-circle me-2"></i> @Model.Description
+                    </div>
 
-                        <div class="mt-4 d-flex gap-3 pt-3 border-top">
-                            <button type="submit" formaction="@Url.Action("ApproveLaptop")" class="btn btn-success flex-grow-1 py-2 fw-bold"
-                                    onclick="return confirm('Xác nhận thông tin đã chính xác và thiết bị ĐẠT chuẩn?')">
+                    <div class="mt-5 d-flex gap-3 pt-3 border-top">
+                        <form asp-action="ApproveLaptop" method="post" class="flex-grow-1">
+                            <input type="hidden" name="ticketId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-success w-100 py-2 fw-bold" onclick="return confirm('Xác nhận thiết bị ĐẠT chuẩn?')">
                                 <i class="bi bi-check-circle-fill me-2"></i> XÁC NHẬN ĐẠT
                             </button>
+                        </form>
 
-                            <button type="button" class="btn btn-danger flex-grow-1 py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#rejectPageModal">
-                                <i class="bi bi-x-circle-fill me-2"></i> TỪ CHỐI / LOẠI
-                            </button>
-                        </div>
+                        <button type="button" class="btn btn-danger flex-grow-1 py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#rejectPageModal">
+                            <i class="bi bi-x-circle-fill me-2"></i> TỪ CHỐI / LOẠI
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </form>
+    </div>
 </div>
 
 <div class="modal fade" id="rejectPageModal" tabindex="-1">
@@ -139,29 +103,12 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="ticketId" value="@Model.Id" />
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Chọn loại từ chối:</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="rejectType" id="rejectType1" value="rejected" checked>
-                            <label class="form-check-label" for="rejectType1">
-                                <strong class="text-danger">Từ chối hoàn toàn</strong> <small class="text-muted">(Máy không đạt tiêu chuẩn, báo về Student)</small>
-                            </label>
-                        </div>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="radio" name="rejectType" id="rejectType2" value="fixing">
-                            <label class="form-check-label" for="rejectType2">
-                                <strong class="text-warning">Cần sửa chữa</strong> <small class="text-muted">(Chuyển sang trạng thái Fixing, Student có thể đồng ý)</small>
-                            </label>
-                        </div>
-                    </div>
-                    
                     <label class="form-label fw-bold">Lý do từ chối:</label>
                     <textarea name="reason" class="form-control" rows="4" placeholder="Nhập lý do chi tiết..." required></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-danger">Xác Nhận</button>
+                    <button type="submit" class="btn btn-danger">Xác Nhận Loại</button>
                 </div>
             </div>
         </form>

@@ -1,34 +1,6 @@
 ﻿@model web_chothue_laptop.Models.Laptop
 @{
     ViewData["Title"] = "Chi tiết laptop";
-    
-    // Xác định trạng thái thực tế của laptop dựa trên booking
-    string actualStatus = "available"; // Mặc định: đang chờ thuê
-    string actualStatusVi = "Đang chờ thuê";
-    string badgeClass = "bg-success";
-    
-    // Kiểm tra booking hiện tại
-    var currentBooking = Model.Bookings?
-        .Where(b => b.Status?.StatusName?.ToLower() == "rented" || 
-                   b.Status?.StatusName?.ToLower() == "late")
-        .OrderByDescending(b => b.StartTime)
-        .FirstOrDefault();
-    
-    if (currentBooking != null)
-    {
-        if (currentBooking.Status?.StatusName?.ToLower() == "late")
-        {
-            actualStatus = "late";
-            actualStatusVi = "Đã quá hạn";
-            badgeClass = "bg-danger";
-        }
-        else if (currentBooking.Status?.StatusName?.ToLower() == "rented")
-        {
-            actualStatus = "rented";
-            actualStatusVi = "Đang được thuê";
-            badgeClass = "bg-info";
-        }
-    }
 }
 
 @functions {
@@ -37,9 +9,6 @@
         "pending" => "Đang chờ xử lý",
         "approved" => "Đã phê duyệt",
         "rejected" => "Bị từ chối",
-        "available" => "Đang chờ thuê",
-        "rented" => "Đang được thuê",
-        "late" => "Đã quá hạn",
         _ => name ?? string.Empty
     };
 }
@@ -52,227 +21,119 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- Cột ảnh -->
-            <div class="col-md-4 mb-3">
-                <h5 class="border-bottom pb-2">
-                    <i class="fas fa-image me-2"></i>Hình ảnh
-                </h5>
-                @if (!string.IsNullOrEmpty(Model.ImageUrl))
-                {
-                    <div class="text-center">
-                        <img src="@Model.ImageUrl" alt="@Model.Name" 
-                             class="img-fluid rounded shadow-sm" 
-                             style="max-height: 400px; width: 100%; object-fit: cover;" />
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center p-5 bg-light rounded">
-                        <i class="fas fa-laptop fa-5x text-muted mb-3"></i>
-                        <p class="text-muted mb-0">Chưa có hình ảnh</p>
-                    </div>
-                }
-            </div>
+            <div class="col-md-6">
+                <h5 class="border-bottom pb-2">Thông tin chung</h5>
+                <dl class="row">
+                    <dt class="col-sm-4">Tên laptop:</dt>
+                    <dd class="col-sm-8">@Model.Name</dd>
 
-            <!-- Cột thông tin -->
-            <div class="col-md-8">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5 class="border-bottom pb-2">
-                            <i class="fas fa-info-circle me-2"></i>Thông tin chung
-                        </h5>
-                        <dl class="row">
-                            <dt class="col-sm-4">Tên laptop:</dt>
-                            <dd class="col-sm-8">@Model.Name</dd>
+                    <dt class="col-sm-4">Hãng:</dt>
+                    <dd class="col-sm-8">@Model.Brand?.BrandName</dd>
 
-                            <dt class="col-sm-4">Hãng:</dt>
-                            <dd class="col-sm-8">@Model.Brand?.BrandName</dd>
+                    <dt class="col-sm-4">Giá thuê/ngày:</dt>
+                    <dd class="col-sm-8">@(Model.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</dd>
 
-                            <dt class="col-sm-4">Giá thuê/ngày:</dt>
-                            <dd class="col-sm-8">
-                                <span class="text-black fw-bold fs-5">
-                                    @(Model.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")
-                                </span>
-                            </dd>
+                    <dt class="col-sm-4">Trạng thái:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge 
+                            @(Model.Status?.StatusName?.ToLower() switch 
+                            {
+                                "pending" => "bg-warning text-dark",
+                                "approved" => "bg-success",
+                                "rejected" => "bg-danger",
+                                _ => "bg-secondary"
+                            })">
+                            @TranslateStatus(Model.Status?.StatusName)
+                        </span>
+                    </dd>
 
-                            <dt class="col-sm-4">Trạng thái:</dt>
-                            <dd class="col-sm-8">
-                                <span class="badge @badgeClass fs-6">
-                                    @actualStatusVi
-                                </span>
-                                @if (currentBooking != null && actualStatus != "available")
+                    <dt class="col-sm-4">Ngày tạo:</dt>
+                    <dd class="col-sm-8">@(Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "-")</dd>
+
+                    <dt class="col-sm-4">Thời gian đến hạn:</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.UpdatedDate.HasValue)
+                        {
+                            <span class="@(Model.UpdatedDate.Value < DateTime.Today ? "text-danger fw-bold" : "")">
+                                @Model.UpdatedDate.Value.ToString("dd/MM/yyyy")
+                                @if (Model.UpdatedDate.Value < DateTime.Today)
                                 {
-                                    <div class="mt-2">
-                                   
-                                        @if (actualStatus == "late")
-                                        {
-                                            var daysOverdue = Math.Abs((currentBooking.EndTime - DateTime.Today).Days);
-                                          
-                                        }
-                                        else if (actualStatus == "rented")
-                                        {
-                                            var daysLeft = (currentBooking.EndTime - DateTime.Today).Days;
-                                           
-                                        }
-                                    </div>
-                                }
-                            </dd>
-
-                            <dt class="col-sm-4">Ngày tạo:</dt>
-                            <dd class="col-sm-8">
-                                <i class="fas fa-calendar-plus text-muted me-1"></i>
-                                @(Model.CreatedDate?.ToString("dd/MM/yyyy HH:mm") ?? "-")
-                            </dd>
-
-                            <dt class="col-sm-4">Đến hạn:</dt>
-                            <dd class="col-sm-8">
-                                @if (currentBooking != null && (actualStatus == "rented" || actualStatus == "late"))
-                                {
-                                    @* Hiển thị deadline của booking nếu laptop đang được thuê hoặc quá hạn *@
-                                    <span class="@(currentBooking.EndTime < DateTime.Today ? "text-danger fw-bold" : "text-success")">
-                                        <i class="fas fa-calendar-times me-1"></i>
-                                        @currentBooking.EndTime.ToString("dd/MM/yyyy")
-                                        @if (currentBooking.EndTime < DateTime.Today)
-                                        {
-                                            var daysOverdue = Math.Abs((currentBooking.EndTime - DateTime.Today).Days);
-                                            <i class="bi bi-exclamation-triangle-fill ms-1"></i>
-                                            <small class="d-block text-danger">(Quá hạn @daysOverdue ngày)</small>
-                                        }
-                                        else
-                                        {
-                                            var daysLeft = (currentBooking.EndTime - DateTime.Today).Days;
-                                            <small class="d-block text-muted">(Còn @daysLeft ngày)</small>
-                                        }
-                                    </span>
-                                }
-                                else if (Model.EndTime.HasValue)
-                                {
-                                    @* Hiển thị deadline tạo laptop nếu chưa được thuê *@
-                                    <span class="@(Model.EndTime.Value < DateTime.Today ? "text-danger fw-bold" : "text-success")">
-                                        <i class="fas fa-calendar-times me-1"></i>
-                                        @Model.EndTime.Value.ToString("dd/MM/yyyy")
-                                        @if (Model.EndTime.Value < DateTime.Today)
-                                        {
-                                            <i class="bi bi-exclamation-triangle-fill ms-1"></i>
-                                            <small class="d-block text-danger">(Deadline tạo laptop đã quá hạn)</small>
-                                        }
-                                        else
-                                        {
-                                            var daysLeft = (Model.EndTime.Value - DateTime.Today).Days;
-                                            <small class="d-block text-muted">(Còn @daysLeft ngày)</small>
-                                        }
-                                    </span>
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    <span class="small">(Đã quá hạn)</span>
                                 }
                                 else
                                 {
-                                    <span>-</span>
+                                    var daysLeft = (Model.UpdatedDate.Value - DateTime.Today).Days;
+                                    <span class="small text-muted">(Còn @daysLeft ngày)</span>
                                 }
-                            </dd>
-                        </dl>
-                    </div>
-
-                    <div class="col-md-6">
-                        <h5 class="border-bottom pb-2">
-                            <i class="fas fa-cogs me-2"></i>Thông số kỹ thuật
-                        </h5>
-                        @{
-                            var detail = Model.LaptopDetails.FirstOrDefault();
-                        }
-                        @if (detail != null)
-                        {
-                            <dl class="row">
-                                @if (!string.IsNullOrEmpty(detail.Cpu))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-microchip text-primary"></i> CPU:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.Cpu</dd>
-                                }
-
-                                @if (!string.IsNullOrEmpty(detail.RamSize))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-memory text-success"></i> RAM:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.RamSize</dd>
-                                }
-
-                                @if (!string.IsNullOrEmpty(detail.RamType))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-memory text-success"></i>  Loại RAM:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.RamType</dd>
-                                }
-
-                                @if (!string.IsNullOrEmpty(detail.Storage))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-hdd text-info"></i> Lưu trữ:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.Storage</dd>
-                                }
-
-                                @if (!string.IsNullOrEmpty(detail.Gpu))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-th text-warning"></i> GPU:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.Gpu</dd>
-                                }
-
-                                @if (!string.IsNullOrEmpty(detail.ScreenSize))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-desktop text-secondary"></i> Màn hình:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.ScreenSize</dd>
-                                }
-
-                                @if (!string.IsNullOrEmpty(detail.Os))
-                                {
-                                    <dt class="col-sm-4">
-                                        <i class="fas fa-windows text-primary"></i> OS:
-                                    </dt>
-                                    <dd class="col-sm-8">@detail.Os</dd>
-                                }
-                            </dl>
+                            </span>
                         }
                         else
                         {
-                            <div class="alert alert-info mb-0">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Chưa có thông tin chi tiết
-                            </div>
+                            <span>-</span>
                         }
-                    </div>
-                </div>
+                    </dd>
+                </dl>
+            </div>
+
+            <div class="col-md-6">
+                <h5 class="border-bottom pb-2">Thông số kỹ thuật</h5>
+                @{
+                    var detail = Model.LaptopDetails.FirstOrDefault();
+                }
+                @if (detail != null)
+                {
+                    <dl class="row">
+                        @if (!string.IsNullOrEmpty(detail.Cpu))
+                        {
+                            <dt class="col-sm-4">CPU:</dt>
+                            <dd class="col-sm-8">@detail.Cpu</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(detail.RamSize))
+                        {
+                            <dt class="col-sm-4">RAM:</dt>
+                            <dd class="col-sm-8">@detail.RamSize</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(detail.Storage))
+                        {
+                            <dt class="col-sm-4">Lưu trữ:</dt>
+                            <dd class="col-sm-8">@detail.Storage</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(detail.Gpu))
+                        {
+                            <dt class="col-sm-4">GPU:</dt>
+                            <dd class="col-sm-8">@detail.Gpu</dd>
+                        }
+                    </dl>
+                }
+                else
+                {
+                    <p class="text-muted">Chưa có thông tin chi tiết</p>
+                }
             </div>
         </div>
+
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <div class="mt-4">
+                <h5 class="border-bottom pb-2">Hình ảnh</h5>
+                <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded" style="max-height: 400px;" />
+            </div>
+        }
     </div>
     <div class="card-footer">
-        @if (ViewContext.HttpContext.Request.Headers["Referer"].ToString().Contains("/Student/MyRentals"))
-        {
-            <a class="btn btn-secondary" asp-action="MyRentals">
-                <i class="bi bi-arrow-left"></i> Quay lại
-            </a>
-        }
-        else
-        {
-            <a class="btn btn-secondary" asp-action="Index">
-                <i class="bi bi-arrow-left"></i> Quay lại
-            </a>
-        }
-        
-        @* Chỉ hiển thị nút Xóa khi trạng thái là Pending *@
-        @if (Model.Status?.StatusName?.ToLower() == "pending")
-        {
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
-                @Html.AntiForgeryToken()
-                <button class="btn btn-danger" type="submit">
-                    <i class="bi bi-trash"></i> Xóa
-                </button>
-            </form>
-        }
+
+        <a class="btn btn-secondary" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-danger" type="submit">
+                <i class="bi bi-trash"></i> Xóa
+            </button>
+        </form>
     </div>
 </div>

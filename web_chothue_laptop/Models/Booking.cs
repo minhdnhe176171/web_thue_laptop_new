@@ -25,13 +25,9 @@ public partial class Booking
 
     public DateTime? UpdatedDate { get; set; }
 
-    public string? RejectReason { get; set; }
-
     public string? IdNoUrl { get; set; }
 
     public string? StudentUrl { get; set; }
-
-    public DateTime? ReturnDueDate { get; set; }
 
     public virtual ICollection<BookingReceipt> BookingReceipts { get; set; } = new List<BookingReceipt>();
 
