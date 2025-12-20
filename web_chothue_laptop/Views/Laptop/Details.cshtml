@@ -52,7 +52,11 @@
                         </div>
                         <div class="col-12 mb-2">
                             <strong>Giá thuê:</strong> 
-                            @if (Model.Price.HasValue)
+                            @if (Model.NewPrice.HasValue)
+                            {
+                                <span class="text-primary fw-bold">@Model.NewPrice.Value.ToString("N0") VNĐ</span>
+                            }
+                            else if (Model.Price.HasValue)
                             {
                                 <span class="text-primary fw-bold">@Model.Price.Value.ToString("N0") VNĐ</span>
                             }

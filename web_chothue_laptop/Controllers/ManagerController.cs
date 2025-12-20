@@ -3,15 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
-public class ManagerController : Controller
+namespace web_chothue_laptop.Controllers
 {
-    private readonly Swp391LaptopContext _context;
-
-    public ManagerController(Swp391LaptopContext context)
+    public class ManagerController : Controller
     {
-        _context = context;
-    }
+        private readonly Swp391LaptopContext _context;
+        private readonly ILogger<ManagerController> _logger;
+
+        public ManagerController(Swp391LaptopContext context, ILogger<ManagerController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
     public IActionResult Index()
     {
@@ -253,7 +258,6 @@ public class ManagerController : Controller
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
         var bookings = query
-            .Skip((page - 1) * pageSize)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();

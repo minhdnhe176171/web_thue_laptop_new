@@ -19,7 +19,6 @@ namespace web_chothue_laptop.ViewModels
         public long? BrandId { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn giá")]
-        [Range(100000, 1000000, ErrorMessage = "Giá phải từ 100,000 đến 1,000,000 VNĐ")]
         [Display(Name = "Giá")]
         public decimal? Price { get; set; }
 
@@ -40,6 +39,11 @@ namespace web_chothue_laptop.ViewModels
 
         [Display(Name = "RAM")]
         public string? RamSize { get; set; }
+
+        [StringLength(50, ErrorMessage = "Loại RAM không được vượt quá 50 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "Loại RAM chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]
+        [Display(Name = "Loại RAM")]
+        public string? RamType { get; set; }
 
         [StringLength(100, ErrorMessage = "Thông tin lưu trữ không được vượt quá 100 ký tự")]
         [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", ErrorMessage = "Lưu trữ chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang")]

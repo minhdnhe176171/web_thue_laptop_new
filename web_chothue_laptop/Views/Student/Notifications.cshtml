@@ -1,0 +1,265 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@{
+    ViewData["Title"] = "Thông Báo Trả Máy";
+}
+
+<style>
+    .container, .body-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .notifications-wrapper {
+        min-height: calc(100vh - 60px);
+        background-color: #f8f9fa;
+        margin-top: -1.5rem;
+        padding: 2rem;
+    }
+
+    .notification-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .notification-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .notification-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .notification-body {
+        padding: 1.5rem;
+    }
+
+    .info-box {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-box h6 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-box p {
+        margin-bottom: 0;
+        color: #6c757d;
+    }
+
+    .badge-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+</style>
+
+<div class="notifications-wrapper">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold">
+        <i class="fas fa-bell me-2"></i>Thông Báo Trả Máy
+    </h2>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Quay lại
+    </a>
+</div>
+
+<!-- Form tìm kiếm -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <label class="form-label fw-semibold">Tìm kiếm theo tên laptop hoặc khách hàng</label>
+                <input type="search" 
+                       name="search" 
+                       value="@(ViewBag.Search ?? "")" 
+                       class="form-control" 
+                       placeholder="Nhập tên laptop hoặc khách hàng..." />
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button class="btn btn-primary w-100" type="submit">
+                    <i class="fas fa-search"></i> Tìm
+                </button>
+                @if (!string.IsNullOrEmpty(ViewBag.Search))
+                {
+                    <a href="@Url.Action("Notifications", "Student")" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info shadow-sm">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle fa-2x me-3"></i>
+            <div>
+                <h5 class="alert-heading mb-1">Chưa có thông báo trả máy</h5>
+                <p class="mb-0">Khi có đơn thuê được hoàn thành, Staff sẽ tạo lịch hẹn trả máy cho bạn tại Tòa Alpha, L300.</p>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    @foreach (var laptop in Model)
+    {
+        // Lấy booking Close (StatusId = 8) có thông báo trả máy
+        var closeBooking = laptop.Bookings?
+            .Where(b => b.StatusId == 8 && !string.IsNullOrEmpty(b.RejectReason) && b.RejectReason.StartsWith("RETURN_SCHEDULE|"))
+            .OrderByDescending(b => b.UpdatedDate)
+            .FirstOrDefault();
+
+        if (closeBooking != null)
+        {
+            // Parse thông tin từ RejectReason
+            var parts = closeBooking.RejectReason.Split('|');
+            var pickupLocation = parts.Length > 1 ? parts[1] : "Tòa Alpha, L300";
+            var appointmentTime = parts.Length > 2 && DateTime.TryParse(parts[2], out var dt) ? dt : DateTime.Now;
+            var isConfirmed = parts.Length > 3 && parts[3] == "CONFIRMED";
+            var confirmedDate = parts.Length > 4 && DateTime.TryParse(parts[4], out var cd) ? cd : (DateTime?)null;
+
+            <div class="notification-card">
+                <div class="notification-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4 class="mb-2">
+                                <i class="fas fa-laptop me-2"></i>@laptop.Name
+                            </h4>
+                            <p class="mb-0 opacity-90">
+                                <i class="fas fa-building me-2"></i>@laptop.Brand?.BrandName
+                            </p>
+                        </div>
+                        @if (isConfirmed)
+                        {
+                            <span class="badge badge-status bg-success">
+                                Đã Xác Nhận
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-status bg-warning text-dark">
+                                Chờ Nhận Máy
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="notification-body">
+                    <!-- Bảng thông tin lịch hẹn -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-laptop me-2"></i>Laptop</th>
+                                    <th><i class="fas fa-info-circle me-2"></i>Thông Tin Laptop</th>
+                                    <th><i class="fas fa-clock me-2"></i>Thời Gian Hẹn</th>
+                                    <th><i class="fas fa-map-marker-alt me-2"></i>Địa Điểm</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold">@laptop.Name</td>
+                                    <td>
+                                        <strong>Hãng:</strong> @laptop.Brand?.BrandName<br />
+                                        @if (laptop.LaptopDetails?.FirstOrDefault() != null)
+                                        {
+                                            var detail = laptop.LaptopDetails.First();
+                                            if (!string.IsNullOrEmpty(detail.Cpu))
+                                            {
+                                                <small><strong>CPU:</strong> @detail.Cpu</small><br />
+                                            }
+                                            if (!string.IsNullOrEmpty(detail.RamSize))
+                                            {
+                                                <small><strong>RAM:</strong> @detail.RamSize @(!string.IsNullOrEmpty(detail.RamType) ? detail.RamType : "")</small><br />
+                                            }
+                                            if (!string.IsNullOrEmpty(detail.Storage))
+                                            {
+                                                <small><strong>Ổ cứng:</strong> @detail.Storage</small><br />
+                                            }
+                                            if (!string.IsNullOrEmpty(detail.Gpu))
+                                            {
+                                                <small><strong>GPU:</strong> @detail.Gpu</small><br />
+                                            }
+                                            if (!string.IsNullOrEmpty(detail.ScreenSize))
+                                            {
+                                                <small><strong>Màn hình:</strong> @detail.ScreenSize</small><br />
+                                            }
+                                            if (!string.IsNullOrEmpty(detail.Os))
+                                            {
+                                                <small><strong>HĐH:</strong> @detail.Os</small>
+                                            }
+                                        }
+                                    </td>
+                                    <td class="text-danger fw-bold">
+                                        @appointmentTime.ToString("HH:mm dd/MM/yyyy")
+                                    </td>
+                                    <td>
+                                        <strong class="text-primary">@pickupLocation</strong><br />
+                                        <small class="text-muted">FPT University Hà Nội</small>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <hr class="my-3" />
+
+                    @if (isConfirmed)
+                    {
+                        <div class="alert alert-success mb-0">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-check-circle me-2"></i>Đã Xác Nhận Nhận Máy
+                            </h6>
+                            <p class="mb-0">
+                                Bạn đã xác nhận nhận máy lúc: <strong>@confirmedDate?.ToString("HH:mm dd/MM/yyyy")</strong><br />
+                                Cảm ơn bạn đã sử dụng dịch vụ!
+                            </p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mb-3">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>Hướng Dẫn Nhận Máy
+                            </h6>
+                            <ul class="mb-0">
+                                <li>Thời gian hẹn: <strong>@appointmentTime.ToString("HH:mm dd/MM/yyyy")</strong></li>
+                                <li>Địa điểm: <strong>@pickupLocation - FPT University</strong></li>
+                                <li>Vui lòng mang theo CMND/CCCD để xác nhận</li>
+                                <li>Kiểm tra tình trạng máy trước khi nhận</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <form asp-action="ConfirmReturnReceived" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Xác nhận bạn đã nhận lại máy?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="bookingId" value="@closeBooking.Id" />
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle"></i> Xác Nhận Đã Nhận Máy
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+</div>

@@ -48,46 +48,46 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">
-                                Giá mong muốn/ngày <span class="text-danger">*</span>
+                                Giá/ngày <span class="text-danger">*</span>
                             </label>
                             <div class="row g-2">
                                 <div class="col-md-4">
                                     <div class="form-check">
-                                        <input asp-for="Price" type="radio" value="100000" class="form-check-input" id="price100k" />
-                                        <label class="form-check-label" for="price100k">
-                                            <i class="fas fa-tag me-1"></i>30,000 đ
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check">
-                                        <input asp-for="Price" type="radio" value="200000" class="form-check-input" id="price200k" />
-                                        <label class="form-check-label" for="price200k">
+                                        <input asp-for="Price" type="radio" value="70000" class="form-check-input" id="price70k" />
+                                        <label class="form-check-label" for="price70k">
                                             <i class="fas fa-tag me-1"></i>70,000 đ
                                         </label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-check">
-                                        <input asp-for="Price" type="radio" value="300000" class="form-check-input" id="price300k" />
-                                        <label class="form-check-label" for="price300k">
-                                            <i class="fas fa-tag me-1"></i>100,000 đ
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check">
-                                        <input asp-for="Price" type="radio" value="400000" class="form-check-input" id="price400k" />
-                                        <label class="form-check-label" for="price400k">
+                                        <input asp-for="Price" type="radio" value="140000" class="form-check-input" id="price140k" />
+                                        <label class="form-check-label" for="price140k">
                                             <i class="fas fa-tag me-1"></i>140,000 đ
                                         </label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-check">
-                                        <input asp-for="Price" type="radio" value="500000" class="form-check-input" id="price500k" />
-                                        <label class="form-check-label" for="price500k">
-                                            <i class="fas fa-tag me-1"></i>180,000 đ
+                                        <input asp-for="Price" type="radio" value="210000" class="form-check-input" id="price210k" />
+                                        <label class="form-check-label" for="price210k">
+                                            <i class="fas fa-tag me-1"></i>210,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="280000" class="form-check-input" id="price280k" />
+                                        <label class="form-check-label" for="price280k">
+                                            <i class="fas fa-tag me-1"></i>280,000 đ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input asp-for="Price" type="radio" value="350000" class="form-check-input" id="price350k" />
+                                        <label class="form-check-label" for="price350k">
+                                            <i class="fas fa-tag me-1"></i>350,000 đ
                                         </label>
                                     </div>
                                 </div>
@@ -143,7 +143,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-memory"></i> RAM
+                                    <i class="fas fa-memory"></i> Dung lượng RAM
                                 </label>
                                 <div class="d-flex flex-wrap gap-2">
                                     <div class="form-check">
@@ -169,12 +169,34 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label asp-for="RamType" class="form-label">
+                                    <i class="fas fa-memory"></i> Loại RAM
+                                </label>
+                                <input asp-for="RamType" class="form-control" list="ramTypeList" placeholder="VD: DDR4, LPDDR4X, DDR5" maxlength="50" />
+                                <datalist id="ramTypeList">
+                                    <option value="DDR3"></option>
+                                    <option value="DDR4"></option>
+                                    <option value="DDR5"></option>
+                                    <option value="LPDDR3"></option>
+                                    <option value="LPDDR4"></option>
+                                    <option value="LPDDR4X"></option>
+                                    <option value="LPDDR5"></option>
+                                </datalist>
+                                <span asp-validation-for="RamType" class="text-danger small"></span>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> Nhập loại RAM (VD: DDR4, LPDDR4X) - Tùy chọn
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label asp-for="Storage" class="form-label">
                                     <i class="fas fa-hdd"></i> Lưu trữ
                                 </label>
                                 <input asp-for="Storage" class="form-control" placeholder="VD: 512GB SSD" maxlength="100" />
                                 <span asp-validation-for="Storage" class="text-danger small"></span>
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label asp-for="Gpu" class="form-label">
                                     <i class="fas fa-th"></i> GPU (Card màn hình)
@@ -390,6 +412,28 @@
                     isValid = false;
                 }
                 
+                // Validate RamType format (if filled)
+                var ramType = $('#RamType').val().trim();
+                if (ramType && !/^[a-zA-Z0-9\s\-]+$/.test(ramType)) {
+                    $('#RamType').addClass('is-invalid');
+                    var errorSpan = $('#RamType').siblings('.text-danger');
+                    if (!errorSpan.text()) {
+                        errorSpan.text('Loại RAM chỉ được chứa chữ cái, số, dấu cách và dấu gạch ngang');
+                    }
+                    isValid = false;
+                }
+                
+                // Validate RamType - nếu đã chọn RamSize thì nên chọn RamType
+                var ramSize = $('input[name="RamSize"]:checked').val();
+                var ramType = $('#RamType').val().trim();
+                
+                if (ramSize && !ramType) {
+                    // Cảnh báo nhẹ nhàng - không bắt buộc nhưng khuyến nghị
+                    if (!$('.ramtype-warning').length) {
+                        $('#RamType').after('<div class="text-warning small ramtype-warning"><i class="fas fa-exclamation-triangle"></i> Khuyến nghị: Nên nhập loại RAM để thông tin đầy đủ hơn</div>');
+                    }
+                }
+                
                 if (!isValid) {
                     e.preventDefault();
                     // Scroll to first error
@@ -451,6 +495,24 @@
                 } else {
                     $(this).removeClass('is-invalid').addClass('is-valid');
                     errorSpan.text('');
+                }
+            });
+
+            // Real-time warning for RamType
+            $('input[name="RamSize"]').on('change', function() {
+                var ramSize = $(this).val();
+                var ramType = $('#RamType').val().trim();
+                
+                $('.ramtype-warning').remove();
+                
+                if (ramSize && !ramType) {
+                    $('#RamType').after('<div class="text-warning small ramtype-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Khuyến nghị: Nên nhập loại RAM để thông tin đầy đủ hơn</div>');
+                }
+            });
+            
+            $('#RamType').on('input', function() {
+                if ($(this).val().trim()) {
+                    $('.ramtype-warning').remove();
                 }
             });
         });

@@ -13,6 +13,8 @@ public partial class Laptop
 
     public decimal? Price { get; set; }
 
+    public decimal? NewPrice { get; set; }
+
     public long? StatusId { get; set; }
 
     public long? ManagerId { get; set; }
