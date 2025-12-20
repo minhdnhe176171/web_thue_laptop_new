@@ -1,10 +1,12 @@
-﻿@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Helpers
 @using web_chothue_laptop.Models
 @model PaginatedList<Laptop>
 @{
     ViewData["Title"] = "Trang Chủ - Dịch Vụ Thuê Laptop";
     var currentBookings = ViewBag.CurrentBookings as List<Booking>;
     var rentedLaptopIds = ViewBag.RentedLaptopIds as List<long> ?? new List<long>();
+    var customerBookings = ViewBag.CustomerBookings as Dictionary<long, Booking?> ?? new Dictionary<long, Booking?>();
+    var currentCustomer = ViewBag.CurrentCustomer as Customer;
     var pageIndex = (int)ViewBag.PageIndex;
     var totalPages = (int)ViewBag.TotalPages;
     var hasPreviousPage = (bool)ViewBag.HasPreviousPage;
@@ -94,14 +96,36 @@
                             <p class="mb-3">
                                 <strong>Trạng thái:</strong>
                                 @{
-                                    // Kiểm tra xem laptop có đang thuê không
-                                    var isRented = rentedLaptopIds.Contains(laptop.Id);
-                                    if (isRented)
+                                    // Kiểm tra nếu laptop đã hết thời hạn thuê (EndTime < DateTime.Now)
+                                    var isExpired = laptop.EndTime.HasValue && laptop.EndTime.Value < DateTime.Now;
+                                    
+                                    // Kiểm tra booking của customer hiện tại cho laptop này (chỉ booking đang active)
+                                    var customerBooking = customerBookings.ContainsKey(laptop.Id) ? customerBookings[laptop.Id] : null;
+                                    // Kiểm tra xem laptop có đang được customer khác thuê không
+                                    var isRentedByOthers = rentedLaptopIds.Contains(laptop.Id) && 
+                                        (currentCustomer == null || customerBooking == null || 
+                                         (customerBooking.StatusId != 2 && customerBooking.StatusId != 10));
+                                    
+                                    if (isExpired)
                                     {
+                                        // Laptop đã hết thời hạn thuê -> hiển thị "Đã đóng"
+                                        <span class="badge bg-secondary">Đã đóng</span>
+                                    }
+                                    else if (currentCustomer != null && customerBooking != null)
+                                    {
+                                        // Customer có booking đang active -> hiển thị trạng thái đó
+                                        var statusVi = StatusHelper.GetVietnameseStatus(customerBooking.Status?.StatusName);
+                                        var badgeClass = StatusHelper.GetStatusBadgeClass(customerBooking.Status?.StatusName);
+                                        <span class="badge @badgeClass">@statusVi</span>
+                                    }
+                                    else if (isRentedByOthers)
+                                    {
+                                        // Laptop đang được thuê bởi người khác
                                         <span class="badge bg-warning">Đang thuê</span>
                                     }
                                     else
                                     {
+                                        // Laptop có sẵn (bao gồm cả trường hợp customer đã từng thuê nhưng đã hoàn thành)
                                         <span class="badge bg-success">Có sẵn</span>
                                     }
                                 }

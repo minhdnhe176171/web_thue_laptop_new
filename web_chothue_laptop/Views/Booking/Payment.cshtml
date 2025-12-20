@@ -136,11 +136,25 @@
                         <!-- Phần thanh toán online (ẩn mặc định) -->
                         <div id="onlinePaymentSection" style="display: none;">
                             <hr class="my-4">
-                            <div class="text-center">
+                            <div class="text-center mb-4">
                                 <p class="text-muted mb-3">Bạn có thể thanh toán trước bằng QR code online</p>
-                                <a asp-controller="Booking" asp-action="OnlinePayment" class="btn btn-success btn-lg">
+                                <a asp-controller="Booking" asp-action="OnlinePayment" asp-route-bookingId="@booking.Id" class="btn btn-success btn-lg mb-3">
                                     <i class="bi bi-qr-code-scan"></i> Bấm Vào Đây Để Đến Trang Thanh Toán Online
                                 </a>
+                            </div>
+                            
+                            <hr class="my-4">
+                            
+                            <!-- Nút thanh toán PayOS -->
+                            <div class="text-center">
+                                <p class="text-muted mb-3">Hoặc thanh toán nhanh qua PayOS</p>
+                                <a asp-controller="Booking" asp-action="PayWithPayOS" asp-route-bookingId="@booking.Id" 
+                                   class="btn btn-success btn-lg px-5">
+                                    <i class="bi bi-wallet2"></i> Thanh Toán PayOS
+                                </a>
+                                <p class="small text-muted mt-2 mb-0">
+                                    <i class="bi bi-info-circle"></i> Hỗ trợ thẻ ATM, thẻ tín dụng, ví điện tử
+                                </p>
                             </div>
                         </div>
 

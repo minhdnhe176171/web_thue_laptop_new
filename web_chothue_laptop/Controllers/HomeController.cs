@@ -20,6 +20,16 @@ namespace web_chothue_laptop.Controllers
         {
             int pageIndex = page ?? 1;
             
+            // Lấy customer hiện tại từ session (nếu có)
+            Customer? currentCustomer = null;
+            var userId = HttpContext.Session.GetString("UserId");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var userIdLong = long.Parse(userId);
+                currentCustomer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+            }
+            
             // Lấy TẤT CẢ laptop ID đang có người thuê (bất kỳ user nào) - StatusId = 2 (Approved) hoặc 10 (Rented)
             // Điều kiện: StartTime <= hiện tại và EndTime >= hiện tại (đang trong thời gian thuê)
             var rentedLaptopIds = await _context.Bookings
@@ -30,11 +40,10 @@ namespace web_chothue_laptop.Controllers
                 .Distinct()
                 .ToListAsync();
             
-            // Lấy TẤT CẢ laptop có status "available" (không lọc bỏ laptop đang thuê)
-            var allLaptopsQuery = _context.Laptops
+            // Lấy TẤT CẢ laptop trong database (không filter theo status)
+            IQueryable<Laptop> allLaptopsQuery = _context.Laptops
                 .Include(l => l.Brand)
-                .Include(l => l.Status)
-                .Where(l => l.Status != null && l.Status.StatusName.ToLower() == "available");
+                .Include(l => l.Status);
 
             // Filter theo tìm kiếm
             if (!string.IsNullOrWhiteSpace(search))
@@ -57,6 +66,32 @@ namespace web_chothue_laptop.Controllers
 
             var paginatedLaptops = await PaginatedList<Laptop>.CreateAsync(allLaptopsQuery, pageIndex, PageSize);
 
+            // Lấy booking của customer hiện tại cho từng laptop để hiển thị trạng thái đúng
+            // Chỉ lấy booking đang active (pending, approved, rented) - không lấy completed/cancelled
+            Dictionary<long, Booking?> customerBookings = new Dictionary<long, Booking?>();
+            if (currentCustomer != null)
+            {
+                var laptopIds = paginatedLaptops.Select(l => l.Id).ToList();
+                // Chỉ lấy booking đang active: pending (1), approved (2), rented (10)
+                var bookings = await _context.Bookings
+                    .Include(b => b.Status)
+                    .Where(b => b.CustomerId == currentCustomer.Id 
+                        && laptopIds.Contains(b.LaptopId)
+                        && (b.StatusId == 1 || b.StatusId == 2 || b.StatusId == 10))
+                    .OrderByDescending(b => b.CreatedDate)
+                    .ToListAsync();
+                
+                foreach (var laptop in paginatedLaptops)
+                {
+                    // Tìm booking mới nhất đang active của customer cho laptop này
+                    var booking = bookings
+                        .Where(b => b.LaptopId == laptop.Id)
+                        .OrderByDescending(b => b.CreatedDate)
+                        .FirstOrDefault();
+                    customerBookings[laptop.Id] = booking;
+                }
+            }
+
             // Lấy danh sách booking hiện tại (đang thuê) để hiển thị người thuê
             var currentBookings = await _context.Bookings
                 .Include(b => b.Customer)
@@ -75,6 +110,8 @@ namespace web_chothue_laptop.Controllers
             // Truyền danh sách laptop ID đang thuê vào ViewBag để view có thể hiển thị status
             ViewBag.RentedLaptopIds = rentedLaptopIds;
             ViewBag.CurrentBookings = currentBookings;
+            ViewBag.CustomerBookings = customerBookings;
+            ViewBag.CurrentCustomer = currentCustomer;
             ViewBag.PageIndex = paginatedLaptops.PageIndex;
             ViewBag.TotalPages = paginatedLaptops.TotalPages;
             ViewBag.HasPreviousPage = paginatedLaptops.HasPreviousPage;

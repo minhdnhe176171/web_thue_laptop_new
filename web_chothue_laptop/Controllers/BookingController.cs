@@ -4,6 +4,7 @@ using web_chothue_laptop.Models;
 using web_chothue_laptop.ViewModels;
 using web_chothue_laptop.Services;
 using System.Net;
+using Net.payOS.Types;
 
 namespace web_chothue_laptop.Controllers
 {
@@ -12,13 +13,15 @@ namespace web_chothue_laptop.Controllers
         private readonly Swp391LaptopContext _context;
         private readonly ILogger<BookingController> _logger;
         private readonly VnpayService _vnpayService;
+        private readonly PayOSService _payOSService;
         private readonly IConfiguration _configuration;
 
-        public BookingController(Swp391LaptopContext context, ILogger<BookingController> logger, VnpayService vnpayService, IConfiguration configuration)
+        public BookingController(Swp391LaptopContext context, ILogger<BookingController> logger, VnpayService vnpayService, PayOSService payOSService, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
             _vnpayService = vnpayService;
+            _payOSService = payOSService;
             _configuration = configuration;
         }
 
@@ -82,8 +85,8 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
             var pendingBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == laptop.Id 
+                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id
+                    && b.LaptopId == laptop.Id
                     && b.StatusId == 1);
 
             if (pendingBooking != null)
@@ -95,8 +98,8 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra xem customer có booking nào đang active (approved) với laptop này không
             var activeBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .Where(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == laptop.Id 
+                .Where(b => b.CustomerId == customer.Id
+                    && b.LaptopId == laptop.Id
                     && (b.StatusId == 2 || b.StatusId == 10)
                     && b.EndTime >= DateTime.Today)
                 .FirstOrDefaultAsync();
@@ -110,7 +113,7 @@ namespace web_chothue_laptop.Controllers
             // Tính toán thời gian có thể thuê dựa trên Laptop.EndTime (thời gian student muốn trả máy)
             DateTime? availableStartDate = DateTime.Today;
             DateTime? availableEndDate = null;
-            
+
             if (laptop.EndTime.HasValue)
             {
                 // Ngày trả tối đa = EndTime của student - 1 ngày
@@ -191,7 +194,7 @@ namespace web_chothue_laptop.Controllers
             {
                 // Ngày trả tối đa của customer = EndTime của student - 1 ngày
                 var maxEndDate = model.Laptop.EndTime.Value.Date.AddDays(-1);
-                
+
                 if (model.EndDate >= model.Laptop.EndTime.Value.Date)
                 {
                     ModelState.AddModelError("EndDate", $"Ngày trả máy phải nhỏ hơn ngày student muốn nhận lại máy ({model.Laptop.EndTime.Value.Date:dd/MM/yyyy}). Ngày trả tối đa là {maxEndDate:dd/MM/yyyy}.");
@@ -206,7 +209,7 @@ namespace web_chothue_laptop.Controllers
             if (!ModelState.IsValid)
             {
                 model.PricePerDay = model.Laptop.Price;
-                
+
                 // Tính lại thời gian có thể thuê
                 DateTime? availableStartDate = DateTime.Today;
                 DateTime? availableEndDate = null;
@@ -216,7 +219,7 @@ namespace web_chothue_laptop.Controllers
                 }
                 ViewBag.AvailableStartDate = availableStartDate;
                 ViewBag.AvailableEndDate = availableEndDate;
-                
+
                 return View(model);
             }
 
@@ -231,7 +234,7 @@ namespace web_chothue_laptop.Controllers
             {
                 ModelState.AddModelError("", "Laptop này hiện đang được thuê bởi người khác. Vui lòng chọn laptop khác hoặc thử lại sau.");
                 model.PricePerDay = model.Laptop.Price;
-                
+
                 // Tính lại thời gian có thể thuê
                 DateTime? availableStartDate = DateTime.Today;
                 DateTime? availableEndDate = null;
@@ -241,7 +244,7 @@ namespace web_chothue_laptop.Controllers
                 }
                 ViewBag.AvailableStartDate = availableStartDate;
                 ViewBag.AvailableEndDate = availableEndDate;
-                
+
                 return View(model);
             }
 
@@ -263,15 +266,15 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
             var pendingBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == model.LaptopId 
+                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id
+                    && b.LaptopId == model.LaptopId
                     && b.StatusId == 1);
 
             if (pendingBooking != null)
             {
                 ModelState.AddModelError("", "Bạn đã có một đơn đặt thuê laptop này đang chờ duyệt. Vui lòng chờ đơn được xử lý trước khi đặt thuê lại.");
                 model.PricePerDay = model.Laptop.Price;
-                
+
                 // Tính lại thời gian có thể thuê
                 DateTime? availableStartDate = DateTime.Today;
                 DateTime? availableEndDate = null;
@@ -281,7 +284,7 @@ namespace web_chothue_laptop.Controllers
                 }
                 ViewBag.AvailableStartDate = availableStartDate;
                 ViewBag.AvailableEndDate = availableEndDate;
-                
+
                 return View(model);
             }
 
@@ -289,8 +292,8 @@ namespace web_chothue_laptop.Controllers
             // Chỉ cho phép đặt thuê lại khi booking đã completed/closed
             var activeBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .Where(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == model.LaptopId 
+                .Where(b => b.CustomerId == customer.Id
+                    && b.LaptopId == model.LaptopId
                     && (b.StatusId == 2 || b.StatusId == 10)
                     && b.EndTime >= DateTime.Today)
                 .FirstOrDefaultAsync();
@@ -299,7 +302,7 @@ namespace web_chothue_laptop.Controllers
             {
                 ModelState.AddModelError("", $"Bạn đang có một đơn đặt thuê laptop này đang hoạt động (từ {activeBooking.StartTime:dd/MM/yyyy} đến {activeBooking.EndTime:dd/MM/yyyy}). Vui lòng hoàn thành việc trả máy trước khi đặt thuê lại.");
                 model.PricePerDay = model.Laptop.Price;
-                
+
                 // Tính lại thời gian có thể thuê
                 DateTime? availableStartDate = DateTime.Today;
                 DateTime? availableEndDate = null;
@@ -309,7 +312,7 @@ namespace web_chothue_laptop.Controllers
                 }
                 ViewBag.AvailableStartDate = availableStartDate;
                 ViewBag.AvailableEndDate = availableEndDate;
-                
+
                 return View(model);
             }
 
@@ -369,12 +372,12 @@ namespace web_chothue_laptop.Controllers
             var days = (endDate - startDate).Days;
             var totalPrice = laptop.Price.Value * days;
 
-            return Json(new 
-            { 
-                success = true, 
-                days = days, 
-                pricePerDay = laptop.Price.Value, 
-                totalPrice = totalPrice 
+            return Json(new
+            {
+                success = true,
+                days = days,
+                pricePerDay = laptop.Price.Value,
+                totalPrice = totalPrice
             });
         }
 
@@ -414,7 +417,7 @@ namespace web_chothue_laptop.Controllers
             // Filter theo search
             if (!string.IsNullOrWhiteSpace(search))
             {
-                baseQuery = baseQuery.Where(b => 
+                baseQuery = baseQuery.Where(b =>
                     b.Id.ToString().Contains(search) ||
                     (b.Laptop != null && b.Laptop.Name.Contains(search)) ||
                     (b.Laptop != null && b.Laptop.Brand != null && b.Laptop.Brand.BrandName.Contains(search)));
@@ -552,19 +555,20 @@ namespace web_chothue_laptop.Controllers
             return View();
         }
 
-        // GET: Booking/CheckPaymentStatus/5 - Kiểm tra trạng thái thanh toán
-        public async Task<IActionResult> CheckPaymentStatus(long? id)
+        // GET: Booking/PaymentSuccess - Trang thanh toán thành công
+        public async Task<IActionResult> PaymentSuccess(long? bookingId)
         {
-            if (id == null)
-            {
-                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
-            }
-
             // Kiểm tra đăng nhập
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                return Json(new { success = false, message = "Vui lòng đăng nhập." });
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (!bookingId.HasValue)
+            {
+                return RedirectToAction("MyBookings");
             }
 
             // Lấy Customer từ UserId
@@ -574,112 +578,401 @@ namespace web_chothue_laptop.Controllers
 
             if (customer == null)
             {
-                return Json(new { success = false, message = "Không tìm thấy thông tin khách hàng." });
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng.";
+                return RedirectToAction("MyBookings");
             }
 
             // Lấy booking
             var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
                 .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.Id == id && b.CustomerId == customer.Id);
+                .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
 
             if (booking == null)
             {
-                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                return RedirectToAction("MyBookings");
             }
 
-            // Kiểm tra nếu đã chuyển sang Rented (StatusId = 10)
-            if (booking.StatusId == 10)
-            {
-                return Json(new 
-                { 
-                    success = true, 
-                    status = "rented",
-                    message = "Đã xác nhận giao dịch thành công. Vui lòng trả máy đúng hạn. Cảm ơn quý khách!" 
-                });
-            }
-
-            // Kiểm tra nếu đã thanh toán (StatusId = 12 - Banked)
-            if (booking.StatusId == 12)
-            {
-                return Json(new 
-                { 
-                    success = true, 
-                    status = "paid",
-                    message = "Thanh toán thành công! Vui lòng đến gặp Staff để nhận máy." 
-                });
-            }
-
-            // Vẫn còn ở trạng thái Approved
-            return Json(new 
-            { 
-                success = true, 
-                status = "approved",
-                message = "Đang chờ Staff xác nhận thanh toán..." 
-            });
+            return View(booking);
         }
 
-        // GET: Booking/OnlinePayment
-        [HttpGet]
-        public async Task<IActionResult> OnlinePayment(long? bookingId)
+        // GET: Booking/PaymentCancelled - Trang thanh toán bị hủy
+        public async Task<IActionResult> PaymentCancelled(long? bookingId)
         {
             // Kiểm tra đăng nhập
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
             {
-                TempData["ErrorMessage"] = "Vui lòng đăng nhập để thanh toán online.";
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
                 return RedirectToAction("Login", "Account");
             }
 
-            // Nếu có bookingId, load thông tin booking
-            if (bookingId.HasValue)
+            if (!bookingId.HasValue)
             {
-                var userIdLong = long.Parse(userId);
-                var customer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+                return RedirectToAction("MyBookings");
+            }
 
-                if (customer == null)
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Lấy booking
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
+
+            // Cho phép hiển thị thông tin ngay cả khi booking null
+            return View(booking);
+        }
+
+        // GET: Booking/PayOSReturn - Callback từ PayOS sau khi thanh toán
+        [HttpGet]
+        public async Task<IActionResult> PayOSReturn(long? bookingId, string? status, int? orderCode, string? code, bool? cancel)
+        {
+            _logger.LogInformation("PayOSReturn - Begin, BookingId: {BookingId}, Status: {Status}, OrderCode: {OrderCode}, Code: {Code}, Cancel: {Cancel}",
+                bookingId, status, orderCode, code, cancel);
+
+            // Khai báo localhostUrl một lần để dùng chung
+            var localhostUrl = "http://localhost:5209";
+
+            // Nếu không có bookingId, thử extract từ orderCode
+            // Ưu tiên bookingId dài hơn (thử từ dài đến ngắn)
+            if (!bookingId.HasValue && orderCode.HasValue)
+            {
+                var orderCodeStr = orderCode.Value.ToString();
+                // Thử extract bookingId từ orderCode (bỏ 6 chữ số cuối)
+                // Thử từ dài đến ngắn để ưu tiên bookingId dài hơn
+                for (int len = orderCodeStr.Length - 6; len >= 1; len--)
                 {
-                    TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng.";
-                    return View();
-                }
-
-                var booking = await _context.Bookings
-                    .Include(b => b.Laptop)
-                        .ThenInclude(l => l.Brand)
-                    .Include(b => b.Status)
-                    .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
-
-                if (booking != null)
-                {
-                    // Cho phép hiển thị khi đã duyệt (StatusId = 2) hoặc đã thanh toán (StatusId = 12)
-                    if (booking.StatusId == 2 || booking.StatusId == 12)
+                    var possibleBookingIdStr = orderCodeStr.Substring(0, len);
+                    if (long.TryParse(possibleBookingIdStr, out long extractedBookingId))
                     {
-                        // Tạo VietQR code cho MBBank (chuyển khoản trực tiếp)
-                        var qrCodeUrl = _vnpayService.CreateVietQrCode(booking.TotalPrice ?? 0, booking.Id);
-                        
-                        // Lấy thông tin tài khoản từ config
-                        var accountName = _configuration["BankTransfer:AccountName"] ?? "Ha Hoang Hiep";
-                        var accountNumber = _configuration["BankTransfer:AccountNumber"] ?? "0862735289";
-                        var bankCode = _configuration["BankTransfer:BankCode"] ?? "MB";
-                        var phoneNumber = _configuration["BankTransfer:PhoneNumber"] ?? "0862735289";
-
-                        ViewBag.Booking = booking;
-                        ViewBag.QrCodeUrl = qrCodeUrl;
-                        ViewBag.AccountName = accountName;
-                        ViewBag.AccountNumber = accountNumber;
-                        ViewBag.BankName = "MBBank";
-                        ViewBag.PhoneNumber = phoneNumber;
+                        var testBooking = await _context.Bookings
+                            .FirstOrDefaultAsync(b => b.Id == extractedBookingId);
+                        if (testBooking != null)
+                        {
+                            bookingId = extractedBookingId;
+                            _logger.LogInformation("PayOSReturn - Extracted BookingId {BookingId} from OrderCode {OrderCode}",
+                                extractedBookingId, orderCode.Value);
+                            break;
+                        }
                     }
-                    else
+                }
+            }
+
+            if (!bookingId.HasValue)
+            {
+                _logger.LogWarning("PayOSReturn - Cannot find bookingId. Status: {Status}, OrderCode: {OrderCode}, Code: {Code}",
+                    status, orderCode, code);
+                // Nếu có status = PAID hoặc code = 00, vẫn redirect về success (webhook sẽ xử lý)
+                if (status == "PAID" || status == "success" || code == "00")
+                {
+                    var redirectUrl = $"{localhostUrl}/Booking/PayOSReturnLocal?status=success";
+                    return Redirect(redirectUrl);
+                }
+                TempData["ErrorMessage"] = "Không tìm thấy mã đơn hàng.";
+                var redirectUrl2 = $"{localhostUrl}/Booking/PayOSReturnLocal?status=cancelled";
+                return Redirect(redirectUrl2);
+            }
+
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng.";
+                return RedirectToAction("PaymentCancelled", new { bookingId = bookingId });
+            }
+
+            // Lấy booking - nếu thanh toán thành công, không cần kiểm tra CustomerId
+            // vì có thể user đã logout hoặc session khác
+            var booking = await _context.Bookings
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == bookingId.Value);
+
+            // Nếu không tìm thấy booking, thử tìm không cần CustomerId
+            if (booking == null)
+            {
+                _logger.LogWarning("PayOSReturn - Booking {BookingId} not found in database. Status: {Status}, Code: {Code}",
+                    bookingId, status, code);
+                // Nếu thanh toán thành công nhưng không tìm thấy booking, vẫn redirect về success
+                // Webhook sẽ xử lý cập nhật trạng thái
+                if (status == "PAID" || status == "success" || code == "00")
+                {
+                    var redirectUrl = $"{localhostUrl}/Booking/PayOSReturnLocal?bookingId={bookingId.Value}&status=success";
+                    return Redirect(redirectUrl);
+                }
+                // Nếu không phải thành công, redirect về cancelled
+                var redirectUrl2 = $"{localhostUrl}/Booking/PayOSReturnLocal?bookingId={bookingId.Value}&status=cancelled";
+                return Redirect(redirectUrl2);
+            }
+
+            // Kiểm tra xem booking có thuộc về customer hiện tại không
+            // Nếu không, vẫn cho phép xử lý nếu thanh toán thành công (có thể do session khác)
+            bool isDifferentCustomer = booking.CustomerId != customer.Id;
+            if (isDifferentCustomer)
+            {
+                _logger.LogWarning("PayOSReturn - Booking {BookingId} belongs to different customer. Current CustomerId: {CurrentCustomerId}, Booking CustomerId: {BookingCustomerId}. Status: {Status}",
+                    bookingId, customer.Id, booking.CustomerId, status);
+            }
+
+            // PayOS sẽ gửi webhook để cập nhật trạng thái
+            // Nhưng cũng cập nhật ngay khi nhận callback để đảm bảo status được cập nhật kịp thời
+            // Kiểm tra status từ URL callback
+            // Redirect về localhost:5209 để tránh ngrok warning page
+            if (status == "PAID" || status == "success" || code == "00")
+            {
+                // Cập nhật trạng thái booking ngay khi nhận được callback thành công
+                // Cập nhật ngay cả khi CustomerId không khớp (có thể do session khác)
+                // Không cần đợi webhook (webhook sẽ xử lý lại nhưng không sao)
+                if (booking.StatusId == 1 || booking.StatusId == 2) // Pending hoặc Approved
+                {
+                    var bankedStatusId = await GetStatusIdAsync("banked");
+                    if (bankedStatusId.HasValue)
                     {
-                        TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể thanh toán.";
+                        booking.StatusId = bankedStatusId.Value;
+                        booking.UpdatedDate = DateTime.Now;
+
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogInformation("PayOSReturn - Successfully updated booking {BookingId} to StatusId: {StatusId} (banked) after successful payment callback. IsDifferentCustomer: {IsDifferentCustomer}",
+                            booking.Id, booking.StatusId, isDifferentCustomer);
                     }
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                    _logger.LogInformation("PayOSReturn - Booking {BookingId} already processed, StatusId: {StatusId}",
+                        booking.Id, booking.StatusId);
                 }
+
+                // Thanh toán thành công - redirect về localhost với thông báo thành công
+                _logger.LogInformation("PayOSReturn - Payment successful for booking {BookingId}, redirecting to localhost", bookingId.Value);
+                var redirectUrl = $"{localhostUrl}/Booking/PayOSReturnLocal?bookingId={bookingId.Value}&status=success";
+                return Redirect(redirectUrl);
             }
+            else if (status == "CANCELLED" || status == "cancelled" || status == "CANCEL" || cancel == true)
+            {
+                // Thanh toán bị hủy - redirect về localhost với thông báo hủy
+                _logger.LogInformation("PayOSReturn - Payment cancelled for booking {BookingId}, redirecting to localhost", bookingId.Value);
+                var redirectUrl = $"{localhostUrl}/Booking/PayOSReturnLocal?bookingId={bookingId.Value}&status=cancelled";
+                return Redirect(redirectUrl);
+            }
+            else
+            {
+                // Trạng thái không xác định - redirect về localhost với thông báo đang xử lý
+                _logger.LogWarning("PayOSReturn - Unknown status '{Status}' for booking {BookingId}, redirecting to localhost", status, bookingId.Value);
+                var redirectUrl = $"{localhostUrl}/Booking/PayOSReturnLocal?bookingId={bookingId.Value}&status=pending";
+                return Redirect(redirectUrl);
+            }
+        }
+
+        // GET: Booking/PayOSReturnLocal - Xử lý redirect từ ngrok về localhost sau khi thanh toán
+        [HttpGet]
+        public async Task<IActionResult> PayOSReturnLocal(long? bookingId, string? status)
+        {
+            _logger.LogInformation("PayOSReturnLocal - Begin, BookingId: {BookingId}, Status: {Status}", bookingId, status);
+
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Xử lý theo status
+            if (status == "success")
+            {
+                TempData["SuccessMessage"] = "Thanh toán thành công! Đơn hàng của bạn đã được xác nhận.";
+                _logger.LogInformation("PayOSReturnLocal - Payment successful for booking {BookingId}", bookingId);
+            }
+            else if (status == "cancelled")
+            {
+                TempData["ErrorMessage"] = "Thanh toán đã bị hủy. Vui lòng thử lại nếu bạn muốn tiếp tục thanh toán.";
+                _logger.LogInformation("PayOSReturnLocal - Payment cancelled for booking {BookingId}", bookingId);
+            }
+            else
+            {
+                TempData["InfoMessage"] = "Đang xử lý thanh toán. Vui lòng chờ xác nhận...";
+                _logger.LogInformation("PayOSReturnLocal - Payment pending for booking {BookingId}", bookingId);
+            }
+
+            // Redirect về MyBookings
+            return RedirectToAction("MyBookings");
+        }
+
+        // GET: Booking/VnpayReturn - Callback từ VNPay sau khi thanh toán
+        public async Task<IActionResult> VnpayReturn()
+        {
+            _logger.LogInformation("VNPay Return - Begin, URL: {RawUrl}", Request.QueryString);
+
+            var result = await _vnpayService.ProcessReturnAsync(Request.Query);
+
+            if (result.IsSuccess)
+            {
+                // Thanh toán thành công
+                if (long.TryParse(result.BookingNumber, out long bookingId))
+                {
+                    _logger.LogInformation("VNPay Return - Payment successful for booking {BookingId}", bookingId);
+                    return RedirectToAction("PaymentSuccess", new { bookingId = bookingId });
+                }
+
+                TempData["SuccessMessage"] = result.Message;
+                return RedirectToAction("MyBookings");
+            }
+            else
+            {
+                // Thanh toán thất bại hoặc bị hủy
+                if (!string.IsNullOrEmpty(result.BookingNumber) && long.TryParse(result.BookingNumber, out long bookingId))
+                {
+                    _logger.LogWarning("VNPay Return - Payment failed/cancelled for booking {BookingId}. Message: {Message}",
+                        bookingId, result.Message);
+                    return RedirectToAction("PaymentCancelled", new { bookingId = bookingId });
+                }
+
+                TempData["ErrorMessage"] = result.Message;
+                return RedirectToAction("MyBookings");
+            }
+        }
+
+        // GET: Booking/OnlinePayment - Trang thanh toán hoặc xử lý callback từ PayOS
+        [HttpGet]
+        public async Task<IActionResult> OnlinePayment(long? bookingId, string? status, string? code, string? id, bool? cancel, int? orderCode)
+        {
+            // Nếu có query parameters từ PayOS callback, xử lý như PayOSReturn
+            if (!string.IsNullOrEmpty(status) || !string.IsNullOrEmpty(code) || orderCode.HasValue)
+            {
+                _logger.LogInformation("OnlinePayment - Received PayOS callback. Status: {Status}, Code: {Code}, OrderCode: {OrderCode}, Id: {Id}, Cancel: {Cancel}",
+                    status, code, orderCode, id, cancel);
+
+                // Lấy bookingId từ query parameter id hoặc bookingId
+                long? actualBookingId = bookingId;
+                if (!actualBookingId.HasValue && !string.IsNullOrEmpty(id))
+                {
+                    // Thử parse id nếu là số
+                    if (long.TryParse(id, out long parsedId))
+                    {
+                        actualBookingId = parsedId;
+                    }
+                }
+
+                // Nếu có orderCode nhưng chưa có bookingId, thử extract bookingId từ orderCode
+                // PayOS orderCode format: bookingId + timestamp (6 chữ số cuối)
+                // Ví dụ: bookingId=26, timestamp=1234567890 => orderCode = 26123456
+                // Ưu tiên bookingId dài hơn (thử từ dài đến ngắn)
+                if (!actualBookingId.HasValue && orderCode.HasValue)
+                {
+                    var orderCodeStr = orderCode.Value.ToString();
+                    // Thử extract bookingId bằng cách lấy phần đầu (bỏ 6 chữ số cuối)
+                    // Tìm bookingId hợp lệ bằng cách thử từ dài đến ngắn (ưu tiên bookingId dài hơn)
+                    for (int len = orderCodeStr.Length - 6; len >= 1; len--)
+                    {
+                        var possibleBookingIdStr = orderCodeStr.Substring(0, len);
+                        if (long.TryParse(possibleBookingIdStr, out long extractedBookingId))
+                        {
+                            // Kiểm tra xem booking có tồn tại không
+                            var testBooking = await _context.Bookings
+                                .FirstOrDefaultAsync(b => b.Id == extractedBookingId);
+                            if (testBooking != null)
+                            {
+                                actualBookingId = extractedBookingId;
+                                _logger.LogInformation("OnlinePayment - Extracted BookingId {BookingId} from OrderCode {OrderCode}",
+                                    extractedBookingId, orderCode.Value);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Nếu không tìm thấy bookingId, redirect về MyBookings với thông báo
+                if (!actualBookingId.HasValue)
+                {
+                    _logger.LogWarning("OnlinePayment - Cannot extract BookingId from callback. Status: {Status}, OrderCode: {OrderCode}",
+                        status, orderCode);
+                    TempData["InfoMessage"] = "Đang xử lý thanh toán. Vui lòng kiểm tra lại sau vài phút.";
+                    return RedirectToAction("MyBookings");
+                }
+
+                // Redirect đến PayOSReturn để xử lý
+                return RedirectToAction("PayOSReturn", new { bookingId = actualBookingId, status = status, orderCode = orderCode });
+            }
+
+            // Nếu không có callback parameters, hiển thị trang thanh toán bình thường
+            if (bookingId == null)
+            {
+                TempData["ErrorMessage"] = "Vui lòng nhập mã đơn hàng.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để xem thông tin thanh toán.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy booking với đầy đủ thông tin
+            var booking = await _context.Bookings
+                .Include(b => b.Laptop)
+                    .ThenInclude(l => l.Brand)
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
+                return RedirectToAction("MyBookings");
+            }
+
+            // Kiểm tra booking phải ở trạng thái Approved (StatusId = 2) hoặc đã thanh toán (StatusId = 12)
+            if (booking.StatusId != 2 && booking.StatusId != 12)
+            {
+                if (booking.StatusId == 10)
+                {
+                    TempData["SuccessMessage"] = "Đơn hàng của bạn đã được xác nhận thanh toán và đang trong quá trình thuê. Cảm ơn quý khách!";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể thanh toán.";
+                }
+                return RedirectToAction("MyBookings");
+            }
+
+            ViewBag.Booking = booking;
+            ViewBag.CustomerId = customer.Id;
 
             return View();
         }
@@ -698,270 +991,356 @@ namespace web_chothue_laptop.Controllers
             return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
         }
 
-        // GET: Booking/VnpayReturn - Callback từ VNPay sau khi thanh toán
-        public async Task<IActionResult> VnpayReturn()
+        // GET: Booking/PayWithVNPay - Tạo payment URL và redirect đến VNPay
+        [HttpGet]
+        public async Task<IActionResult> PayWithVNPay(long? bookingId)
         {
-            _logger.LogInformation("VNPay Return - Begin, URL: {RawUrl}", Request.QueryString);
-            
-            if (Request.Query.Count > 0)
+            if (!bookingId.HasValue)
             {
-                var vnp_Params = new Dictionary<string, string>();
-                foreach (var key in Request.Query.Keys)
-                {
-                    if (!string.IsNullOrEmpty(key) && key.StartsWith("vnp_"))
-                    {
-                        vnp_Params.Add(key, Request.Query[key].ToString());
-                    }
-                }
-
-                var vnp_SecureHash = Request.Query["vnp_SecureHash"].ToString();
-                var vnp_ResponseCode = Request.Query["vnp_ResponseCode"].ToString();
-                var vnp_TransactionStatus = Request.Query["vnp_TransactionStatus"].ToString();
-                var vnp_TxnRef = Request.Query["vnp_TxnRef"].ToString();
-                var vnp_Amount = Request.Query["vnp_Amount"].ToString();
-                var vnp_TransactionNo = Request.Query["vnp_TransactionNo"].ToString();
-
-                _logger.LogInformation("VNPay Return - ResponseCode: {ResponseCode}, TransactionStatus: {TransactionStatus}, TxnRef: {TxnRef}, Amount: {Amount}", 
-                    vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount);
-
-                // Validate signature
-                if (!_vnpayService.ValidateSignature(vnp_Params, vnp_SecureHash))
-                {
-                    _logger.LogWarning("VNPay Return - Invalid signature, InputData: {RawUrl}", Request.QueryString);
-                    TempData["ErrorMessage"] = "Chữ ký không hợp lệ. Vui lòng liên hệ hỗ trợ.";
-                    if (long.TryParse(vnp_TxnRef, out long bookingId))
-                    {
-                        return RedirectToAction("OnlinePayment", new { bookingId = bookingId });
-                    }
-                    return RedirectToAction("MyBookings");
-                }
-
-                // Kiểm tra response code và transaction status (theo chuẩn VNPay)
-                if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
-                {
-                    // Thanh toán thành công
-                    if (long.TryParse(vnp_TxnRef, out long bookingId))
-                    {
-                        _logger.LogInformation("VNPay Return - Processing payment for booking {BookingId}, VNPay TranId: {TranId}", 
-                            bookingId, vnp_TransactionNo);
-                        
-                        var booking = await _context.Bookings
-                            .Include(b => b.Status)
-                            .FirstOrDefaultAsync(b => b.Id == bookingId);
-
-                        if (booking != null)
-                        {
-                            // Kiểm tra số tiền
-                            long vnp_AmountLong = long.Parse(vnp_Amount) / 100; // VNPay trả về số tiền nhân 100
-                            long bookingAmount = (long)(booking.TotalPrice ?? 0);
-                            
-                            if (bookingAmount == vnp_AmountLong)
-                            {
-                                _logger.LogInformation("VNPay Return - Found booking {BookingId}, Current StatusId: {StatusId}, Amount match: {Amount}", 
-                                    bookingId, booking.StatusId, vnp_AmountLong);
-                                
-                                // Cập nhật StatusId = 12 (Banked) khi thanh toán thành công
-                                if (booking.StatusId == 1 || booking.StatusId == 2) // Pending hoặc Approved
-                                {
-                                    var bankedStatusId = await GetStatusIdAsync("banked");
-                                    if (bankedStatusId.HasValue)
-                                    {
-                                        booking.StatusId = bankedStatusId.Value;
-                                        booking.UpdatedDate = DateTime.Now;
-                                        
-                                        try
-                                        {
-                                            await _context.SaveChangesAsync();
-                                            
-                                            _logger.LogInformation("VNPay Return - Successfully updated booking {BookingId} to StatusId: {StatusId}, VNPay TranId: {TranId}", 
-                                                bookingId, booking.StatusId, vnp_TransactionNo);
-                                            
-                                            TempData["SuccessMessage"] = "Thanh toán thành công! Vui lòng đến gặp Staff để nhận máy.";
-                                            return RedirectToAction("OnlinePayment", new { bookingId = bookingId });
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            _logger.LogError(ex, "VNPay Return - Error saving booking {BookingId}", bookingId);
-                                            TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái thanh toán. Vui lòng liên hệ hỗ trợ.";
-                                            return RedirectToAction("OnlinePayment", new { bookingId = bookingId });
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    _logger.LogInformation("VNPay Return - Booking {BookingId} already processed, StatusId: {StatusId}", 
-                                        bookingId, booking.StatusId);
-                                    TempData["SuccessMessage"] = "Đơn hàng đã được thanh toán thành công.";
-                                    return RedirectToAction("OnlinePayment", new { bookingId = bookingId });
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogWarning("VNPay Return - Amount mismatch. Booking: {BookingAmount}, VNPay: {VnpAmount}", 
-                                    bookingAmount, vnp_AmountLong);
-                                TempData["ErrorMessage"] = "Số tiền thanh toán không khớp. Vui lòng liên hệ hỗ trợ.";
-                                return RedirectToAction("OnlinePayment", new { bookingId = bookingId });
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogWarning("VNPay Return - Booking {BookingId} not found", bookingId);
-                            TempData["ErrorMessage"] = "Không tìm thấy đơn hàng.";
-                        }
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("VNPay Return - Payment failed. ResponseCode: {ResponseCode}, TransactionStatus: {TransactionStatus}", 
-                        vnp_ResponseCode, vnp_TransactionStatus);
-                    TempData["ErrorMessage"] = $"Thanh toán không thành công. Mã lỗi: {vnp_ResponseCode}";
-                    if (long.TryParse(vnp_TxnRef, out long bookingId))
-                    {
-                        return RedirectToAction("OnlinePayment", new { bookingId = bookingId });
-                    }
-                }
+                TempData["ErrorMessage"] = "Vui lòng nhập mã đơn hàng.";
+                return RedirectToAction("OnlinePayment");
             }
 
-            return RedirectToAction("MyBookings");
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để thanh toán.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng.";
+                return RedirectToAction("OnlinePayment");
+            }
+
+            // Lấy booking
+            var booking = await _context.Bookings
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng hoặc bạn không có quyền truy cập đơn hàng này.";
+                return RedirectToAction("OnlinePayment");
+            }
+
+            // Kiểm tra trạng thái đơn hàng
+            if (booking.StatusId != 2 && booking.StatusId != 12)
+            {
+                TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể thanh toán.";
+                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
+
+            // Kiểm tra nếu đã thanh toán
+            if (booking.StatusId == 12)
+            {
+                TempData["SuccessMessage"] = "Đơn hàng này đã được thanh toán thành công.";
+                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
+
+            try
+            {
+                // Lấy IP address
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                if (string.IsNullOrEmpty(ipAddress) || ipAddress == "::1")
+                {
+                    ipAddress = "127.0.0.1";
+                }
+
+                // Tạo payment URL
+                var paymentUrl = await _vnpayService.CreatePaymentUrlAsync(bookingId.Value, ipAddress);
+
+                _logger.LogInformation("VNPay Payment - Created payment URL for booking {BookingId}, Redirecting to VNPay", bookingId.Value);
+
+                // Redirect đến VNPay
+                return Redirect(paymentUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "VNPay Payment - Error creating payment URL for booking {BookingId}", bookingId.Value);
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tạo liên kết thanh toán. Vui lòng thử lại sau.";
+                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
         }
 
-        // POST: Booking/VnpayIpn - IPN (Instant Payment Notification) từ VNPay
-        [HttpPost]
-        public async Task<IActionResult> VnpayIpn()
+        // GET: Booking/PayWithPayOS - Tạo payment link và redirect đến PayOS
+        [HttpGet]
+        public async Task<IActionResult> PayWithPayOS(long? bookingId)
         {
-            string returnContent = string.Empty;
-            
-            _logger.LogInformation("VNPay IPN - Begin, Form count: {Count}", Request.Form.Count);
-            
-            if (Request.Form.Count > 0)
+            if (!bookingId.HasValue)
             {
-                var vnp_Params = new Dictionary<string, string>();
-                foreach (var key in Request.Form.Keys)
+                TempData["ErrorMessage"] = "Vui lòng nhập mã đơn hàng.";
+                return RedirectToAction("OnlinePayment");
+            }
+
+            // Kiểm tra đăng nhập
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "Vui lòng đăng nhập để thanh toán.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy Customer từ UserId
+            var userIdLong = long.Parse(userId);
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
+
+            if (customer == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy thông tin khách hàng.";
+                return RedirectToAction("OnlinePayment");
+            }
+
+            // Lấy booking
+            var booking = await _context.Bookings
+                .Include(b => b.Status)
+                .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng hoặc bạn không có quyền truy cập đơn hàng này.";
+                return RedirectToAction("OnlinePayment");
+            }
+
+            // Kiểm tra trạng thái đơn hàng
+            if (booking.StatusId != 2 && booking.StatusId != 12)
+            {
+                TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể thanh toán.";
+                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
+
+            // Kiểm tra nếu đã thanh toán
+            if (booking.StatusId == 12)
+            {
+                TempData["SuccessMessage"] = "Đơn hàng này đã được thanh toán thành công.";
+                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
+
+            try
+            {
+                // Tạo payment link
+                var paymentUrl = await _payOSService.CreatePaymentLinkAsync(bookingId.Value);
+
+                _logger.LogInformation("PayOS Payment - Created payment link for booking {BookingId}, Redirecting to PayOS", bookingId.Value);
+
+                // Redirect đến PayOS
+                return Redirect(paymentUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PayOS Payment - Error creating payment link for booking {BookingId}", bookingId.Value);
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tạo liên kết thanh toán. Vui lòng thử lại sau.";
+                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
+            }
+        }
+
+        // POST: Booking/PayOSWebhook - Webhook để nhận thông báo thanh toán từ PayOS
+        [HttpPost]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous] // Cho phép webhook từ bên ngoài
+        public async Task<IActionResult> PayOSWebhook()
+        {
+            try
+            {
+                // Log raw request để debug
+                _logger.LogInformation("PayOSWebhook - Received request. ContentType: {ContentType}, Method: {Method}, Path: {Path}",
+                    Request.ContentType, Request.Method, Request.Path);
+
+                // Đọc raw body
+                Request.EnableBuffering();
+                Request.Body.Position = 0;
+                using var reader = new System.IO.StreamReader(Request.Body, System.Text.Encoding.UTF8, leaveOpen: true);
+                var rawBody = await reader.ReadToEndAsync();
+                Request.Body.Position = 0;
+                _logger.LogInformation("PayOSWebhook - Raw body: {RawBody}", rawBody);
+
+                // Parse webhook body từ PayOS
+                WebhookType? webhookBody = null;
+                if (!string.IsNullOrEmpty(rawBody))
                 {
-                    if (!string.IsNullOrEmpty(key) && key.StartsWith("vnp_"))
+                    try
                     {
-                        vnp_Params.Add(key, Request.Form[key].ToString());
+                        webhookBody = System.Text.Json.JsonSerializer.Deserialize<WebhookType>(
+                            rawBody,
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "PayOSWebhook - Failed to parse JSON body");
+                        return BadRequest(new { success = false, message = "Invalid request format" });
                     }
                 }
 
-                var vnp_SecureHash = Request.Form["vnp_SecureHash"].ToString();
-                var vnp_ResponseCode = Request.Form["vnp_ResponseCode"].ToString();
-                var vnp_TransactionStatus = Request.Form["vnp_TransactionStatus"].ToString();
-                var vnp_TxnRef = Request.Form["vnp_TxnRef"].ToString();
-                var vnp_Amount = Request.Form["vnp_Amount"].ToString();
-                var vnp_TransactionNo = Request.Form["vnp_TransactionNo"].ToString();
-
-                _logger.LogInformation("VNPay IPN - ResponseCode: {ResponseCode}, TransactionStatus: {TransactionStatus}, TxnRef: {TxnRef}, Amount: {Amount}", 
-                    vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount);
-
-                // Validate signature
-                if (!_vnpayService.ValidateSignature(vnp_Params, vnp_SecureHash))
+                if (webhookBody == null)
                 {
-                    _logger.LogWarning("VNPay IPN - Invalid signature, InputData: {RawUrl}", Request.QueryString);
-                    returnContent = "{\"RspCode\":\"97\",\"Message\":\"Invalid signature\"}";
+                    _logger.LogWarning("PayOSWebhook - Webhook body is null");
+                    return BadRequest(new { success = false, message = "Webhook body is null" });
+                }
+
+                // Verify webhook data bằng thư viện PayOS
+                WebhookData webhookData;
+                try
+                {
+                    webhookData = _payOSService.VerifyWebhookData(webhookBody);
+                    _logger.LogInformation("PayOSWebhook - Webhook verified successfully. OrderCode: {OrderCode}, Amount: {Amount}",
+                        webhookData.orderCode, webhookData.amount);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "PayOSWebhook - Webhook verification failed. This might be a test webhook from PayOS Dashboard");
+                    // PayOS có thể gửi test webhook không có signature hợp lệ
+                    // Trả về 200 OK để PayOS không retry, nhưng log lỗi
+                    return Ok(new { success = false, message = "Webhook verification failed - might be test webhook" });
+                }
+
+                // Extract bookingId - ưu tiên từ description vì có bookingId rõ ràng
+                // Description format: "Thanh toan don hang {bookingId}"
+                long bookingId = 0;
+                bool foundBooking = false;
+
+                if (!string.IsNullOrEmpty(webhookData.description))
+                {
+                    var descParts = webhookData.description.Split(' ');
+                    foreach (var part in descParts)
+                    {
+                        if (long.TryParse(part, out long descBookingId))
+                        {
+                            var testBooking = await _context.Bookings
+                                .FirstOrDefaultAsync(b => b.Id == descBookingId);
+                            if (testBooking != null)
+                            {
+                                bookingId = descBookingId;
+                                foundBooking = true;
+                                _logger.LogInformation("PayOSWebhook - Extracted BookingId {BookingId} from Description: {Description}",
+                                    bookingId, webhookData.description);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Nếu không tìm thấy từ description, thử extract từ orderCode
+                // PayOS orderCode format: bookingId + timestamp (6 chữ số cuối)
+                if (!foundBooking)
+                {
+                    var orderCodeStr = webhookData.orderCode.ToString();
+                    // Thử extract bookingId bằng cách bỏ 6 chữ số cuối
+                    // Tìm bookingId hợp lệ bằng cách thử từ dài đến ngắn (ưu tiên bookingId dài hơn)
+                    for (int len = orderCodeStr.Length - 6; len >= 1; len--)
+                    {
+                        var possibleBookingIdStr = orderCodeStr.Substring(0, len);
+                        if (long.TryParse(possibleBookingIdStr, out long extractedBookingId))
+                        {
+                            var testBooking = await _context.Bookings
+                                .FirstOrDefaultAsync(b => b.Id == extractedBookingId);
+                            if (testBooking != null)
+                            {
+                                bookingId = extractedBookingId;
+                                foundBooking = true;
+                                _logger.LogInformation("PayOSWebhook - Extracted BookingId {BookingId} from OrderCode {OrderCode}",
+                                    bookingId, webhookData.orderCode);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                _logger.LogInformation("PayOSWebhook - OrderCode: {OrderCode}, Extracted BookingId: {BookingId}, Amount: {Amount}, Description: {Description}",
+                    webhookData.orderCode, bookingId, webhookData.amount, webhookData.description);
+
+                if (!foundBooking)
+                {
+                    _logger.LogWarning("PayOSWebhook - Cannot extract BookingId from OrderCode {OrderCode}, Description: {Description}",
+                        webhookData.orderCode, webhookData.description);
+                    return Ok(new { success = false, message = $"Cannot extract BookingId from OrderCode {webhookData.orderCode}" });
+                }
+
+                var booking = await _context.Bookings
+                    .Include(b => b.Status)
+                    .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+                if (booking == null)
+                {
+                    _logger.LogWarning("PayOSWebhook - Booking {BookingId} not found", bookingId);
+                    // Trả về Ok thay vì NotFound để PayOS không retry webhook
+                    // và ngrok không hiển thị 404
+                    return Ok(new { success = false, message = $"Booking {bookingId} not found" });
+                }
+
+                // Kiểm tra số tiền
+                var bookingAmount = (long)(booking.TotalPrice ?? 0);
+                var receivedAmount = webhookData.amount;
+
+                // Xử lý trường hợp TotalPrice = 0/null nhưng đã nhận được tiền
+                if (bookingAmount == 0 && receivedAmount > 0)
+                {
+                    // Cập nhật TotalPrice từ số tiền đã nhận
+                    booking.TotalPrice = receivedAmount;
+                    _logger.LogInformation("PayOSWebhook - Booking TotalPrice was 0/null, auto-updated to received amount {ReceivedAmount}",
+                        receivedAmount);
                 }
                 else
                 {
-                    // Kiểm tra response code và transaction status (theo chuẩn VNPay)
-                    if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
+                    // Cho phép sai số nhỏ (có thể do làm tròn)
+                    if (Math.Abs(bookingAmount - receivedAmount) > 1000) // Cho phép sai số 1000 VND
                     {
-                        // Thanh toán thành công
-                        if (long.TryParse(vnp_TxnRef, out long bookingId))
-                        {
-                            _logger.LogInformation("VNPay IPN - Processing payment for booking {BookingId}, VNPay TranId: {TranId}", 
-                                bookingId, vnp_TransactionNo);
-                            
-                            var booking = await _context.Bookings
-                                .Include(b => b.Status)
-                                .FirstOrDefaultAsync(b => b.Id == bookingId);
+                        _logger.LogWarning("PayOSWebhook - Amount mismatch. Booking: {BookingAmount}, Received: {ReceivedAmount}",
+                            bookingAmount, receivedAmount);
+                        return BadRequest(new { success = false, message = $"Amount mismatch. Expected: {bookingAmount}, Received: {receivedAmount}" });
+                    }
+                }
 
-                            if (booking != null)
-                            {
-                                // Kiểm tra số tiền
-                                long vnp_AmountLong = long.Parse(vnp_Amount) / 100; // VNPay trả về số tiền nhân 100
-                                long bookingAmount = (long)(booking.TotalPrice ?? 0);
-                                
-                                if (bookingAmount == vnp_AmountLong)
-                                {
-                                    // Kiểm tra trạng thái order
-                                    if (booking.StatusId == 1 || booking.StatusId == 2) // Pending hoặc Approved
-                                    {
-                                        var bankedStatusId = await GetStatusIdAsync("banked");
-                                        if (bankedStatusId.HasValue)
-                                        {
-                                            booking.StatusId = bankedStatusId.Value;
-                                            booking.UpdatedDate = DateTime.Now;
-                                            
-                                            try
-                                            {
-                                                await _context.SaveChangesAsync();
-                                                _logger.LogInformation("VNPay IPN - Successfully updated booking {BookingId} to StatusId: {StatusId}, VNPay TranId: {TranId}", 
-                                                    bookingId, booking.StatusId, vnp_TransactionNo);
-                                                returnContent = "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}";
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                _logger.LogError(ex, "VNPay IPN - Error saving booking {BookingId}", bookingId);
-                                                returnContent = "{\"RspCode\":\"99\",\"Message\":\"Database error\"}";
-                                            }
-                                        }
-                                        else
-                                        {
-                                            _logger.LogWarning("VNPay IPN - Banked status not found");
-                                            returnContent = "{\"RspCode\":\"99\",\"Message\":\"Status not found\"}";
-                                        }
-                                    }
-                                    else
-                                    {
-                                        _logger.LogInformation("VNPay IPN - Booking {BookingId} already confirmed, StatusId: {StatusId}", 
-                                            bookingId, booking.StatusId);
-                                        returnContent = "{\"RspCode\":\"02\",\"Message\":\"Order already confirmed\"}";
-                                    }
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("VNPay IPN - Amount mismatch. Booking: {BookingAmount}, VNPay: {VnpAmount}", 
-                                        bookingAmount, vnp_AmountLong);
-                                    returnContent = "{\"RspCode\":\"04\",\"Message\":\"invalid amount\"}";
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogWarning("VNPay IPN - Booking {BookingId} not found", bookingId);
-                                returnContent = "{\"RspCode\":\"01\",\"Message\":\"Order not found\"}";
-                            }
-                        }
-                        else
-                        {
-                            returnContent = "{\"RspCode\":\"01\",\"Message\":\"Invalid order ID\"}";
-                        }
+                // Cập nhật trạng thái nếu chưa thanh toán
+                if (booking.StatusId == 1 || booking.StatusId == 2) // Pending hoặc Approved
+                {
+                    var bankedStatusId = await GetStatusIdAsync("banked");
+                    if (bankedStatusId.HasValue)
+                    {
+                        booking.StatusId = bankedStatusId.Value;
+                        booking.UpdatedDate = DateTime.Now;
+
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogInformation("PayOSWebhook - Successfully updated booking {BookingId} to StatusId: {StatusId} (banked) after successful payment. PayOS OrderCode: {OrderCode}",
+                            booking.Id, booking.StatusId, webhookData.orderCode);
+
+                        return Ok(new { success = true, message = "Payment confirmed and booking approved", bookingId = booking.Id });
                     }
                     else
                     {
-                        _logger.LogWarning("VNPay IPN - Payment failed. ResponseCode: {ResponseCode}, TransactionStatus: {TransactionStatus}", 
-                            vnp_ResponseCode, vnp_TransactionStatus);
-                        returnContent = $"{{\"RspCode\":\"{vnp_ResponseCode}\",\"Message\":\"Payment failed\"}}";
+                        _logger.LogError("PayOSWebhook - Banked status not found in database");
+                        return StatusCode(500, new { success = false, message = "Banked status not found" });
                     }
                 }
+                else
+                {
+                    _logger.LogInformation("PayOSWebhook - Booking {BookingId} already processed, StatusId: {StatusId}",
+                        booking.Id, booking.StatusId);
+                    return Ok(new { success = true, message = "Already confirmed", bookingId = booking.Id });
+                }
             }
-            else
+            catch (Exception ex)
             {
-                returnContent = "{\"RspCode\":\"99\",\"Message\":\"Input data required\"}";
+                _logger.LogError(ex, "PayOSWebhook - Error processing webhook. Error: {Error}", ex.Message);
+                return StatusCode(500, new { success = false, message = "Internal server error", error = ex.Message });
             }
-
-            Response.ContentType = "application/json";
-            return Content(returnContent);
         }
 
         // POST: Booking/BankTransferWebhook - Webhook để nhận thông báo chuyển khoản từ Sepay
         [HttpPost]
         [Microsoft.AspNetCore.Authorization.AllowAnonymous] // Cho phép webhook từ bên ngoài
-        [Route("")]
         public async Task<IActionResult> BankTransferWebhook([FromBody] SepayWebhookRequest request)
         {
             try
             {
-                _logger.LogInformation("BankTransferWebhook - Received Sepay webhook: Content: {Content}, Amount: {Amount}, TransactionId: {TransactionId}, ReferenceCode: {ReferenceCode}", 
+                _logger.LogInformation("BankTransferWebhook - Received Sepay webhook: Content: {Content}, Amount: {Amount}, TransactionId: {TransactionId}, ReferenceCode: {ReferenceCode}",
                     request?.Content, request?.TransferAmount, request?.Id, request?.ReferenceCode);
 
                 if (request == null)
@@ -1015,11 +1394,11 @@ namespace web_chothue_laptop.Controllers
                 {
                     var bookingAmount = (long)(booking.TotalPrice ?? 0);
                     var receivedAmount = request.TransferAmount.Value;
-                    
+
                     // Cho phép sai số nhỏ (có thể do làm tròn)
                     if (Math.Abs(bookingAmount - receivedAmount) > 1000) // Cho phép sai số 1000 VND
                     {
-                        _logger.LogWarning("BankTransferWebhook - Amount mismatch. Booking: {BookingAmount}, Received: {ReceivedAmount}", 
+                        _logger.LogWarning("BankTransferWebhook - Amount mismatch. Booking: {BookingAmount}, Received: {ReceivedAmount}",
                             bookingAmount, receivedAmount);
                         return BadRequest(new { success = false, message = $"Amount mismatch. Expected: {bookingAmount}, Received: {receivedAmount}" });
                     }
@@ -1033,12 +1412,12 @@ namespace web_chothue_laptop.Controllers
                     {
                         booking.StatusId = bankedStatusId.Value;
                         booking.UpdatedDate = DateTime.Now;
-                        
+
                         await _context.SaveChangesAsync();
-                        
-                        _logger.LogInformation("BankTransferWebhook - Successfully updated booking {BookingId} to StatusId: {StatusId}, Sepay TransactionId: {TransactionId}, ReferenceCode: {ReferenceCode}", 
+
+                        _logger.LogInformation("BankTransferWebhook - Successfully updated booking {BookingId} to StatusId: {StatusId}, Sepay TransactionId: {TransactionId}, ReferenceCode: {ReferenceCode}",
                             booking.Id, booking.StatusId, request.Id, request.ReferenceCode);
-                        
+
                         return Ok(new { success = true, message = "Payment confirmed", bookingId = booking.Id, transactionId = request.Id });
                     }
                     else
@@ -1049,96 +1428,16 @@ namespace web_chothue_laptop.Controllers
                 }
                 else
                 {
-                    _logger.LogInformation("BankTransferWebhook - Booking {BookingId} already processed, StatusId: {StatusId}", 
+                    _logger.LogInformation("BankTransferWebhook - Booking {BookingId} already processed, StatusId: {StatusId}",
                         booking.Id, booking.StatusId);
                     return Ok(new { success = true, message = "Already confirmed", bookingId = booking.Id });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "BankTransferWebhook - Error processing webhook. Request: {Request}", 
+                _logger.LogError(ex, "BankTransferWebhook - Error processing webhook. Request: {Request}",
                     System.Text.Json.JsonSerializer.Serialize(request));
                 return StatusCode(500, new { success = false, message = "Internal server error", error = ex.Message });
-            }
-        }
-
-        // POST: Booking/ConfirmPayment - Xác nhận thanh toán (khi dùng VietQR không có callback)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConfirmPayment([FromForm] long? bookingId)
-        {
-            if (!bookingId.HasValue)
-            {
-                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
-            }
-
-            // Kiểm tra đăng nhập
-            var userId = HttpContext.Session.GetString("UserId");
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Json(new { success = false, message = "Vui lòng đăng nhập." });
-            }
-
-            // Lấy Customer từ UserId
-            var userIdLong = long.Parse(userId);
-            var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.CustomerId == userIdLong);
-
-            if (customer == null)
-            {
-                return Json(new { success = false, message = "Không tìm thấy thông tin khách hàng." });
-            }
-
-            // Lấy booking
-            var booking = await _context.Bookings
-                .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.Id == bookingId.Value && b.CustomerId == customer.Id);
-
-            if (booking == null)
-            {
-                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
-            }
-
-            // Chỉ cho phép xác nhận khi StatusId = 2 (Approved)
-            if (booking.StatusId == 2)
-            {
-                var bankedStatusId = await GetStatusIdAsync("banked");
-                if (bankedStatusId.HasValue)
-                {
-                    booking.StatusId = bankedStatusId.Value;
-                    booking.UpdatedDate = DateTime.Now;
-                    
-                    try
-                    {
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("ConfirmPayment - Successfully updated booking {BookingId} to StatusId: {StatusId}", 
-                            bookingId.Value, booking.StatusId);
-                        
-                        TempData["SuccessMessage"] = "Thanh toán thành công! Vui lòng đến gặp Staff để nhận máy.";
-                        return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "ConfirmPayment - Error saving booking {BookingId}", bookingId.Value);
-                        TempData["ErrorMessage"] = "Có lỗi xảy ra khi cập nhật trạng thái thanh toán. Vui lòng thử lại.";
-                        return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
-                    }
-                }
-                else
-                {
-                    TempData["ErrorMessage"] = "Không tìm thấy trạng thái 'banked' trong hệ thống.";
-                    return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
-                }
-            }
-            else if (booking.StatusId == 12)
-            {
-                TempData["SuccessMessage"] = "Đơn hàng đã được thanh toán thành công.";
-                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái đã duyệt, không thể xác nhận thanh toán.";
-                return RedirectToAction("OnlinePayment", new { bookingId = bookingId.Value });
             }
         }
 
@@ -1147,6 +1446,28 @@ namespace web_chothue_laptop.Controllers
             var status = await _context.Statuses.FirstOrDefaultAsync(s => s.StatusName.ToLower() == statusName.ToLower());
             return status?.Id;
         }
+
+    }
+
+    // Model cho PayOS Webhook Request
+    public class PayOSWebhookRequest
+    {
+        public int Code { get; set; } // 0 = success (khi là int)
+        public string? CodeString { get; set; } // "00" = success (khi là string)
+        public string? Desc { get; set; } // "success" khi thanh toán thành công
+        public PayOSWebhookData? Data { get; set; }
+        public string? Signature { get; set; } // Chữ ký để verify
+    }
+
+    public class PayOSWebhookData
+    {
+        public string? OrderCode { get; set; } // Mã đơn hàng (khi là string)
+        public long? OrderCodeLong { get; set; } // Mã đơn hàng (khi là int/long)
+        public long Amount { get; set; } // Số tiền (VND)
+        public string? Description { get; set; } // Mô tả
+        public string? AccountNumber { get; set; }
+        public string? TransactionId { get; set; }
+        public string? Reference { get; set; }
     }
 
     // Model cho Sepay Webhook Request
@@ -1162,7 +1483,7 @@ namespace web_chothue_laptop.Controllers
         public string? Description { get; set; }
         public long? TransferAmount { get; set; } // Số tiền (VND)
         public string? ReferenceCode { get; set; }
-        public long? Accumulated { get; set; }
+        public string? Accumulated { get; set; }
         public long? Id { get; set; } // Transaction ID từ Sepay
     }
 }
