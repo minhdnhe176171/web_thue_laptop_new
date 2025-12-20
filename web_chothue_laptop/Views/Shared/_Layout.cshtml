@@ -85,7 +85,7 @@
         </div>
     </footer>
 
-    <!-- Floating Chat Button - Hiển thị cho tất cả user đã đăng nhập -->
+    <!-- Floating Chat Button - Hiển thị cho tất cả user đã đăng nhập (ở dưới AI chat box) -->
     @if (Context.Session.GetString("UserId") != null)
     {
         var userRoleIdStr = Context.Session.GetString("UserRoleId");
@@ -98,6 +98,7 @@
         var isStaff = userRoleId == 4 || userRole.Contains("staff");
         
         @* Hiển thị nút chat cho tất cả user - controller sẽ tự động redirect nếu không đúng quyền *@
+        @* Nút này ở dưới AI chat box, cùng bên phải *@
         @if (!isStaff)
         {
             <a href="@Url.Action("CustomerChat", "Chat")" class="btn btn-primary floating-chat-button" 
@@ -113,6 +114,9 @@
             </a>
         }
     }
+
+    <!-- AI Chat Widget - Hiển thị cho TẤT CẢ khách hàng (kể cả chưa đăng nhập) -->
+    @await Html.PartialAsync("_AIChatWidget")
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
