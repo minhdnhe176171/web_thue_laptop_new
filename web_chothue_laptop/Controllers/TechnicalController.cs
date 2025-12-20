@@ -366,13 +366,14 @@ namespace web_chothue_laptop.Controllers
                 
                 technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed.";
                 
+                // ✅ SỬA: KHÔNG tự động đưa lên web
                 // Kiểm tra laptop có đang ở trạng thái Fixing không
                 if (ticket.Laptop != null && ticket.Laptop.StatusId == 4)
                 {
-                    // Nếu đang Fixing → Chuyển sang Available (9)
-                    ticket.Laptop.StatusId = 9; // Available - Đưa lên web
+                    // ✅ GIỮ NGUYÊN StatusId = 4 (Fixing)
+                    // KHÔNG chuyển sang Available (9) - Để Staff duyệt
                     ticket.Laptop.RejectReason = null; // Xóa lý do từ chối
-                    technicalResponse += " Laptop đã được chuyển sang Available.";
+                    technicalResponse += " Đã sửa xong. Chờ Staff duyệt lên web.";
                 }
                 else
                 {
@@ -407,9 +408,10 @@ namespace web_chothue_laptop.Controllers
                 TempData["SuccessMessage"] = "Đã sửa xong! Thiết bị quay lại mục Yêu Cầu Kiểm Tra.";
                 return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
             }
-            else if (ticket.Laptop?.StatusId == 9)
+            else if (statusId == 5)
             {
-                TempData["SuccessMessage"] = "Đã sửa xong! Laptop đã được niêm yết lên web.";
+                // ✅ SỬA: Thông báo chờ Staff duyệt thay vì "đã niêm yết"
+                TempData["SuccessMessage"] = "Đã sửa xong! Chờ Staff duyệt lên web.";
                 return RedirectToAction(nameof(Index), new { activeTab = "repair" });
             }
             

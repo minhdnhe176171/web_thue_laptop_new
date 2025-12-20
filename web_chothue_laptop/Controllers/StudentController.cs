@@ -260,9 +260,10 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Validate Price
-            if (model.Price == null || model.Price < 100000 || model.Price > 1000000)
+            var validPrices = new decimal[] { 70000, 140000, 210000, 280000, 350000 };
+            if (model.Price == null || !validPrices.Contains(model.Price.Value))
             {
-                ModelState.AddModelError(nameof(model.Price), "Giá phải từ 100,000 đến 1,000,000 VNĐ");
+                ModelState.AddModelError(nameof(model.Price), "Vui lòng chọn một trong các mức giá: 70,000 / 140,000 / 210,000 / 280,000 / 350,000 VNĐ");
             }
 
             // Validate deadline
