@@ -47,15 +47,10 @@ public partial class Swp391LaptopContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-  
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("server=DESKTOP-OOP8VNF;database=swp391_laptop;uid=sa;pwd=123456;TrustServerCertificate=true");
 
-{
-    if (!optionsBuilder.IsConfigured)
-    {
-        optionsBuilder.UseSqlServer("Server=NMINH;Database=swp391_laptop;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true");
-    }
-}
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Booking>(entity =>
@@ -207,8 +202,6 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("PHONE");
-            entity.Property(e => e.BlackList)
-                .HasColumnName("BLACK_LIST");
 
             entity.HasOne(d => d.CustomerNavigation).WithMany(p => p.Customers)
                 .HasForeignKey(d => d.CustomerId)
@@ -235,6 +228,9 @@ public partial class Swp391LaptopContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .HasColumnName("NAME");
+            entity.Property(e => e.NewPrice)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("NEW_PRICE");
             entity.Property(e => e.Price)
                 .HasColumnType("decimal(18, 2)")
                 .HasColumnName("PRICE");

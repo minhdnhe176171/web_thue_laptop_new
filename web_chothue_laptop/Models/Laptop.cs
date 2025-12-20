@@ -27,6 +27,8 @@ public partial class Laptop
 
     public DateTime? EndTime { get; set; }
 
+    public decimal? NewPrice { get; set; }
+
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public virtual Brand? Brand { get; set; }

@@ -1,29 +1,11 @@
 @model IEnumerable<web_chothue_laptop.Models.Customer>
+
 @{
     ViewData["Title"] = "Quản Lý Customer Blacklist";
+    Layout = "_ManagerLayout";
 }
 
 <style>
-    .container, .body-content {
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: 100% !important;
-    }
-
-    .manager-wrapper {
-        display: flex;
-        min-height: calc(100vh - 60px);
-        background-color: #f8f9fa;
-        margin-top: -1.5rem;
-        padding-top: 1.5rem;
-    }
-
-    .manager-content {
-        flex-grow: 1;
-        padding: 30px;
-        overflow-x: auto;
-    }
-
     .blacklist-badge {
         background-color: #dc3545;
         color: white;
@@ -33,251 +15,162 @@
         font-weight: bold;
     }
 
-    .table-custom {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: 100%;
-    }
-
     .table-custom thead th {
         background-color: #0d6efd;
         color: white;
-        font-weight: 600;
-        padding: 15px 12px;
-        border-right: 1px solid rgba(255, 255, 255, 0.2);
-        border-bottom: 2px solid #0056b3;
         text-align: center;
         vertical-align: middle;
-    }
-
-    .table-custom thead th:last-child {
-        border-right: none;
     }
 
     .table-custom tbody td {
-        padding: 12px;
-        border-right: 1px solid #dee2e6;
-        border-bottom: 1px solid #dee2e6;
-        vertical-align: middle;
         text-align: center;
-    }
-
-    .table-custom tbody td:last-child {
-        border-right: none;
-    }
-
-    .table-custom tbody tr:hover {
-        background-color: #f8f9fa;
-        transition: background-color 0.2s;
-    }
-
-    .table-custom tbody tr.table-danger {
-        border-left: 4px solid #dc3545;
-        border-right: 1px solid #dc3545;
-    }
-
-    .table-custom tbody tr.table-danger td {
-        border-right: 1px solid #dc3545;
-        border-bottom: 2px solid #dc3545;
-        font-weight: 500;
-    }
-
-    .table-custom tbody tr.table-danger td:last-child {
-        border-right: 1px solid #dc3545;
+        vertical-align: middle;
     }
 
     .table-custom tbody tr.table-danger:hover {
         background-color: #f8d7da;
-        border-left-color: #c82333;
-    }
-
-    .table-custom .card-body {
-        padding: 0;
-    }
-
-    .table-custom tbody tr:last-child td {
-        border-bottom: none;
     }
 </style>
 
-<div class="manager-wrapper">
-    <div class="manager-content">
-        <h3 class="fw-bold text-primary mb-4">
-            <i class="fas fa-users"></i> Quản Lý Customer Blacklist (@(ViewBag.TotalItems ?? 0))
-        </h3>
+<h3 class="fw-bold text-primary mb-4">
+    <i class="fas fa-users"></i>
+    Quản Lý Customer Blacklist (@(ViewBag.TotalItems ?? 0))
+</h3>
 
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
-        }
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]</div>
-        }
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+    </div>
+}
 
-        <!-- Filter and Search -->
-        <div class="card shadow-sm border-0 mb-3">
-            <div class="card-body">
-                <form method="get" asp-action="CustomerManagement" id="filterForm">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="search" class="form-label">Tìm kiếm:</label>
-                            <input type="text" class="form-control" id="search" name="search" 
-                                   placeholder="Tên, Email, Số điện thoại..." value="@ViewBag.Search">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="filterStatus" class="form-label">Lọc theo trạng thái:</label>
-                            <select class="form-select" id="filterStatus" name="filterStatus">
-                                <option value="">Tất cả</option>
-                                <option value="normal" selected="@(ViewBag.FilterStatus == "normal")">Bình Thường</option>
-                                <option value="blacklist" selected="@(ViewBag.FilterStatus == "blacklist")">Blacklist</option>
-                            </select>
-                        </div>
-                    </div>
-                    @if (!string.IsNullOrEmpty(ViewBag.Search as string) || !string.IsNullOrEmpty(ViewBag.FilterStatus as string))
-                    {
-                        <div class="row mt-2">
-                            <div class="col-12">
-                                <a asp-action="CustomerManagement" class="btn btn-sm btn-secondary">
-                                    <i class="fas fa-times"></i> Xóa bộ lọc
-                                </a>
-                            </div>
-                        </div>
-                    }
-                </form>
+<!-- FILTER -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="CustomerManagement" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tìm kiếm</label>
+                    <input type="text"
+                           class="form-control"
+                           name="search"
+                           value="@ViewBag.Search"
+                           placeholder="Tên, Email, Số điện thoại..." />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Trạng thái</label>
+                    <select class="form-select" name="filterStatus" id="filterStatus">
+                        <option value="">Tất cả</option>
+                        <option value="normal" selected="@(ViewBag.FilterStatus == "normal")">
+                            Bình thường
+                        </option>
+                        <option value="blacklist" selected="@(ViewBag.FilterStatus == "blacklist")">
+                            Blacklist
+                        </option>
+                    </select>
+                </div>
             </div>
-        </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-0">
-                <table class="table table-custom">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Họ và Tên</th>
-                            <th>Email</th>
-                            <th>Số Điện Thoại</th>
-                            <th>CMND/CCCD</th>
-                            <th>Ngày Tạo</th>
-                            <th>Trạng Thái</th>
-                            <th>Hành Động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            foreach (var customer in Model)
-                            {
-                                <tr class="@((customer.BlackList == true) ? "table-danger" : "")">
-                                    <td class="fw-bold text-primary">#@customer.Id</td>
-                                    <td>@customer.LastName @customer.FirstName</td>
-                                    <td>@customer.Email</td>
-                                    <td>@(customer.Phone ?? "N/A")</td>
-                                    <td>@(customer.IdNo ?? "N/A")</td>
-                                    <td>@(customer.CreatedDate?.ToString("dd/MM/yyyy") ?? "N/A")</td>
-                                    <td>
-                                        @if (customer.BlackList == true)
-                                        {
-                                            <span class="blacklist-badge">
-                                                <i class="fas fa-ban"></i> BLACKLIST
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-success">Bình Thường</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <a asp-action="RentalHistory" asp-route-id="@customer.Id" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-history"></i> Xem Lịch Sử
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">Không có customer nào.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Pagination -->
-        @if (ViewBag.TotalPages > 1)
-        {
-            <nav aria-label="Page navigation" class="mt-3">
-                <ul class="pagination justify-content-center">
-                    @if (ViewBag.CurrentPage > 1)
-                    {
-                        <li class="page-item">
-                            <a class="page-link" asp-action="CustomerManagement" 
-                               asp-route-search="@ViewBag.Search" 
-                               asp-route-filterStatus="@ViewBag.FilterStatus" 
-                               asp-route-page="@(ViewBag.CurrentPage - 1)">
-                                <i class="fas fa-chevron-left"></i> Trước
-                            </a>
-                        </li>
-                    }
-
-                    @{
-                        int currentPage = ViewBag.CurrentPage ?? 1;
-                        int totalPages = ViewBag.TotalPages ?? 1;
-                        int startPage = Math.Max(1, currentPage - 2);
-                        int endPage = Math.Min(totalPages, currentPage + 2);
-                    }
-
-                    @for (int i = startPage; i <= endPage; i++)
-                    {
-                        <li class="page-item @(i == currentPage ? "active" : "")">
-                            <a class="page-link" asp-action="CustomerManagement" 
-                               asp-route-search="@ViewBag.Search" 
-                               asp-route-filterStatus="@ViewBag.FilterStatus" 
-                               asp-route-page="@i">@i</a>
-                        </li>
-                    }
-
-                    @if (ViewBag.CurrentPage < ViewBag.TotalPages)
-                    {
-                        <li class="page-item">
-                            <a class="page-link" asp-action="CustomerManagement" 
-                               asp-route-search="@ViewBag.Search" 
-                               asp-route-filterStatus="@ViewBag.FilterStatus" 
-                               asp-route-page="@(ViewBag.CurrentPage + 1)">
-                                Sau <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    }
-                </ul>
-            </nav>
-            <div class="text-center text-muted mt-2">
-                Trang @ViewBag.CurrentPage / @ViewBag.TotalPages (Tổng: @ViewBag.TotalItems khách hàng)
-            </div>
-        }
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string)
+            || !string.IsNullOrEmpty(ViewBag.FilterStatus as string))
+            {
+                <div class="mt-3">
+                    <a asp-action="CustomerManagement" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-times"></i> Xóa bộ lọc
+                    </a>
+                </div>
+            }
+        </form>
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<!-- TABLE -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-bordered table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>SĐT</th>
+                    <th>CMND/CCCD</th>
+                    <th>Ngày tạo</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var customer in Model)
+                    {
+                        <tr class="@(customer.BlackList == true ? "table-danger" : "")">
+                            <td class="fw-bold">#@customer.Id</td>
+                            <td>@customer.LastName @customer.FirstName</td>
+                            <td>@customer.Email</td>
+                            <td>@(customer.Phone ?? "N/A")</td>
+                            <td>@(customer.IdNo ?? "N/A")</td>
+                            <td>@customer.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (customer.BlackList == true)
+                                {
+                                    <span class="blacklist-badge">
+                                        <i class="fas fa-ban"></i> BLACKLIST
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Bình thường</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="RentalHistory"
+                                   asp-route-id="@customer.Id"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-history"></i> Lịch sử
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            Không có dữ liệu
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
-@section Scripts {
-<script>
-    $(document).ready(function() {
-        // Auto submit on Enter key in search box
-        $('#search').on('keypress', function(e) {
-            if (e.which === 13) { // Enter key
-                e.preventDefault();
-                $('#filterForm').submit();
+<!-- PAGINATION -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center">
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="CustomerManagement"
+                       asp-route-search="@ViewBag.Search"
+                       asp-route-filterStatus="@ViewBag.FilterStatus"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
             }
-        });
-
-        // Auto submit when filter status changes - lọc ngay khi chọn trạng thái
-        $('#filterStatus').on('change', function() {
-            $('#filterForm').submit();
-        });
-    });
-</script>
+        </ul>
+    </nav>
 }
-
