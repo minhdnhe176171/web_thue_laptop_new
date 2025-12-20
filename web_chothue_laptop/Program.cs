@@ -61,6 +61,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
+builder.Services.AddScoped<RagService>();
+builder.Services.AddHttpClient<AIChatService>();
+builder.Services.AddScoped<AIChatService>();
 
 var app = builder.Build();
 
@@ -79,6 +82,7 @@ app.UseAuthorization();
 
 app.MapHub<ChatHub>("/chathub");
 app.MapHub<BookingHub>("/bookinghub");
+app.MapHub<AIChatHub>("/aichathub");
 
 
 

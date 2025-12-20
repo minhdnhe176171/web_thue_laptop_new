@@ -555,10 +555,31 @@ namespace web_chothue_laptop.Controllers
         }
 
         // GET: Account/Logout
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            // Xóa lịch sử AI chat khi đăng xuất
+            var userId = HttpContext.Session.GetString("UserId");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                try
+                {
+                    var redisService = HttpContext.RequestServices.GetRequiredService<RedisService>();
+                    var conversationId = $"ai_chat:user:{userId}";
+                    // Lưu ý: Redis sẽ tự động expire sau TTL, nhưng có thể xóa ngay nếu muốn
+                    // await redisService.ClearAIChatHistoryAsync(conversationId);
+                }
+                catch
+                {
+                    // Ignore errors khi xóa Redis
+                }
+            }
+            
+            // Xóa session và authentication
             HttpContext.Session.Clear();
-            return RedirectToAction("Index", "Home");
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            
+            // Redirect với tham số logout để JavaScript clear localStorage
+            return RedirectToAction("Index", "Home", new { logout = "true" });
         }
 
         // Helper methods
