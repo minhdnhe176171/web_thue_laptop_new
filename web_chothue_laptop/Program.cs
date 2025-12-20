@@ -62,6 +62,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
+builder.Services.AddScoped<VnpayService>();
+builder.Services.AddScoped<PayOSService>();
 builder.Services.AddScoped<RagService>();
 builder.Services.AddHttpClient<AIChatService>();
 builder.Services.AddScoped<AIChatService>();
@@ -73,6 +75,14 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
 }
+
+// Middleware để bypass ngrok browser warning page
+app.Use(async (context, next) =>
+{
+    // Thêm header để bypass ngrok warning page
+    context.Response.Headers.Add("ngrok-skip-browser-warning", "true");
+    await next();
+});
 
 app.UseStaticFiles();
 app.UseRouting();

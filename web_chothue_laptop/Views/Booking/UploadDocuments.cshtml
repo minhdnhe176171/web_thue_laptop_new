@@ -1,0 +1,247 @@
+@using web_chothue_laptop.Models
+@{
+    ViewData["Title"] = "Upload Tài Liệu";
+    var booking = ViewBag.Booking as Booking;
+}
+
+<div class="container py-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            @TempData["WarningMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a asp-controller="Booking" asp-action="MyBookings" class="text-decoration-none text-primary">
+            ← Quay lại theo dõi đơn thuê
+        </a>
+    </div>
+
+    @if (booking != null)
+    {
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-warning text-dark text-center py-4">
+                        <h3 class="mb-0">
+                            <i class="bi bi-cloud-upload"></i> Upload Tài Liệu
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle"></i> <strong>Thông báo quan trọng:</strong>
+                            </h6>
+                            <p class="mb-2">
+                                Đơn hàng #@booking.Id của bạn đã được duyệt. Để tiến hành thanh toán, bạn <strong>bắt buộc phải upload</strong>:
+                            </p>
+                            <ul class="mb-0">
+                                <li>Ảnh căn cước công dân (CCCD)</li>
+                                <li>Ảnh thẻ sinh viên</li>
+                            </ul>
+                            <p class="mt-2 mb-0 small">
+                                <i class="bi bi-shield-check"></i> Staff sẽ kiểm tra tài liệu của bạn trước khi bạn có thể thanh toán.
+                            </p>
+                        </div>
+
+                        <!-- Thông tin đơn hàng -->
+                        <div class="mb-4">
+                            <h5 class="text-muted mb-3">
+                                <i class="bi bi-receipt"></i> Thông Tin Đơn Hàng
+                            </h5>
+                            <div class="bg-light p-3 rounded">
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Mã Đơn Hàng:</strong>
+                                        <p class="mb-0">#@booking.Id</p>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Laptop:</strong>
+                                        <p class="mb-0">@booking.Laptop?.Name</p>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Tổng tiền:</strong>
+                                        <p class="mb-0 text-primary fw-bold">
+                                            @if (booking.TotalPrice.HasValue)
+                                            {
+                                                @booking.TotalPrice.Value.ToString("N0") <span>VNĐ</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa có</span>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Form upload -->
+                        <form asp-action="UploadDocuments" method="post" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@booking.Id" />
+
+                            <!-- Upload ảnh CCCD -->
+                            <div class="mb-4">
+                                <label for="idNoFile" class="form-label fw-bold">
+                                    <i class="bi bi-person-badge"></i> Ảnh Căn Cước Công Dân (CCCD) <span class="text-danger">*</span>
+                                </label>
+                                @if (!string.IsNullOrEmpty(booking.IdNoUrl))
+                                {
+                                    <div class="alert alert-success mb-2">
+                                        <i class="bi bi-check-circle"></i> Đã upload ảnh CCCD
+                                    </div>
+                                    <div class="mb-2">
+                                        <img src="@booking.IdNoUrl" alt="Ảnh CCCD" class="img-thumbnail" style="max-width: 300px; max-height: 300px;" />
+                                    </div>
+                                    <small class="text-muted">Bạn có thể upload lại để thay đổi ảnh</small>
+                                }
+                                <input type="file" class="form-control form-control-lg" id="idNoFile" name="idNoFile" accept="image/*" />
+                                <small class="text-muted">Chấp nhận file: .jpg, .jpeg, .png, .gif, .webp</small>
+                            </div>
+
+                            <!-- Upload ảnh thẻ sinh viên -->
+                            <div class="mb-4">
+                                <label for="studentCardFile" class="form-label fw-bold">
+                                    <i class="bi bi-card-heading"></i> Ảnh Thẻ Sinh Viên <span class="text-danger">*</span>
+                                </label>
+                                @if (!string.IsNullOrEmpty(booking.StudentUrl))
+                                {
+                                    <div class="alert alert-success mb-2">
+                                        <i class="bi bi-check-circle"></i> Đã upload ảnh thẻ sinh viên
+                                    </div>
+                                    <div class="mb-2">
+                                        <img src="@booking.StudentUrl" alt="Ảnh thẻ sinh viên" class="img-thumbnail" style="max-width: 300px; max-height: 300px;" />
+                                    </div>
+                                    <small class="text-muted">Bạn có thể upload lại để thay đổi ảnh</small>
+                                }
+                                <input type="file" class="form-control form-control-lg" id="studentCardFile" name="studentCardFile" accept="image/*" />
+                                <small class="text-muted">Chấp nhận file: .jpg, .jpeg, .png, .gif, .webp</small>
+                            </div>
+
+                            <!-- Preview images -->
+                            <div class="row mb-4" id="previewContainer" style="display: none;">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Preview ảnh CCCD:</label>
+                                    <div id="idNoPreview" class="border rounded p-2 text-center" style="min-height: 200px; background-color: #f8f9fa;">
+                                        <img id="idNoPreviewImg" src="" alt="Preview" class="img-fluid" style="max-height: 300px; display: none;" />
+                                        <p class="text-muted mt-3" id="idNoPreviewText">Chưa chọn ảnh</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Preview ảnh thẻ sinh viên:</label>
+                                    <div id="studentCardPreview" class="border rounded p-2 text-center" style="min-height: 200px; background-color: #f8f9fa;">
+                                        <img id="studentCardPreviewImg" src="" alt="Preview" class="img-fluid" style="max-height: 300px; display: none;" />
+                                        <p class="text-muted mt-3" id="studentCardPreviewText">Chưa chọn ảnh</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Nút submit -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-upload"></i> Upload Tài Liệu
+                                </button>
+                            </div>
+                        </form>
+
+                        @if (!string.IsNullOrEmpty(booking.IdNoUrl) && !string.IsNullOrEmpty(booking.StudentUrl))
+                        {
+                            <hr class="my-4">
+                            <div class="text-center">
+                                <a asp-controller="Booking" asp-action="Payment" asp-route-id="@booking.Id" class="btn btn-success btn-lg">
+                                    <i class="bi bi-credit-card"></i> Tiến Hành Thanh Toán
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    // Preview ảnh khi chọn file
+    document.getElementById('idNoFile')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('idNoPreviewImg');
+        const previewText = document.getElementById('idNoPreviewText');
+        const container = document.getElementById('previewContainer');
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                previewText.style.display = 'none';
+                container.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+            previewText.style.display = 'block';
+        }
+    });
+
+    document.getElementById('studentCardFile')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('studentCardPreviewImg');
+        const previewText = document.getElementById('studentCardPreviewText');
+        const container = document.getElementById('previewContainer');
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                previewText.style.display = 'none';
+                container.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+            previewText.style.display = 'block';
+        }
+    });
+</script>
+
+<style>
+    .card {
+        border-radius: 12px;
+    }
+
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+
+    .img-thumbnail {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+    }
+</style>
+
+
+

@@ -11,7 +11,7 @@ namespace web_chothue_laptop.ViewModels
 
         [Required(ErrorMessage = "Email là bắt buộc")]
         [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
-        [ValidEmailDomain(ErrorMessage = "Email phải có đuôi @gmail.com, @fpt.edu.vn hoặc các domain hợp lệ khác")]
+        [ValidEmailDomain(ErrorMessage = "Email phải có tên miền Việt Nam hợp lệ (ví dụ: @fpt.edu.vn, @example.edu.vn, @example.com.vn, @example.vn)")]
         [StringLength(255, ErrorMessage = "Email không được vượt quá 255 ký tự")]
         [Display(Name = "Email")]
         public string Email { get; set; } = string.Empty;
@@ -39,7 +39,7 @@ namespace web_chothue_laptop.ViewModels
         [Required(ErrorMessage = "Ngày sinh là bắt buộc")]
         [DataType(DataType.Date)]
         [Display(Name = "Ngày sinh")]
-        [CustomValidation(typeof(RegisterViewModel), "ValidateDateOfBirth")]
+        [ValidDateOfBirth(ErrorMessage = "Bạn phải đủ 18 tuổi trở lên để đăng ký. Vui lòng chọn lại ngày sinh")]
         public DateTime Dob { get; set; }
 
         [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
@@ -53,38 +53,6 @@ namespace web_chothue_laptop.ViewModels
         [Display(Name = "Nhập lại mật khẩu")]
         [Compare("Password", ErrorMessage = "Mật khẩu không khớp")]
         public string ConfirmPassword { get; set; } = string.Empty;
-
-        // Custom validation cho ngày sinh
-        public static ValidationResult? ValidateDateOfBirth(DateTime dob, ValidationContext context)
-        {
-            var today = DateTime.Today;
-            var minDate = new DateTime(1900, 1, 1);
-            var age = today.Year - dob.Year;
-            if (dob.Date > today.AddYears(-age)) age--;
-
-            // Kiểm tra ngày sinh từ năm 1900 trở đi
-            if (dob < minDate)
-            {
-                return new ValidationResult("Ngày sinh phải từ năm 1900 trở đi");
-            }
-
-            if (dob > today)
-            {
-                return new ValidationResult("Ngày sinh không được ở tương lai");
-            }
-
-            if (age < 16)
-            {
-                return new ValidationResult("Bạn phải đủ 16 tuổi trở lên để đăng ký");
-            }
-
-            if (age > 120)
-            {
-                return new ValidationResult("Ngày sinh không hợp lệ");
-            }
-
-            return ValidationResult.Success;
-        }
     }
 }
 

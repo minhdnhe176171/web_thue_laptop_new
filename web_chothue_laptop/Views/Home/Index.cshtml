@@ -1,9 +1,12 @@
-﻿@using web_chothue_laptop.Helpers
+@using web_chothue_laptop.Helpers
 @using web_chothue_laptop.Models
 @model PaginatedList<Laptop>
 @{
     ViewData["Title"] = "Trang Chủ - Dịch Vụ Thuê Laptop";
     var currentBookings = ViewBag.CurrentBookings as List<Booking>;
+    var rentedLaptopIds = ViewBag.RentedLaptopIds as List<long> ?? new List<long>();
+    var customerBookings = ViewBag.CustomerBookings as Dictionary<long, Booking?> ?? new Dictionary<long, Booking?>();
+    var currentCustomer = ViewBag.CurrentCustomer as Customer;
     var pageIndex = (int)ViewBag.PageIndex;
     var totalPages = (int)ViewBag.TotalPages;
     var hasPreviousPage = (bool)ViewBag.HasPreviousPage;
@@ -19,6 +22,49 @@
 
     <!-- Danh mục laptop -->
     <h3 class="mb-3">Laptop Cho Thuê </h3>
+    
+    <!-- Form tìm kiếm và filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Index", "Home")" class="row g-3">
+                <div class="col-md-6">
+                    <label for="search" class="form-label">Tìm kiếm</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="@ViewBag.Search" placeholder="Tên laptop, hãng...">
+                </div>
+                <div class="col-md-4">
+                    <label for="brand" class="form-label">Hãng</label>
+                    <select class="form-select" id="brand" name="brand">
+                        <option value="">Tất cả hãng</option>
+                        @if (ViewBag.Brands != null)
+                        {
+                            @foreach (var brandItem in ViewBag.Brands as List<web_chothue_laptop.Models.Brand>)
+                            {
+                                <option value="@brandItem.BrandName" 
+                                        selected="@(ViewBag.Brand?.ToString() == brandItem.BrandName)">
+                                    @brandItem.BrandName
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(ViewBag.Search?.ToString()) || !string.IsNullOrWhiteSpace(ViewBag.Brand?.ToString()))
+                {
+                    <div class="col-12">
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                        </a>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+    
     @if (Model != null && Model.Any())
     {
         <div class="row mb-4">
@@ -53,15 +99,39 @@
 
                             <p class="mb-3">
                                 <strong>Trạng thái:</strong>
-                                @if (laptop.Status != null)
-                                {
-                                    var statusVi = StatusHelper.GetVietnameseStatus(laptop.Status.StatusName);
-                                    var badgeClass = StatusHelper.GetStatusBadgeClass(laptop.Status.StatusName);
-                                    <span class="badge @badgeClass">@statusVi</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">Chưa xác định</span>
+                                @{
+                                    // Kiểm tra nếu laptop đã hết thời hạn thuê (EndTime < DateTime.Now)
+                                    var isExpired = laptop.EndTime.HasValue && laptop.EndTime.Value < DateTime.Now;
+                                    
+                                    // Kiểm tra booking của customer hiện tại cho laptop này (chỉ booking đang active)
+                                    var customerBooking = customerBookings.ContainsKey(laptop.Id) ? customerBookings[laptop.Id] : null;
+                                    // Kiểm tra xem laptop có đang được customer khác thuê không (bao gồm cả đã chuyển khoản - banked)
+                                    var isRentedByOthers = rentedLaptopIds.Contains(laptop.Id) && 
+                                        (currentCustomer == null || customerBooking == null || 
+                                         (customerBooking.StatusId != 2 && customerBooking.StatusId != 10 && customerBooking.StatusId != 12));
+                                    
+                                    if (isExpired)
+                                    {
+                                        // Laptop đã hết thời hạn thuê -> hiển thị "Đã đóng"
+                                        <span class="badge bg-secondary">Đã đóng</span>
+                                    }
+                                    else if (currentCustomer != null && customerBooking != null)
+                                    {
+                                        // Customer có booking đang active -> hiển thị trạng thái đó
+                                        var statusVi = StatusHelper.GetVietnameseStatus(customerBooking.Status?.StatusName);
+                                        var badgeClass = StatusHelper.GetStatusBadgeClass(customerBooking.Status?.StatusName);
+                                        <span class="badge @badgeClass">@statusVi</span>
+                                    }
+                                    else if (isRentedByOthers)
+                                    {
+                                        // Laptop đang được thuê bởi người khác
+                                        <span class="badge bg-warning">Đang thuê</span>
+                                    }
+                                    else
+                                    {
+                                        // Laptop có sẵn (bao gồm cả trường hợp customer đã từng thuê nhưng đã hoàn thành)
+                                        <span class="badge bg-success">Có sẵn</span>
+                                    }
                                 }
                             </p>
 
@@ -80,18 +150,18 @@
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center">
                     <li class="page-item @(!hasPreviousPage ? "disabled" : "")">
-                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex - 1 })" aria-label="Previous">
+                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex - 1, search = ViewBag.Search, brand = ViewBag.Brand })" aria-label="Previous">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
                     @for (int i = 1; i <= totalPages; i++)
                     {
                         <li class="page-item @(i == pageIndex ? "active" : "")">
-                            <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+                            <a class="page-link" href="@Url.Action("Index", new { page = i, search = ViewBag.Search, brand = ViewBag.Brand })">@i</a>
                         </li>
                     }
                     <li class="page-item @(!hasNextPage ? "disabled" : "")">
-                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex + 1 })" aria-label="Next">
+                        <a class="page-link" href="@Url.Action("Index", new { page = pageIndex + 1, search = ViewBag.Search, brand = ViewBag.Brand })" aria-label="Next">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>

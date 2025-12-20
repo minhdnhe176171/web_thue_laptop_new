@@ -134,6 +134,52 @@ namespace web_chothue_laptop.Controllers
                 model.AccountType = model.AccountType?.Trim() ?? string.Empty;
             }
 
+            // VALIDATE NGÀY SINH TRƯỚC - KIỂM TRA ĐỦ 18 TUỔI (BẮT BUỘC PHẢI KIỂM TRA TRƯỚC)
+            var today = DateTime.Today;
+            var minDate = new DateTime(1900, 1, 1);
+            
+            // Kiểm tra ngày sinh từ năm 1900 trở đi
+            if (model.Dob < minDate)
+            {
+                ModelState.AddModelError("Dob", "Ngày sinh phải từ năm 1900 trở đi");
+                return View(model);
+            }
+
+            // Kiểm tra ngày sinh không được ở tương lai
+            if (model.Dob > today)
+            {
+                ModelState.AddModelError("Dob", "Ngày sinh không được ở tương lai");
+                return View(model);
+            }
+
+            // Tính tuổi CHÍNH XÁC so với thời gian thực (tính từ ngày, tháng, năm)
+            var age = today.Year - model.Dob.Year;
+            // Trừ 1 tuổi nếu chưa đến ngày sinh trong năm hiện tại
+            // Xử lý trường hợp ngày sinh 29/02 (năm nhuận)
+            DateTime birthdayThisYear;
+            try
+            {
+                birthdayThisYear = new DateTime(today.Year, model.Dob.Month, model.Dob.Day);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Nếu năm hiện tại không phải năm nhuận và ngày sinh là 29/02, dùng 28/02
+                birthdayThisYear = new DateTime(today.Year, model.Dob.Month, 28);
+            }
+            
+            // Nếu chưa đến ngày sinh trong năm hiện tại thì trừ 1 tuổi
+            if (birthdayThisYear > today)
+            {
+                age--;
+            }
+
+            // KIỂM TRA PHẢI ĐỦ 18 TUỔI (>= 18) - BẮT BUỘC
+            if (age < 18)
+            {
+                ModelState.AddModelError("Dob", "Bạn phải đủ 18 tuổi trở lên để đăng ký. Vui lòng chọn lại ngày sinh");
+                return View(model);
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -186,40 +232,74 @@ namespace web_chothue_laptop.Controllers
                 return View(model);
             }
 
-            // Kiểm tra ngày sinh từ năm 1900 trở đi
-            var minDate = new DateTime(1900, 1, 1);
-            if (model.Dob < minDate)
-            {
-                ModelState.AddModelError("Dob", "Ngày sinh phải từ năm 1900 trở đi");
-                return View(model);
-            }
 
-            if (model.Dob > DateTime.Today)
-            {
-                ModelState.AddModelError("Dob", "Ngày sinh không được ở tương lai");
-                return View(model);
-            }
-
-            // Kiểm tra email đã tồn tại
+            // KIỂM TRA TRÙNG THÔNG TIN VỚI CÁC TÀI KHOẢN KHÁC
             var emailLower = model.Email.ToLower();
+            var firstNameTrimmed = model.FirstName.Trim();
+            var lastNameTrimmed = model.LastName.Trim();
+            var phoneTrimmed = model.Phone.Trim();
+            var idNoTrimmed = model.IdNo.Trim();
+
+            // Kiểm tra Email trùng - kiểm tra trong cả User, Customer và Student
             if (await _context.Users.AnyAsync(u => u.Email.ToLower() == emailLower))
             {
-                ModelState.AddModelError("Email", "Email này đã được sử dụng");
+                ModelState.AddModelError("Email", "Email này đã được sử dụng bởi tài khoản khác. Vui lòng nhập email khác");
                 return View(model);
             }
 
-            // Kiểm tra email trong Customer hoặc Student
-            if (model.AccountType == "Customer" && await _context.Customers.AnyAsync(c => c.Email.ToLower() == emailLower))
+            if (await _context.Customers.AnyAsync(c => c.Email.ToLower() == emailLower))
             {
-                ModelState.AddModelError("Email", "Email này đã được sử dụng");
+                ModelState.AddModelError("Email", "Email này đã được sử dụng bởi tài khoản khác. Vui lòng nhập email khác");
                 return View(model);
             }
 
-            if (model.AccountType == "Student" && await _context.Students.AnyAsync(s => s.Email.ToLower() == emailLower))
+            if (await _context.Students.AnyAsync(s => s.Email.ToLower() == emailLower))
             {
-                ModelState.AddModelError("Email", "Email này đã được sử dụng");
+                ModelState.AddModelError("Email", "Email này đã được sử dụng bởi tài khoản khác. Vui lòng nhập email khác");
                 return View(model);
             }
+
+            // Kiểm tra Số điện thoại trùng - kiểm tra trong Customer và Student
+            if (await _context.Customers.AnyAsync(c => !string.IsNullOrEmpty(c.Phone) && c.Phone.Trim() == phoneTrimmed))
+            {
+                ModelState.AddModelError("Phone", "Số điện thoại này đã được sử dụng bởi tài khoản khác. Vui lòng nhập số điện thoại khác");
+                return View(model);
+            }
+
+            if (await _context.Students.AnyAsync(s => !string.IsNullOrEmpty(s.Phone) && s.Phone.Trim() == phoneTrimmed))
+            {
+                ModelState.AddModelError("Phone", "Số điện thoại này đã được sử dụng bởi tài khoản khác. Vui lòng nhập số điện thoại khác");
+                return View(model);
+            }
+
+            // Kiểm tra Mã số sinh viên trùng - kiểm tra trong Customer và Student
+            if (await _context.Customers.AnyAsync(c => !string.IsNullOrEmpty(c.IdNo) && c.IdNo.Trim().ToUpper() == idNoTrimmed.ToUpper()))
+            {
+                ModelState.AddModelError("IdNo", "Mã số sinh viên này đã được sử dụng bởi tài khoản khác. Vui lòng nhập mã số sinh viên khác");
+                return View(model);
+            }
+
+            if (await _context.Students.AnyAsync(s => !string.IsNullOrEmpty(s.IdNo) && s.IdNo.Trim().ToUpper() == idNoTrimmed.ToUpper()))
+            {
+                ModelState.AddModelError("IdNo", "Mã số sinh viên này đã được sử dụng bởi tài khoản khác. Vui lòng nhập mã số sinh viên khác");
+                return View(model);
+            }
+
+            // Kiểm tra Họ tên trùng (FirstName + LastName) - kiểm tra trong Customer và Student
+            if (await _context.Customers.AnyAsync(c => c.FirstName.Trim() == firstNameTrimmed && c.LastName.Trim() == lastNameTrimmed))
+            {
+                ModelState.AddModelError("FirstName", "Họ tên này đã được sử dụng bởi tài khoản khác. Vui lòng nhập họ tên khác");
+                ModelState.AddModelError("LastName", "Họ tên này đã được sử dụng bởi tài khoản khác. Vui lòng nhập họ tên khác");
+                return View(model);
+            }
+
+            if (await _context.Students.AnyAsync(s => s.FirstName.Trim() == firstNameTrimmed && s.LastName.Trim() == lastNameTrimmed))
+            {
+                ModelState.AddModelError("FirstName", "Họ tên này đã được sử dụng bởi tài khoản khác. Vui lòng nhập họ tên khác");
+                ModelState.AddModelError("LastName", "Họ tên này đã được sử dụng bởi tài khoản khác. Vui lòng nhập họ tên khác");
+                return View(model);
+            }
+
 
             // Tạo User tạm thời (chưa kích hoạt)
             var user = new User
