@@ -29,7 +29,7 @@ public partial class Laptop
 
     public DateTime? EndTime { get; set; }
 
-    public decimal? NewPrice { get; set; }
+    public string? RejectReason { get; set; }
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
