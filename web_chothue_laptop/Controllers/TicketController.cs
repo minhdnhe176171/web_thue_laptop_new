@@ -268,8 +268,11 @@ namespace web_chothue_laptop.Controllers
         }
 
         // GET: Ticket/MyTickets - Lịch sử báo lỗi
-        public async Task<IActionResult> MyTickets()
+        public async Task<IActionResult> MyTickets(int? page, string? search, int? statusId)
         {
+            const int PageSize = 6;
+            int pageIndex = page ?? 1;
+
             // Kiểm tra đăng nhập
             var userId = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userId))
@@ -289,18 +292,46 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Lấy tất cả ticket của customer này, sắp xếp theo ngày tạo mới nhất
-            var tickets = await _context.TicketLists
+            // Query cơ bản - lấy tất cả ticket của customer này
+            var ticketsQuery = _context.TicketLists
                 .Include(t => t.Laptop)
                     .ThenInclude(l => l.Brand)
                 .Include(t => t.Status)
                 .Include(t => t.TechnicalTicket)
                     .ThenInclude(tt => tt.Status)
-                .Where(t => t.CustomerId == customer.Id)
-                .OrderByDescending(t => t.CreatedDate)
-                .ToListAsync();
+                .Where(t => t.CustomerId == customer.Id);
 
-            ViewBag.Tickets = tickets;
+            // Filter theo search
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                ticketsQuery = ticketsQuery.Where(t => 
+                    t.Laptop.Name.Contains(search) || 
+                    (t.Laptop.Brand != null && t.Laptop.Brand.BrandName.Contains(search)) ||
+                    t.Description.Contains(search) ||
+                    t.Id.ToString().Contains(search));
+            }
+
+            // Filter theo status
+            if (statusId.HasValue)
+            {
+                ticketsQuery = ticketsQuery.Where(t => 
+                    (t.TechnicalTicket != null && t.TechnicalTicket.StatusId == statusId.Value) ||
+                    (t.TechnicalTicket == null && t.StatusId == statusId.Value));
+            }
+
+            // Sắp xếp
+            ticketsQuery = ticketsQuery.OrderByDescending(t => t.CreatedDate);
+
+            // Phân trang
+            var paginatedTickets = await PaginatedList<TicketList>.CreateAsync(ticketsQuery, pageIndex, PageSize);
+
+            ViewBag.PaginatedTickets = paginatedTickets;
+            ViewBag.PageIndex = paginatedTickets.PageIndex;
+            ViewBag.TotalPages = paginatedTickets.TotalPages;
+            ViewBag.HasPreviousPage = paginatedTickets.HasPreviousPage;
+            ViewBag.HasNextPage = paginatedTickets.HasNextPage;
+            ViewBag.Search = search;
+            ViewBag.StatusId = statusId;
             ViewBag.CustomerId = customer.Id;
 
             return View();
