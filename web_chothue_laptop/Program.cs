@@ -27,7 +27,8 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddDbContext<Swp391LaptopContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -61,6 +62,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<RedisService>();
+builder.Services.AddScoped<RagService>();
+builder.Services.AddHttpClient<AIChatService>();
+builder.Services.AddScoped<AIChatService>();
 
 var app = builder.Build();
 
@@ -79,6 +83,7 @@ app.UseAuthorization();
 
 app.MapHub<ChatHub>("/chathub");
 app.MapHub<BookingHub>("/bookinghub");
+app.MapHub<AIChatHub>("/aichathub");
 
 
 

@@ -121,10 +121,17 @@
                     Đơn từ Khách hàng
                 </a>
 
+
                 <a href="@Url.Action("SalesReport", "Manager")"
                    class="@(current == "SalesReport" ? "active" : "")">
                     <i class="fas fa-chart-bar"></i>
                     Báo Cáo Doanh Số
+
+                <a href="@Url.Action("CustomerManagement", "Manager")"
+                   class="@(current == "CustomerManagement" ? "active" : "")">
+                    <i class="fas fa-user"></i>
+                    Danh sách khách hàng
+
                 </a>
 
                 <a href="@Url.Action("StaffList", "Manager")"
