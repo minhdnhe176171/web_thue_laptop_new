@@ -5,6 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using web_chothue_laptop.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http;
 
 namespace web_chothue_laptop.Controllers
 {
@@ -19,87 +22,59 @@ namespace web_chothue_laptop.Controllers
         }
 
         // ============================================================
-        // 1. DASHBOARD & DANH SÁCH (ĐÃ TỐI ƯU PHÂN TRANG RIÊNG BIỆT)
+        // 1. DASHBOARD & DANH SÁCH
         // ============================================================
         public async Task<IActionResult> Index(int? pageNumber, string? searchString, string activeTab = "inspection", DateTime? startDate = null, DateTime? endDate = null)
         {
             ViewBag.ActiveTab = activeTab;
+            ViewData["CurrentFilter"] = searchString;
 
-            // CẤU HÌNH SỐ LƯỢNG DÒNG MỖI TRANG
+            // Cấu hình số dòng mỗi trang
             int pageSizeInspection = 5;
             int pageSizeRepair = 5;
             int pageSizeReport = 5;
-            int pageSizeSupport = 5; 
+            int pageSizeSupport = 5;
 
-            // ------------------------------------------------------------
-            // [MỚI] TRƯỜNG HỢP: TAB HỖ TRỢ KHÁCH HÀNG (SUPPORT)
-            // Logic: Lấy Ticket có BookingId != null (Tức là từ Customer)
-            // ------------------------------------------------------------
+            // --- TAB HỖ TRỢ (SUPPORT) ---
             if (activeTab == "support")
             {
                 var supportQuery = _context.TechnicalTickets
                     .Include(t => t.Laptop).ThenInclude(l => l.Brand)
-                    .Include(t => t.Booking).ThenInclude(b => b!.Customer) // Include Customer để hiển thị tên khách
+                    .Include(t => t.Booking).ThenInclude(b => b!.Customer)
                     .Include(t => t.Status)
-                    .Where(t => t.BookingId != null) // QUAN TRỌNG: Chỉ lấy ticket có liên kết với Booking (của khách)
+                    .Where(t => t.BookingId != null)
                     .AsQueryable();
 
-                // Sắp xếp: Ưu tiên Active (Mới, Đã nhận, Đang sửa) lên trước -> Đã xong xuống dưới
-                // Sau đó sắp xếp theo ngày tạo mới nhất
-                supportQuery = supportQuery.OrderBy(t => t.StatusId == 5) // Status 5 (Fixed) sẽ nằm dưới
-                                           .ThenByDescending(t => t.CreatedDate);
+                supportQuery = supportQuery.OrderBy(t => t.StatusId == 5).ThenByDescending(t => t.CreatedDate);
 
-                // Logic tìm kiếm cho tab Support
                 if (!string.IsNullOrEmpty(searchString))
                 {
                     searchString = searchString.Trim();
-
-                    // Case 1: Search by ID (Nếu là số thì tìm theo ID)
                     if (long.TryParse(searchString, out long searchId))
-                    {
                         supportQuery = supportQuery.Where(t => t.Id == searchId);
-                    }
-                    // Case 2: Search by String (Tên Laptop hoặc Tên Khách)
                     else
                     {
-                        // Normalize to lowercase for better matching
                         var searchLower = searchString.ToLower();
-
                         supportQuery = supportQuery.Where(t =>
-                            // 1. Search Laptop Name
-                            (t.Laptop != null && t.Laptop.Name.ToLower().Contains(searchLower))
-                            ||
-                            // 2. Search Customer Name
+                            (t.Laptop != null && t.Laptop.Name.ToLower().Contains(searchLower)) ||
                             (t.Booking != null && t.Booking.Customer != null &&
-                                (
-                                    t.Booking.Customer.FirstName.ToLower().Contains(searchLower) ||
-                                    t.Booking.Customer.LastName.ToLower().Contains(searchLower) ||
-                                    // Allow searching full name (e.g., "Nguyen Van")
-                                    (t.Booking.Customer.FirstName + " " + t.Booking.Customer.LastName).ToLower().Contains(searchLower)
-                                )
+                                ((t.Booking.Customer.FirstName + " " + t.Booking.Customer.LastName).ToLower().Contains(searchLower))
                             )
                         );
                     }
                 }
-
-                // Trả về View cho tab Support
                 return View(await PaginatedList<TechnicalTicket>.CreateAsync(supportQuery.AsNoTracking(), pageNumber ?? 1, pageSizeSupport));
             }
 
-            // ------------------------------------------------------------
-            // TRƯỜNG HỢP: TAB BÁO CÁO (REPORT)
-            // ------------------------------------------------------------
+            // --- TAB BÁO CÁO (REPORT) ---
             if (activeTab == "report")
             {
                 var reportQuery = _context.TechnicalTickets
                     .Include(t => t.Laptop).ThenInclude(l => l.Brand)
                     .Include(t => t.Laptop).ThenInclude(l => l.Student)
                     .Include(t => t.Status)
-                    // Lấy Approved(2) của luồng nhập kho hoặc Closed(8)
-                    // Hoặc lấy Fixed(5) của luồng support nếu muốn báo cáo chung
-                    .Where(t => t.StatusId == 2 || t.StatusId == 8);
+                    .Where(t => t.StatusId == 2 || t.StatusId == 8 || t.StatusId == 3); // ✅ Thêm StatusId = 3 (Rejected by Student)
 
-                // Lọc theo ngày
                 if (startDate.HasValue) reportQuery = reportQuery.Where(t => t.CreatedDate >= startDate.Value);
                 if (endDate.HasValue)
                 {
@@ -107,98 +82,93 @@ namespace web_chothue_laptop.Controllers
                     reportQuery = reportQuery.Where(t => t.CreatedDate <= endDateEndOfDay);
                 }
 
-                // TÍNH TOÁN SỐ LIỆU THỐNG KÊ
                 ViewData["TotalCompleted"] = await reportQuery.CountAsync();
                 ViewData["ApprovedCount"] = await reportQuery.CountAsync(t => t.StatusId == 2);
                 ViewData["ClosedCount"] = await reportQuery.CountAsync(t => t.StatusId == 8);
-
-                // Lưu dữ liệu filter
-                ViewData["CurrentFilter"] = searchString;
+                ViewData["RejectedCount"] = await reportQuery.CountAsync(t => t.StatusId == 3); // ✅ Đếm ticket bị hủy
                 ViewData["StartDate"] = startDate?.ToString("yyyy-MM-dd");
                 ViewData["EndDate"] = endDate?.ToString("yyyy-MM-dd");
 
-                // Tìm kiếm Text
                 if (!string.IsNullOrEmpty(searchString))
                 {
                     searchString = searchString.Trim();
                     if (long.TryParse(searchString, out long searchId))
                         reportQuery = reportQuery.Where(t => t.Id == searchId);
                     else
-                        reportQuery = reportQuery.Where(t => t.Laptop.Name.Contains(searchString)
-                            || (t.Laptop.Student != null && (t.Laptop.Student.FirstName + " " + t.Laptop.Student.LastName).Contains(searchString)));
+                        reportQuery = reportQuery.Where(t => t.Laptop.Name.Contains(searchString) || (t.Laptop.Student != null && (t.Laptop.Student.FirstName + " " + t.Laptop.Student.LastName).Contains(searchString)));
                 }
 
                 var pagedReport = reportQuery.OrderByDescending(t => t.UpdatedDate ?? t.CreatedDate);
                 return View(await PaginatedList<TechnicalTicket>.CreateAsync(pagedReport.AsNoTracking(), pageNumber ?? 1, pageSizeReport));
             }
 
-            // ------------------------------------------------------------
-            // TRƯỜNG HỢP: TAB KIỂM TRA & SỬA CHỮA (MẶC ĐỊNH - KHO)
-            // Lọc BookingId == null để không bị lẫn ticket của khách hàng
-            // ------------------------------------------------------------
+            // --- QUERY CHUNG CHO INSPECTION & REPAIR ---
+            // ✅ Loại bỏ ticket đã hoàn thành (2, 8) VÀ ticket bị Student hủy (3)
+            var activeTickets = _context.TechnicalTickets.Where(t => 
+                t.StatusId != 2 && 
+                t.StatusId != 8 && 
+                t.StatusId != 3 && 
+                t.BookingId == null);
 
-            // 1. Query cơ bản (Chưa hoàn thành, thuộc kho)
-            var activeTickets = _context.TechnicalTickets.Where(t => t.StatusId != 2 && t.StatusId != 8 && t.BookingId == null);
+            ViewData["TotalCount"] = await activeTickets.CountAsync();
+            ViewData["ProcessingCount"] = await activeTickets.CountAsync(t => t.StatusId == 4);
+            ViewData["FixedCount"] = await activeTickets.CountAsync(t => t.StatusId == 5);
 
-            // 2. Tính toán thống kê Dashboard (Chỉ tính cho kho)
-            int totalCount = await activeTickets.CountAsync();
-            int processingCount = await activeTickets.CountAsync(t => t.StatusId == 4);
-            int fixedCount = await activeTickets.CountAsync(t => t.StatusId == 5);
-            int pendingCount = await activeTickets.CountAsync(t => t.StatusId == 1);
-            int brokenCount = totalCount - processingCount - fixedCount - pendingCount;
+            // [ĐÃ SỬA] CS8605: Dùng toán tử ?? 0 để xử lý trường hợp ViewData null
+            // Thay vì ép kiểu trực tiếp (int), ta ép sang (int?) rồi lấy giá trị mặc định là 0
+            int total = (int?)ViewData["TotalCount"] ?? 0;
+            int processing = (int?)ViewData["ProcessingCount"] ?? 0;
+            int fixedCount = (int?)ViewData["FixedCount"] ?? 0;
+            int pending = await activeTickets.CountAsync(t => t.StatusId == 1);
 
-            ViewData["TotalCount"] = totalCount;
-            ViewData["ProcessingCount"] = processingCount;
-            ViewData["FixedCount"] = fixedCount;
-            ViewData["BrokenCount"] = brokenCount;
-            ViewData["CurrentFilter"] = searchString;
+            ViewData["BrokenCount"] = total - processing - fixedCount - pending;
 
-            // 3. XỬ LÝ TAB 1: YÊU CẦU KIỂM TRA (INSPECTION)
+
+            // --- TAB YÊU CẦU KIỂM TRA (INSPECTION) ---
             var inspectionQuery = activeTickets
                 .Include(t => t.Laptop).ThenInclude(l => l.Student)
                 .Include(t => t.Laptop).ThenInclude(l => l.Brand)
                 .Include(t => t.Laptop).ThenInclude(l => l.LaptopDetails)
-                .Where(t => t.StatusId == 1)
-                .OrderBy(t => t.CreatedDate);
+                .Where(t => t.StatusId == 1);
 
+            if (activeTab == "inspection" && !string.IsNullOrEmpty(searchString))
+            {
+                searchString = searchString.Trim().ToLower();
+                if (long.TryParse(searchString, out long searchId))
+                    inspectionQuery = inspectionQuery.Where(t => t.Id == searchId);
+                else
+                    inspectionQuery = inspectionQuery.Where(t =>
+                        (t.Laptop != null && t.Laptop.Name != null && t.Laptop.Name.ToLower().Contains(searchString)) ||
+                        (t.Laptop != null && t.Laptop.Student != null && (t.Laptop.Student.FirstName + " " + t.Laptop.Student.LastName).ToLower().Contains(searchString))
+                    );
+            }
+
+            inspectionQuery = inspectionQuery.OrderBy(t => t.CreatedDate);
             ViewBag.InspectionTotalCount = await inspectionQuery.CountAsync();
-
             int inspectionPage = (activeTab == "inspection") ? (pageNumber ?? 1) : 1;
             ViewBag.InspectionList = await PaginatedList<TechnicalTicket>.CreateAsync(inspectionQuery.AsNoTracking(), inspectionPage, pageSizeInspection);
 
-
-            // 4. XỬ LÝ TAB 2: DANH SÁCH SỬA CHỮA (REPAIR) - KHO
-            var listRepair = activeTickets
-                .Include(t => t.Laptop)
-                .Include(t => t.Status)
-                .Where(t => t.StatusId != 1)
-                .AsQueryable();
-
-            if (!string.IsNullOrEmpty(searchString))
+            // --- TAB SỬA CHỮA (REPAIR) ---
+            var listRepair = activeTickets.Include(t => t.Laptop).Include(t => t.Status).Where(t => t.StatusId != 1).AsQueryable();
+            if (activeTab == "repair" && !string.IsNullOrEmpty(searchString))
             {
                 searchString = searchString.Trim();
-                if (long.TryParse(searchString, out long searchId))
-                    listRepair = listRepair.Where(t => t.Id == searchId);
-                else
-                    listRepair = listRepair.Where(t => t.Laptop != null && t.Laptop.Name.Contains(searchString));
+                if (long.TryParse(searchString, out long searchId)) listRepair = listRepair.Where(t => t.Id == searchId);
+                else listRepair = listRepair.Where(t => t.Laptop != null && t.Laptop.Name.Contains(searchString));
             }
-
-            listRepair = listRepair.OrderByDescending(t => t.StatusId == 11 || t.StatusId == 3)
-                                   .ThenByDescending(t => t.StatusId == 4)
-                                   .ThenByDescending(t => t.UpdatedDate);
-
+            listRepair = listRepair.OrderByDescending(t => t.StatusId == 11 || t.StatusId == 3).ThenByDescending(t => t.StatusId == 4).ThenByDescending(t => t.UpdatedDate);
             int repairPage = (activeTab == "repair") ? (pageNumber ?? 1) : 1;
-
             return View(await PaginatedList<TechnicalTicket>.CreateAsync(listRepair.AsNoTracking(), repairPage, pageSizeRepair));
         }
 
         // ============================================================
-        // [MỚI] 2. ACTION: CẬP NHẬT TRẠNG THÁI TICKET KHÁCH HÀNG
+        // 2. [MỚI] XỬ LÝ CẬP NHẬT THÔNG TIN KIỂM TRA (POST)
         // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateCustomerTicket(long ticketId, int statusId, string technicalResponse)
+        public async Task<IActionResult> UpdateInspectionInfo(long ticketId, string description, IFormFile? inspectionImage)
         {
+            // Load ticket và kèm theo dữ liệu Laptop để update
             var ticket = await _context.TechnicalTickets
                 .Include(t => t.Laptop)
                 .FirstOrDefaultAsync(t => t.Id == ticketId);
@@ -206,41 +176,66 @@ namespace web_chothue_laptop.Controllers
             if (ticket == null)
             {
                 TempData["ErrorMessage"] = "Không tìm thấy ticket.";
-                return RedirectToAction(nameof(Index), new { activeTab = "support" });
+                return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
             }
 
-            // 1. Cập nhật trạng thái
-            ticket.StatusId = statusId;
-            ticket.UpdatedDate = DateTime.Now;
-
-            // 2. Cập nhật phản hồi (Ghi chú tiến độ)
-            if (!string.IsNullOrEmpty(technicalResponse))
+            // 1. Cập nhật Mô tả / Tình trạng
+            if (string.IsNullOrWhiteSpace(description))
             {
-                ticket.TechnicalResponse = technicalResponse;
+                TempData["ErrorMessage"] = "Mô tả tình trạng không được để trống.";
+                return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
             }
-            else
+            ticket.Description = description;
+
+            // 2. Xử lý Upload ảnh (Lưu vào wwwroot và update DB)
+            if (inspectionImage != null && inspectionImage.Length > 0)
             {
-                // Tạo câu phản hồi mặc định nếu kỹ thuật không nhập gì
-                switch (statusId)
+                try
                 {
-                    case 2: ticket.TechnicalResponse = "Kỹ thuật viên đã tiếp nhận yêu cầu."; break;
-                    case 4: ticket.TechnicalResponse = "Đang tiến hành kiểm tra và sửa chữa."; break;
-                    case 5: ticket.TechnicalResponse = "Đã hoàn thành sửa chữa. Vui lòng kiểm tra."; break;
+                    // Kiểm tra Laptop có tồn tại không
+                    if (ticket.Laptop != null)
+                    {
+                        // Tạo tên file duy nhất để tránh trùng lặp
+                        var fileName = $"laptop_{ticket.Laptop.Id}_{Guid.NewGuid()}{Path.GetExtension(inspectionImage.FileName)}";
+
+                        // Định nghĩa thư mục lưu trữ
+                        var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "laptops");
+
+                        // Tạo thư mục nếu chưa tồn tại
+                        if (!Directory.Exists(uploadFolder))
+                        {
+                            Directory.CreateDirectory(uploadFolder);
+                        }
+
+                        var filePath = Path.Combine(uploadFolder, fileName);
+
+                        // Lưu file vật lý vào server
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await inspectionImage.CopyToAsync(stream);
+                        }
+
+                        // CẬP NHẬT ĐƯỜNG DẪN VÀO DATABASE
+                        ticket.Laptop.ImageUrl = "/images/laptops/" + fileName;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] = "Lỗi upload ảnh: " + ex.Message;
+                    return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
                 }
             }
 
+            ticket.UpdatedDate = DateTime.Now;
             await _context.SaveChangesAsync();
-
-            string msg = statusId == 5 ? "Đã hoàn thành sửa chữa!" : "Đã cập nhật trạng thái ticket.";
-            TempData["SuccessMessage"] = msg;
-
-            // Quay lại đúng tab Support
-            return RedirectToAction(nameof(Index), new { activeTab = "support" });
+            TempData["SuccessMessage"] = "Đã cập nhật thông tin kiểm tra và hình ảnh.";
+            return RedirectToAction(nameof(InspectionDetails), new { id = ticketId });
         }
 
         // ============================================================
-        // 3. ACTION DUYỆT (APPROVE) - ĐẨY SANG STAFF (LUỒNG KHO)
+        // 3. CÁC ACTION KHÁC
         // ============================================================
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveLaptop(long ticketId)
@@ -248,21 +243,89 @@ namespace web_chothue_laptop.Controllers
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
             if (ticket != null)
             {
-                // Ticket -> Approved (2) -> Biến mất khỏi Technical
-                ticket.StatusId = 2;
-                ticket.TechnicalResponse = "Đã đạt chuẩn. Chuyển sang Staff.";
+                // 1. Cập nhật ticket sang Approved
+                ticket.StatusId = 2; // Approved
+                ticket.TechnicalResponse = "Đã đạt chuẩn. Chuyển sang Staff để duyệt lên web.";
                 ticket.UpdatedDate = DateTime.Now;
-
-                // Laptop -> Approved (2) -> Staff thấy để cho thuê
-                if (ticket.Laptop != null)
-                {
-                    ticket.Laptop.StatusId = 2;
-                }
-
+                
+                // 2. GIỮ NGUYÊN Laptop.StatusId = 1 (Pending) - Chờ Staff duyệt
+                // KHÔNG tự động chuyển sang Approved
+                // if (ticket.Laptop != null) ticket.Laptop.StatusId = 2; // ❌ XÓA DÒNG NÀY
+                
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Đã duyệt! Thiết bị đã được chuyển sang Staff để cho thuê.";
+                TempData["SuccessMessage"] = "Đã duyệt! Thiết bị đã được chuyển sang Staff để duyệt lên web.";
             }
             return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectLaptop(long ticketId, string reason, string rejectType)
+        {
+            var ticket = await _context.TechnicalTickets
+                .Include(t => t.Laptop)
+                    .ThenInclude(l => l.Student)
+                .FirstOrDefaultAsync(t => t.Id == ticketId);
+                
+            if (ticket != null && ticket.Laptop != null)
+            {
+                if (rejectType == "fixing")
+                {
+                    // Trường hợp: Cần sửa chữa (Fixing)
+                    // KHÔNG ĐỔI Ticket.StatusId - Giữ nguyên = 1 (Pending)
+                    // ticket.StatusId = 3; // ❌ XÓA DÒNG NÀY
+                    
+                    ticket.TechnicalResponse = "CẦN SỬA CHỮA: " + reason;
+                    ticket.UpdatedDate = DateTime.Now;
+                    
+                    // Chỉ đổi Laptop.StatusId = 4 (Fixing)
+                    ticket.Laptop.StatusId = 4; // Fixing
+                    ticket.Laptop.RejectReason = "Cần sửa chữa: " + reason;
+                    ticket.Laptop.UpdatedDate = DateTime.Now;
+                    
+                    TempData["WarningMessage"] = "Đã gửi yêu cầu sửa chữa cho Student. Chờ Student đồng ý.";
+                }
+                else
+                {
+                    // Trường hợp: Từ chối hoàn toàn (Rejected)
+                    ticket.StatusId = 3; // Rejected
+                    ticket.TechnicalResponse = "TỪ CHỐI: " + reason;
+                    ticket.UpdatedDate = DateTime.Now;
+                    
+                    ticket.Laptop.StatusId = 3; // Rejected
+                    ticket.Laptop.RejectReason = reason;
+                    ticket.Laptop.UpdatedDate = DateTime.Now;
+                    
+                    TempData["WarningMessage"] = "Đã từ chối thiết bị hoàn toàn. Lý do đã được gửi cho Student.";
+                }
+                
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateCustomerTicket(long ticketId, int statusId, string technicalResponse)
+        {
+            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
+            if (ticket == null) return RedirectToAction(nameof(Index), new { activeTab = "support" });
+
+            ticket.StatusId = statusId;
+            ticket.UpdatedDate = DateTime.Now;
+            if (!string.IsNullOrEmpty(technicalResponse)) ticket.TechnicalResponse = technicalResponse;
+            else
+            {
+                switch (statusId)
+                {
+                    case 2: ticket.TechnicalResponse = "Kỹ thuật viên đã tiếp nhận yêu cầu."; break;
+                    case 4: ticket.TechnicalResponse = "Đang tiến hành kiểm tra và sửa chữa."; break;
+                    case 5: ticket.TechnicalResponse = "Đã hoàn thành sửa chữa. Vui lòng kiểm tra."; break;
+                }
+            }
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = statusId == 5 ? "Đã hoàn thành sửa chữa!" : "Đã cập nhật trạng thái ticket.";
+            return RedirectToAction(nameof(Index), new { activeTab = "support" });
         }
 
         public async Task<IActionResult> InspectionDetails(long id)
@@ -271,68 +334,62 @@ namespace web_chothue_laptop.Controllers
                 .Include(t => t.Laptop).ThenInclude(l => l.Brand)
                 .Include(t => t.Laptop).ThenInclude(l => l.Student)
                 .Include(t => t.Laptop).ThenInclude(l => l.LaptopDetails)
+                .Include(t => t.Status)
                 .FirstOrDefaultAsync(t => t.Id == id);
-
-            if (ticket == null)
-            {
-                return NotFound();
-            }
-
+            if (ticket == null) return NotFound();
             return View(ticket);
         }
 
-        // ============================================================
-        // 4. CÁC HÀM KHÁC (EDIT, REJECT, REPORT)
-        // ============================================================
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RejectLaptop(long ticketId, string reason)
-        {
-            var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == ticketId);
-            if (ticket != null)
-            {
-                ticket.StatusId = 3; // Rejected
-                ticket.TechnicalResponse = "TỪ CHỐI: " + reason;
-                ticket.UpdatedDate = DateTime.Now;
-                if (ticket.Laptop != null) ticket.Laptop.StatusId = 3;
-
-                await _context.SaveChangesAsync();
-                TempData["WarningMessage"] = "Đã từ chối thiết bị.";
-            }
-            return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
-        }
-
-        public async Task<IActionResult> Edit(long? id)
+        // GET: Edit
+        public async Task<IActionResult> Edit(long? id, string? activeTab, string? searchString)
         {
             if (id == null) return NotFound();
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(m => m.Id == id);
             if (ticket == null) return NotFound();
+
+            ViewBag.ReturnTab = activeTab ?? "repair";
+            ViewBag.ReturnSearch = searchString;
+
             return View(ticket);
         }
 
+        // POST: Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(long id, int statusId, string technicalResponse,
-            bool qcWifi, bool qcKeyboard, bool qcScreen, bool qcClean,
-            string? partName, decimal? partPrice)
+        // [ĐÃ SỬA] Xóa tham số 'decimal? partPrice' vì không được sử dụng (Fix lỗi IDE0060)
+        public async Task<IActionResult> Edit(long id, int statusId, string technicalResponse, bool qcWifi, bool qcKeyboard, bool qcScreen, bool qcClean, string? partName)
         {
             var ticket = await _context.TechnicalTickets.Include(t => t.Laptop).FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return NotFound();
 
-            // Logic QC...
-            if (statusId == 5) // Fixed
+            if (statusId == 5) // Fixed - Sửa xong
             {
-                if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean)
-                {
-                    TempData["ErrorMessage"] = "Chưa hoàn thành QC!";
-                    return View(ticket);
+                if (!qcWifi || !qcKeyboard || !qcScreen || !qcClean) 
+                { 
+                    TempData["ErrorMessage"] = "Chưa hoàn thành QC!"; 
+                    return View(ticket); 
                 }
-                technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed. Chuyển về Pending để duyệt.";
-                // Sửa xong -> Về Pending (1) để hiện lại Tab 1 cho Technical duyệt lần cuối
-                statusId = 1;
+                
+                technicalResponse += "\n[SYSTEM]: Sửa xong & QC Passed.";
+                
+                // ✅ SỬA: KHÔNG tự động đưa lên web
+                // Kiểm tra laptop có đang ở trạng thái Fixing không
+                if (ticket.Laptop != null && ticket.Laptop.StatusId == 4)
+                {
+                    // ✅ GIỮ NGUYÊN StatusId = 4 (Fixing)
+                    // KHÔNG chuyển sang Available (9) - Để Staff duyệt
+                    ticket.Laptop.RejectReason = null; // Xóa lý do từ chối
+                    technicalResponse += " Đã sửa xong. Chờ Staff duyệt lên web.";
+                }
+                else
+                {
+                    // Nếu không phải Fixing → Chuyển về Pending để duyệt lại
+                    statusId = 1;
+                    if (ticket.Laptop != null) ticket.Laptop.StatusId = 1;
+                    technicalResponse += " Chuyển về Pending để duyệt.";
+                }
             }
-            // Logic Linh kiện...
-            else if (statusId == 6)
+            else if (statusId == 6) // Need parts
             {
                 if (string.IsNullOrEmpty(partName)) { TempData["ErrorMessage"] = "Nhập tên linh kiện."; return View(ticket); }
                 technicalResponse += $"\n[REQUEST]: Cần: {partName}";
@@ -345,59 +402,26 @@ namespace web_chothue_laptop.Controllers
 
             if (ticket.Laptop != null)
             {
-                if (statusId == 1) ticket.Laptop.StatusId = 1; // Về Pending
+                if (statusId == 1) ticket.Laptop.StatusId = 1;
                 else if (statusId == 4) ticket.Laptop.StatusId = 4;
                 else if (statusId == 3 || statusId == 11) ticket.Laptop.StatusId = 11;
             }
 
             await _context.SaveChangesAsync();
-
+            
             if (statusId == 1)
             {
                 TempData["SuccessMessage"] = "Đã sửa xong! Thiết bị quay lại mục Yêu Cầu Kiểm Tra.";
                 return RedirectToAction(nameof(Index), new { activeTab = "inspection" });
             }
-
+            else if (statusId == 5)
+            {
+                // ✅ SỬA: Thông báo chờ Staff duyệt thay vì "đã niêm yết"
+                TempData["SuccessMessage"] = "Đã sửa xong! Chờ Staff duyệt lên web.";
+                return RedirectToAction(nameof(Index), new { activeTab = "repair" });
+            }
+            
             return RedirectToAction(nameof(Index), new { activeTab = "repair" });
-        }
-
-        // Hàm Report này dùng cho trang Report riêng (nếu có), logic tương tự tab Report ở Index
-        public async Task<IActionResult> Report(int? pageNumber, string? searchString, DateTime? startDate, DateTime? endDate)
-        {
-            var completedTickets = _context.TechnicalTickets
-                .Include(t => t.Laptop).ThenInclude(l => l.Brand)
-                .Include(t => t.Laptop).ThenInclude(l => l.Student)
-                .Include(t => t.Status)
-                .Include(t => t.Technical)
-                .Include(t => t.Staff)
-                .Where(t => t.StatusId == 2 || t.StatusId == 8)
-                .AsQueryable();
-
-            if (startDate.HasValue) completedTickets = completedTickets.Where(t => t.CreatedDate >= startDate.Value);
-
-            if (endDate.HasValue)
-            {
-                var endDateEndOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                completedTickets = completedTickets.Where(t => t.CreatedDate <= endDateEndOfDay);
-            }
-
-            if (!string.IsNullOrEmpty(searchString))
-            {
-                searchString = searchString.Trim();
-                if (long.TryParse(searchString, out long searchId)) completedTickets = completedTickets.Where(t => t.Id == searchId);
-            }
-
-            completedTickets = completedTickets.OrderByDescending(t => t.UpdatedDate ?? t.CreatedDate);
-
-            ViewData["TotalCompleted"] = await completedTickets.CountAsync();
-            ViewData["ApprovedCount"] = await completedTickets.CountAsync(t => t.StatusId == 2);
-            ViewData["ClosedCount"] = await completedTickets.CountAsync(t => t.StatusId == 8);
-            ViewData["CurrentFilter"] = searchString;
-            ViewData["StartDate"] = startDate?.ToString("yyyy-MM-dd");
-            ViewData["EndDate"] = endDate?.ToString("yyyy-MM-dd");
-
-            int pageSize = 10;
-            return View(await PaginatedList<TechnicalTicket>.CreateAsync(completedTickets.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
     }
 }

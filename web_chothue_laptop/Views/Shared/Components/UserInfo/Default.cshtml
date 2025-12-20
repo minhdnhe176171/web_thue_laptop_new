@@ -1,5 +1,6 @@
 @{
     var fullName = ViewBag.FullName as string ?? "User";
+    var roleName = ViewBag.RoleName as string ?? "";
     var avatarUrl = ViewBag.AvatarUrl as string;
     var userEmail = ViewBag.UserEmail as string ?? "";
 }
@@ -23,7 +24,13 @@
         {
             <i class="bi bi-person-circle me-2" style="font-size: 24px;"></i>
         }
-        <span>@fullName</span>
+        <div class="d-flex flex-column" style="line-height: 1.2;">
+            <span style="font-size: 14px;">@fullName</span>
+            @if (!string.IsNullOrEmpty(roleName))
+            {
+                <small style="font-size: 11px; opacity: 0.85;">@roleName</small>
+            }
+        </div>
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
         <li>

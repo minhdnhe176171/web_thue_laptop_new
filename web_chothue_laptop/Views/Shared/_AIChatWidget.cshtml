@@ -1,0 +1,1272 @@
+@{
+    // Ép buộc khởi tạo session nếu chưa có
+    if (Context.Session.IsAvailable)
+    {
+        // Trigger session initialization bằng cách truy cập Id
+        _ = Context.Session.Id;
+    }
+    var sessionId = Context.Session.Id ?? Guid.NewGuid().ToString();
+    
+    // Đảm bảo session ID luôn có giá trị
+    if (string.IsNullOrEmpty(sessionId))
+    {
+        sessionId = Guid.NewGuid().ToString();
+    }
+    
+    // Lấy UserId nếu đã đăng nhập (để persist lịch sử giữa các trang)
+    var userId = Context.Session.GetString("UserId");
+}
+
+<!-- AI Chat Widget -->
+<div id="aiChatWidget" class="ai-chat-widget" style="display: block !important; visibility: visible !important;">
+    <!-- Chat Button -->
+    <button id="aiChatToggle" class="ai-chat-toggle" title="Tư vấn AI" style="display: flex !important; visibility: visible !important;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 9H17M7 13H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="ai-chat-badge" id="aiChatBadge" style="display: none;">1</span>
+    </button>
+
+    <!-- Chat Window -->
+    <div id="aiChatWindow" class="ai-chat-window" style="display: none;">
+        <div class="ai-chat-header">
+            <div class="ai-chat-header-info">
+                <div class="ai-chat-avatar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V18C3 19.1 3.9 20 5 20H11V18H5V8H12V3H13.09L19 9H21ZM14 10V12H22V10H14ZM14 14V16H19V14H14Z" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="ai-chat-title">Tư vấn AI</div>
+                    <div class="ai-chat-subtitle">Trợ lý tư vấn laptop</div>
+                </div>
+            </div>
+            <div class="ai-chat-header-actions">
+                <div class="ai-chat-menu-wrapper">
+                    <button id="aiChatMenuBtn" class="ai-chat-menu-btn" title="Menu">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
+                            <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+                            <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
+                        </svg>
+                    </button>
+                    <div id="aiChatMenu" class="ai-chat-menu" style="display: none;">
+                        <button id="aiChatClearHistory" class="ai-chat-menu-item">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 4H14M6 4V2H10V4M12.5 4V13.5C12.5 14.05 12.05 14.5 11.5 14.5H4.5C3.95 14.5 3.5 14.05 3.5 13.5V4H12.5ZM6 7.5V11.5M10 7.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span>Xóa lịch sử</span>
+                        </button>
+                        <button id="aiChatNewChat" class="ai-chat-menu-item">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span>Tạo chat mới</span>
+                        </button>
+                    </div>
+                </div>
+                <button id="aiChatMinimize" class="ai-chat-minimize" title="Thu nhỏ">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="ai-chat-body" id="aiChatBody">
+            <div class="ai-chat-messages" id="aiChatMessages">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <!-- Recommended Laptops -->
+            <div id="aiChatRecommendations" class="ai-chat-recommendations" style="display: none;"></div>
+        </div>
+        
+        <div class="ai-chat-footer">
+            <div class="ai-chat-input-wrapper">
+                <input type="text" 
+                       id="aiChatInput" 
+                       class="ai-chat-input" 
+                       placeholder="Nhập câu hỏi của bạn..." 
+                       autocomplete="off" />
+                <button id="aiChatSend" class="ai-chat-send" title="Gửi">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 2L9 11M18 2L12 18L9 11M18 2L2 8L9 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="ai-chat-typing" id="aiChatTyping" style="display: none;">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ai-chat-widget {
+        position: fixed !important;
+        bottom: 100px !important;
+        right: 20px !important;
+        z-index: 10000 !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        pointer-events: auto !important; /* Đảm bảo có thể click được */
+    }
+
+    .ai-chat-toggle {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: none !important;
+        color: white !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        animation: pulse-glow 2s infinite !important;
+        pointer-events: auto !important; /* Đảm bảo có thể click được */
+        z-index: 10001 !important; /* Cao hơn widget container */
+    }
+    
+    @@keyframes pulse-glow {
+        0%, 100% {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        50% {
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5), 0 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+    }
+
+    .ai-chat-toggle:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .ai-chat-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff4444;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        border: 2px solid white;
+    }
+
+    .ai-chat-window {
+        position: absolute !important;
+        bottom: 80px !important;
+        right: 0 !important;
+        width: 380px !important;
+        height: 600px !important;
+        max-height: calc(100vh - 180px) !important;
+        background: white !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+        display: none !important; /* Mặc định ẩn, sẽ được set thành flex khi mở */
+        flex-direction: column !important;
+        overflow: hidden !important;
+        animation: slideUp 0.3s ease !important;
+        z-index: 2147483647 !important; /* Giá trị lớn nhất có thể */
+        pointer-events: auto !important;
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .ai-chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ai-chat-header-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .ai-chat-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-chat-title {
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .ai-chat-subtitle {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .ai-chat-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ai-chat-menu-wrapper {
+        position: relative;
+        z-index: 10001; /* Đảm bảo menu wrapper ở trên cùng */
+    }
+
+    .ai-chat-menu-btn {
+        background: rgba(255, 255, 255, 0.25) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: background 0.2s !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+    }
+
+    .ai-chat-menu-btn:hover {
+        background: rgba(255, 255, 255, 0.4) !important;
+    }
+    
+    .ai-chat-menu-btn svg {
+        width: 16px !important;
+        height: 16px !important;
+        color: white !important;
+        fill: white !important;
+        stroke: none !important;
+    }
+
+    .ai-chat-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 8px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 180px;
+        overflow: hidden;
+        z-index: 2147483647 !important; /* Đảm bảo menu hiển thị trên cùng */
+    }
+
+    .ai-chat-menu-item {
+        width: 100%;
+        padding: 12px 16px;
+        border: none;
+        background: white;
+        color: #333;
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 14px;
+        text-align: left;
+        visibility: visible !important;
+    }
+
+    .ai-chat-menu-item:hover {
+        background: #f5f5f5;
+    }
+
+    .ai-chat-menu-item svg {
+        flex-shrink: 0;
+        color: #667eea;
+    }
+
+    .ai-chat-minimize {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .ai-chat-minimize:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .ai-chat-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .ai-chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: #f8f9fa;
+    }
+
+    .ai-chat-message {
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ai-chat-message.user {
+        align-items: flex-end;
+    }
+
+    .ai-chat-message.assistant {
+        align-items: flex-start;
+    }
+
+    .ai-chat-message-content {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        line-height: 1.5;
+    }
+
+    .ai-chat-message.user .ai-chat-message-content {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .ai-chat-message.assistant .ai-chat-message-content {
+        background: white;
+        color: #333;
+        border: 1px solid #e0e0e0;
+        border-bottom-left-radius: 4px;
+    }
+
+    .ai-chat-message-time {
+        font-size: 11px;
+        color: #999;
+        margin-top: 4px;
+        padding: 0 4px;
+    }
+
+    .ai-chat-recommendations {
+        padding: 16px;
+        background: white;
+        border-top: 1px solid #e0e0e0;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .ai-chat-recommendation-item {
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .ai-chat-recommendation-item:hover {
+        border-color: #667eea;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    }
+
+    .ai-chat-recommendation-item h5 {
+        margin: 0 0 8px 0;
+        color: #667eea;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .ai-chat-recommendation-item p {
+        margin: 4px 0;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .ai-chat-recommendation-item .price {
+        font-weight: 600;
+        color: #ff4444;
+        font-size: 14px;
+    }
+
+    .ai-chat-footer {
+        border-top: 1px solid #e0e0e0;
+        padding: 12px;
+        background: white;
+    }
+
+    .ai-chat-input-wrapper {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .ai-chat-input {
+        flex: 1;
+        padding: 10px 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 24px;
+        outline: none;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+
+    .ai-chat-input:focus {
+        border-color: #667eea;
+    }
+
+    .ai-chat-send {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+    }
+
+    .ai-chat-send:hover {
+        transform: scale(1.1);
+    }
+
+    .ai-chat-send:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .ai-chat-typing {
+        display: flex;
+        gap: 4px;
+        padding: 8px 16px;
+        align-items: center;
+    }
+
+    .ai-chat-typing span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #667eea;
+        animation: typing 1.4s infinite;
+    }
+
+    .ai-chat-typing span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .ai-chat-typing span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @@keyframes typing {
+        0%, 60%, 100% {
+            transform: translateY(0);
+            opacity: 0.7;
+        }
+        30% {
+            transform: translateY(-10px);
+            opacity: 1;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .ai-chat-window {
+            width: calc(100vw - 40px);
+            height: calc(100vh - 100px);
+            bottom: 80px;
+            right: 20px;
+        }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+<script>
+    (function() {
+        // Đảm bảo widget luôn hiển thị
+        console.log('AI Chat Widget: Initializing...');
+        
+        const sessionId = '@sessionId';
+        const userId = '@(userId ?? "")';
+        
+        // Lấy conversation ID: ưu tiên userId nếu đã đăng nhập, nếu không dùng sessionId từ localStorage hoặc mới
+        let conversationId = '';
+        const STORAGE_KEY_CHAT_ID = 'ai_chat_conversation_id';
+        const STORAGE_KEY_MESSAGES = 'ai_chat_messages';
+        const STORAGE_KEY_RECOMMENDATIONS = 'ai_chat_recommendations';
+        
+        if (userId && userId.trim() !== '') {
+            // Đã đăng nhập: dùng userId (persist giữa các trang)
+            conversationId = `user:${userId}`;
+            // Lưu vào localStorage để dùng khi chuyển trang
+            localStorage.setItem(STORAGE_KEY_CHAT_ID, conversationId);
+        } else {
+            // Chưa đăng nhập: lấy từ localStorage hoặc dùng sessionId mới
+            const savedChatId = localStorage.getItem(STORAGE_KEY_CHAT_ID);
+            if (savedChatId && savedChatId.startsWith('session:')) {
+                // Giữ lại conversationId cũ từ localStorage (persist giữa các trang)
+                conversationId = savedChatId;
+            } else {
+                // Tạo mới
+                conversationId = `session:${sessionId}`;
+                localStorage.setItem(STORAGE_KEY_CHAT_ID, conversationId);
+            }
+        }
+        
+        // Cập nhật conversationId trong localStorage mỗi lần load (để đảm bảo sync)
+        localStorage.setItem(STORAGE_KEY_CHAT_ID, conversationId);
+        
+        console.log('AI Chat Widget: Conversation ID:', conversationId);
+        
+        let connection = null;
+        
+        // Khởi tạo SignalR connection (có thể fail nếu hub chưa ready)
+        try {
+            if (typeof signalR !== 'undefined') {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/aichathub")
+                    .build();
+            }
+        } catch (error) {
+            console.warn('AI Chat Widget: SignalR initialization failed, continuing without real-time updates:', error);
+        }
+
+        const widget = document.getElementById('aiChatWidget');
+        const toggle = document.getElementById('aiChatToggle');
+        const windowElement = document.getElementById('aiChatWindow');
+        const minimize = document.getElementById('aiChatMinimize');
+        const messagesContainer = document.getElementById('aiChatMessages');
+        const input = document.getElementById('aiChatInput');
+        const sendBtn = document.getElementById('aiChatSend');
+        const typingIndicator = document.getElementById('aiChatTyping');
+        const recommendationsContainer = document.getElementById('aiChatRecommendations');
+        const badge = document.getElementById('aiChatBadge');
+        const menuBtn = document.getElementById('aiChatMenuBtn');
+        const menu = document.getElementById('aiChatMenu');
+        const clearHistoryBtn = document.getElementById('aiChatClearHistory');
+        const newChatBtn = document.getElementById('aiChatNewChat');
+
+        // Kiểm tra các elements có tồn tại không
+        if (!widget) {
+            console.error('AI Chat Widget: Widget element not found!');
+        }
+        if (!toggle) {
+            console.error('AI Chat Widget: Toggle button not found!');
+        }
+        if (!windowElement) {
+            console.error('AI Chat Widget: Chat window element not found!');
+        }
+
+        let isOpen = false;
+        let hasUnreadMessages = false;
+        
+        console.log('AI Chat Widget: Elements initialized', {
+            widget: !!widget,
+            toggle: !!toggle,
+            window: !!windowElement,
+            sessionId: sessionId
+        });
+
+        // Connect to SignalR (nếu có)
+        if (connection) {
+            connection.start().then(() => {
+                console.log('AI Chat Widget: SignalR connected');
+                connection.invoke("JoinConversation", sessionId).catch(err => 
+                    console.warn('AI Chat Widget: Failed to join conversation:', err)
+                );
+            }).catch(err => {
+                console.warn('AI Chat Widget: SignalR connection error (chat will still work):', err);
+            });
+        }
+
+        // Toggle chat window - Sử dụng onclick trực tiếp để tránh xung đột
+        if (toggle) {
+            // Gỡ bỏ tất cả event listeners cũ (nếu có)
+            toggle.onclick = null;
+            
+            // Gắn event listener mới với stopImmediatePropagation
+            toggle.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation(); // Ngăn các script khác can thiệp
+                
+                console.log('AI Chat Widget: Toggle button clicked, isOpen:', isOpen);
+                
+                const win = document.getElementById('aiChatWindow');
+                if (!win) {
+                    console.error('AI Chat Widget: Chat window element not found!');
+                    return false;
+                }
+                
+                const currentDisplay = win.style.display || window.getComputedStyle(win).display;
+                
+                if (currentDisplay === 'none' || currentDisplay === '') {
+                    // Mở chat
+                    win.style.setProperty('display', 'flex', 'important');
+                    openChat();
+                } else {
+                    // Đóng chat
+                    win.style.setProperty('display', 'none', 'important');
+                    closeChat();
+                }
+                
+                return false;
+            };
+            
+            // Cũng gắn thêm mousedown để đảm bảo capture event sớm
+            toggle.onmousedown = function(e) {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            };
+            
+            console.log('AI Chat Widget: Toggle event listener attached (onclick method)');
+        } else {
+            console.error('AI Chat Widget: Cannot attach toggle listener - button not found');
+        }
+
+        if (minimize) {
+            minimize.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeChat();
+            });
+        }
+
+        // Menu toggle
+        if (menuBtn && menu) {
+            console.log('AI Chat Widget: Menu button and menu found, attaching listeners');
+            menuBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                const isVisible = menu.style.display === 'block';
+                menu.style.display = isVisible ? 'none' : 'block';
+                console.log('AI Chat Widget: Menu toggled, isVisible:', !isVisible);
+            });
+
+            // Đóng menu khi click ra ngoài
+            document.addEventListener('click', (e) => {
+                if (menu && menu.style.display === 'block') {
+                    if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
+                        menu.style.display = 'none';
+                    }
+                }
+            });
+        } else {
+            console.error('AI Chat Widget: Menu button or menu not found!', {
+                menuBtn: !!menuBtn,
+                menu: !!menu
+            });
+        }
+
+        // Clear history button
+        if (clearHistoryBtn) {
+            clearHistoryBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Đóng menu
+                if (menu) {
+                    menu.style.display = 'none';
+                }
+                
+                // Xác nhận với user
+                if (!confirm('Bạn có chắc muốn xóa toàn bộ lịch sử chat? Hành động này không thể hoàn tác.')) {
+                    return;
+                }
+                
+                await clearChatHistory();
+            });
+        }
+
+        // New chat button
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Đóng menu
+                if (menu) {
+                    menu.style.display = 'none';
+                }
+                
+                await createNewChat();
+            });
+        }
+
+        function openChat() {
+            console.log('AI Chat Widget: Opening chat window...');
+            if (!windowElement) {
+                console.error('AI Chat Widget: Cannot open - window element not found');
+                return;
+            }
+            
+            // Cưỡng ép hiển thị với !important
+            windowElement.style.setProperty('display', 'flex', 'important');
+            windowElement.style.setProperty('visibility', 'visible', 'important');
+            windowElement.style.setProperty('opacity', '1', 'important');
+            windowElement.style.setProperty('z-index', '2147483647', 'important');
+            
+            isOpen = true;
+            
+            if (badge) {
+                badge.style.display = 'none';
+            }
+            hasUnreadMessages = false;
+            
+            // Đầu tiên load từ localStorage (nhanh, hiển thị ngay)
+            loadFromLocalStorage();
+            
+            // Sau đó sync từ server (để đảm bảo có tin nhắn mới nhất)
+            loadHistory().then(() => {
+                // Nếu chưa có tin nhắn, hiển thị lời chào
+                if (messagesContainer && messagesContainer.children.length === 0) {
+                    addMessageToUI('Xin chào! Tôi là trợ lý tư vấn cho thuê laptop. Bạn đang tìm laptop cho mục đích sử dụng nào? (văn phòng, đồ họa, gaming, hay lập trình?)', 'assistant', true);
+                }
+            }).catch(err => {
+                console.error('AI Chat Widget: Error loading history:', err);
+                // Hiển thị lời chào mặc định nếu load history fail và chưa có tin nhắn
+                if (messagesContainer && messagesContainer.children.length === 0) {
+                    addMessageToUI('Xin chào! Tôi là trợ lý tư vấn cho thuê laptop. Bạn đang tìm laptop cho mục đích sử dụng nào? (văn phòng, đồ họa, gaming, hay lập trình?)', 'assistant', true);
+                }
+            });
+            
+            if (input) {
+                setTimeout(() => {
+                    try {
+                        input.focus();
+                    } catch (err) {
+                        console.warn('AI Chat Widget: Cannot focus input:', err);
+                    }
+                }, 100);
+            }
+            
+            console.log('AI Chat Widget: Chat window opened successfully');
+        }
+
+        function closeChat() {
+            console.log('AI Chat Widget: Closing chat window...');
+            if (windowElement) {
+                windowElement.style.setProperty('display', 'none', 'important');
+                windowElement.style.setProperty('visibility', 'hidden', 'important');
+            }
+            isOpen = false;
+            console.log('AI Chat Widget: Chat window closed');
+        }
+
+        // Helper function để lấy conversationId (từ localStorage hoặc tính toán)
+        function getConversationId() {
+            const savedId = localStorage.getItem(STORAGE_KEY_CHAT_ID);
+            if (savedId) {
+                return savedId;
+            }
+            
+            // Nếu chưa có, tính toán lại
+            if (userId && userId.trim() !== '') {
+                return `user:${userId}`;
+            } else {
+                return `session:${sessionId}`;
+            }
+        }
+
+        // Send message
+        function sendMessage() {
+            if (!input || !sendBtn) {
+                console.error('AI Chat Widget: Cannot send message - input or button not found');
+                return;
+            }
+            
+            const message = input.value.trim();
+            if (!message) {
+                console.log('AI Chat Widget: Empty message, ignoring');
+                return;
+            }
+
+            // Lấy conversationId hiện tại (có thể đã thay đổi nếu tạo chat mới)
+            const currentConversationId = getConversationId();
+            console.log('AI Chat Widget: Sending message:', message, 'to conversation:', currentConversationId);
+
+            // Add user message to UI
+            addMessageToUI(message, 'user', true);
+            input.value = '';
+            sendBtn.disabled = true;
+            if (typingIndicator) {
+                typingIndicator.style.display = 'flex';
+            }
+
+            // Send to server
+            fetch('/AIChat/SendMessage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    sessionId: currentConversationId // Sử dụng conversationId hiện tại
+                })
+            })
+            .then(response => {
+                console.log('AI Chat Widget: Response status:', response.status);
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || err.details || `HTTP ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('AI Chat Widget: Received response:', data);
+                if (typingIndicator) {
+                    typingIndicator.style.display = 'none';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                }
+                
+                if (data.message) {
+                    addMessageToUI(data.message, 'assistant', true);
+                } else {
+                    addMessageToUI('Xin lỗi, tôi không nhận được phản hồi từ server.', 'assistant', true);
+                }
+
+                if (data.recommendedLaptops && data.recommendedLaptops.length > 0) {
+                    showRecommendations(data.recommendedLaptops);
+                    // Lưu recommendations vào localStorage
+                    localStorage.setItem(STORAGE_KEY_RECOMMENDATIONS, JSON.stringify(data.recommendedLaptops));
+                } else {
+                    hideRecommendations();
+                    localStorage.removeItem(STORAGE_KEY_RECOMMENDATIONS);
+                }
+            })
+            .catch(error => {
+                console.error('AI Chat Widget: Error sending message:', error);
+                if (typingIndicator) {
+                    typingIndicator.style.display = 'none';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                }
+                addMessageToUI('Xin lỗi, có lỗi xảy ra: ' + error.message + '. Vui lòng thử lại sau.', 'assistant', true);
+            });
+        }
+
+        if (sendBtn) {
+            sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                sendMessage();
+            });
+            console.log('AI Chat Widget: Send button listener attached');
+        } else {
+            console.error('AI Chat Widget: Send button not found');
+        }
+
+        if (input) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            console.log('AI Chat Widget: Input keypress listener attached');
+        } else {
+            console.error('AI Chat Widget: Input field not found');
+        }
+
+        // BỎ SignalR listener - Chỉ dùng AJAX response để tránh duplicate message
+        // SignalR chỉ dùng cho chat giữa người với người, không cần cho AI chat
+        // if (connection) {
+        //     connection.on("ReceiveMessage", (data) => {
+        //         ...
+        //     });
+        // }
+
+        function addMessage(text, sender) {
+            if (!messagesContainer) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-chat-message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ai-chat-message-content';
+            contentDiv.textContent = text;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'ai-chat-message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Lưu vào localStorage
+            saveToLocalStorage();
+        }
+        
+        // Lưu lịch sử chat vào localStorage
+        function saveToLocalStorage() {
+            if (!messagesContainer) return;
+            
+            try {
+                const messages = [];
+                const messageElements = messagesContainer.querySelectorAll('.ai-chat-message');
+                
+                messageElements.forEach(msgEl => {
+                    const sender = msgEl.classList.contains('user') ? 'user' : 'assistant';
+                    const contentEl = msgEl.querySelector('.ai-chat-message-content');
+                    if (contentEl) {
+                        messages.push({
+                            message: contentEl.textContent,
+                            senderType: sender,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                });
+                
+                localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
+            } catch (error) {
+                console.error('AI Chat Widget: Error saving to localStorage:', error);
+            }
+        }
+        
+        // Load lịch sử từ localStorage
+        function loadFromLocalStorage() {
+            if (!messagesContainer) return;
+            
+            try {
+                const savedMessages = localStorage.getItem(STORAGE_KEY_MESSAGES);
+                if (savedMessages) {
+                    const messages = JSON.parse(savedMessages);
+                    messagesContainer.innerHTML = '';
+                    
+                    messages.forEach(msg => {
+                        addMessageToUI(msg.message, msg.senderType === 'user' ? 'user' : 'assistant', false);
+                    });
+                    
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+                
+                // Load recommendations
+                const savedRecommendations = localStorage.getItem(STORAGE_KEY_RECOMMENDATIONS);
+                if (savedRecommendations) {
+                    try {
+                        const recommendations = JSON.parse(savedRecommendations);
+                        if (recommendations && recommendations.length > 0) {
+                            showRecommendations(recommendations);
+                        }
+                    } catch (err) {
+                        console.error('AI Chat Widget: Error loading recommendations:', err);
+                    }
+                }
+            } catch (error) {
+                console.error('AI Chat Widget: Error loading from localStorage:', error);
+            }
+        }
+        
+        // Helper để add message mà không save lại localStorage (tránh loop)
+        function addMessageToUI(text, sender, saveStorage = true) {
+            if (!messagesContainer) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-chat-message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ai-chat-message-content';
+            contentDiv.textContent = text;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'ai-chat-message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            if (saveStorage) {
+                saveToLocalStorage();
+            }
+        }
+
+        function showRecommendations(laptops) {
+            recommendationsContainer.innerHTML = '';
+            recommendationsContainer.style.display = 'block';
+            
+            laptops.forEach(laptop => {
+                const item = document.createElement('div');
+                item.className = 'ai-chat-recommendation-item';
+                item.onclick = () => {
+                    // Lưu trạng thái chat trước khi điều hướng
+                    saveToLocalStorage();
+                    // Điều hướng sang trang chi tiết laptop
+                    window.location.href = `/Laptop/Details/${laptop.id}`;
+                };
+                
+                item.innerHTML = `
+                    <h5>${laptop.brand} ${laptop.name}</h5>
+                    <p><strong>CPU:</strong> ${laptop.cpu}</p>
+                    <p><strong>RAM:</strong> ${laptop.ram}</p>
+                    <p><strong>GPU:</strong> ${laptop.gpu}</p>
+                    <p><strong>Storage:</strong> ${laptop.storage}</p>
+                    <p class="price">${parseInt(laptop.price).toLocaleString('vi-VN')} VNĐ/tháng</p>
+                `;
+                
+                recommendationsContainer.appendChild(item);
+            });
+        }
+
+        function hideRecommendations() {
+            recommendationsContainer.style.display = 'none';
+        }
+
+        // Function để clear chat history
+        async function clearChatHistory() {
+            try {
+                // 1. Clear trên server (Redis)
+                const response = await fetch('/AIChat/ClearHistory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    console.error('AI Chat Widget: Failed to clear history on server');
+                }
+
+                // 2. Clear localStorage
+                localStorage.removeItem(STORAGE_KEY_MESSAGES);
+                localStorage.removeItem(STORAGE_KEY_RECOMMENDATIONS);
+                // Giữ lại conversationId để tiếp tục dùng conversation mới
+
+                // 3. Clear UI
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                }
+                if (recommendationsContainer) {
+                    recommendationsContainer.innerHTML = '';
+                    recommendationsContainer.style.display = 'none';
+                }
+
+                // 4. Hiển thị lời chào mới
+                addMessageToUI('Xin chào! Tôi là trợ lý tư vấn cho thuê laptop. Bạn đang tìm laptop cho mục đích sử dụng nào? (văn phòng, đồ họa, gaming, hay lập trình?)', 'assistant', true);
+
+                console.log('AI Chat Widget: Chat history cleared');
+            } catch (error) {
+                console.error('AI Chat Widget: Error clearing history:', error);
+                alert('Có lỗi xảy ra khi xóa lịch sử. Vui lòng thử lại.');
+            }
+        }
+
+        // Function để tạo chat mới (giống clear history nhưng tạo conversationId mới)
+        async function createNewChat() {
+            try {
+                // 1. Clear trên server (Redis) với conversationId cũ
+                const oldConversationId = localStorage.getItem(STORAGE_KEY_CHAT_ID);
+                if (oldConversationId) {
+                    const response = await fetch('/AIChat/ClearHistory', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        console.error('AI Chat Widget: Failed to clear old conversation on server');
+                    }
+                }
+
+                // 2. Tạo conversationId mới (tạo sessionId mới hoặc dùng userId mới với timestamp)
+                let newConversationId;
+                if (userId && userId.trim() !== '') {
+                    // Nếu đã đăng nhập, tạo user ID mới với timestamp
+                    newConversationId = `user:${userId}_${Date.now()}`;
+                } else {
+                    // Nếu chưa đăng nhập, tạo session ID mới
+                    const newSessionId = sessionId + '_' + Date.now();
+                    newConversationId = `session:${newSessionId}`;
+                }
+                localStorage.setItem(STORAGE_KEY_CHAT_ID, newConversationId);
+
+                // 3. Clear localStorage messages và recommendations
+                localStorage.removeItem(STORAGE_KEY_MESSAGES);
+                localStorage.removeItem(STORAGE_KEY_RECOMMENDATIONS);
+
+                // 4. Clear UI
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                }
+                if (recommendationsContainer) {
+                    recommendationsContainer.innerHTML = '';
+                    recommendationsContainer.style.display = 'none';
+                }
+
+                // 5. Hiển thị lời chào mới
+                addMessageToUI('Xin chào! Tôi là trợ lý tư vấn cho thuê laptop. Bạn đang tìm laptop cho mục đích sử dụng nào? (văn phòng, đồ họa, gaming, hay lập trình?)', 'assistant', true);
+
+                // 6. ConversationId mới đã được lưu vào localStorage, 
+                // hàm getConversationId() sẽ tự động lấy nó khi cần
+
+                console.log('AI Chat Widget: New chat created with ID:', newConversationId);
+            } catch (error) {
+                console.error('AI Chat Widget: Error creating new chat:', error);
+                alert('Có lỗi xảy ra khi tạo chat mới. Vui lòng thử lại.');
+            }
+        }
+
+        function loadHistory() {
+            if (!messagesContainer) {
+                console.error('AI Chat Widget: Cannot load history - messages container not found');
+                return Promise.resolve();
+            }
+            
+            // Không load lại từ localStorage ở đây (đã load trong openChat)
+            // Chỉ sync từ server để đảm bảo không miss tin nhắn mới
+            const currentConversationId = getConversationId();
+            console.log('AI Chat Widget: Loading history from server for:', currentConversationId);
+            return fetch(`/AIChat/GetHistory?sessionId=${encodeURIComponent(currentConversationId)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(messages => {
+                    console.log('AI Chat Widget: Loaded history from server:', messages);
+                    
+                    // Nếu server có nhiều tin nhắn hơn localStorage, cập nhật
+                    if (messages && Array.isArray(messages) && messages.length > 0) {
+                        const currentCount = messagesContainer.querySelectorAll('.ai-chat-message').length;
+                        
+                        // Nếu server có nhiều hơn, reload từ server
+                        if (messages.length > currentCount) {
+                            messagesContainer.innerHTML = '';
+                            messages.forEach(msg => {
+                                addMessageToUI(msg.message || msg.Message || '', (msg.senderType || msg.SenderType) === 'user' ? 'user' : 'assistant', false);
+                            });
+                            saveToLocalStorage(); // Save sau khi load xong
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('AI Chat Widget: Error loading history from server:', error);
+                    // Nếu server fail, vẫn giữ localStorage
+                });
+        }
+
+        // Đảm bảo widget button luôn hiển thị
+        const widgetCheck = document.getElementById('aiChatWidget');
+        const toggleBtnCheck = document.getElementById('aiChatToggle');
+        if (widgetCheck && toggleBtnCheck) {
+            widgetCheck.style.setProperty('display', 'block', 'important');
+            widgetCheck.style.setProperty('visibility', 'visible', 'important');
+            toggleBtnCheck.style.setProperty('display', 'flex', 'important');
+            toggleBtnCheck.style.setProperty('visibility', 'visible', 'important');
+            toggleBtnCheck.style.setProperty('pointer-events', 'auto', 'important');
+            console.log('AI Chat Widget: Widget displayed successfully');
+        } else {
+            console.error('AI Chat Widget: Widget elements not found!', {
+                widget: !!widgetCheck,
+                toggle: !!toggleBtnCheck
+            });
+        }
+
+        // Test click ngay sau khi load để đảm bảo button hoạt động
+        setTimeout(() => {
+            if (toggleBtnCheck) {
+                console.log('AI Chat Widget: Button test - element exists, onclick:', typeof toggleBtnCheck.onclick);
+                // Thêm một test click event
+                const testClick = new MouseEvent('click', {
+                    bubbles: false,
+                    cancelable: true,
+                    view: window
+                });
+                console.log('AI Chat Widget: Ready for interaction');
+            }
+        }, 500);
+
+        // Kiểm tra URL parameter để clear localStorage khi đăng xuất
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('logout') === 'true') {
+            localStorage.removeItem(STORAGE_KEY_MESSAGES);
+            localStorage.removeItem(STORAGE_KEY_RECOMMENDATIONS);
+            localStorage.removeItem(STORAGE_KEY_CHAT_ID);
+            // Xóa URL parameter để không ảnh hưởng lần load sau
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        // Clear localStorage khi đăng xuất (listener cho logout event)
+        // Kiểm tra khi load trang xem có đăng xuất không
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'ai_chat_logout' || e.key === null) {
+                // User đã đăng xuất trên tab khác hoặc clear storage
+                localStorage.removeItem(STORAGE_KEY_MESSAGES);
+                localStorage.removeItem(STORAGE_KEY_RECOMMENDATIONS);
+                localStorage.removeItem(STORAGE_KEY_CHAT_ID);
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                }
+                hideRecommendations();
+            }
+        });
+        
+        // Kiểm tra khi user đăng xuất (hook vào logout button nếu có)
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('a[href*="Logout"], a[href*="logout"]');
+            if (target) {
+                // Clear localStorage khi đăng xuất
+                localStorage.removeItem(STORAGE_KEY_MESSAGES);
+                localStorage.removeItem(STORAGE_KEY_RECOMMENDATIONS);
+                localStorage.removeItem(STORAGE_KEY_CHAT_ID);
+                // Trigger storage event để các tab khác cũng clear
+                localStorage.setItem('ai_chat_logout', Date.now().toString());
+                setTimeout(() => localStorage.removeItem('ai_chat_logout'), 100);
+            }
+        });
+        
+        console.log('AI Chat Widget: Initialization complete', {
+            conversationId: conversationId,
+            userId: userId || 'not logged in',
+            toggleButtonExists: !!toggle,
+            windowElementExists: !!windowElement,
+            ready: true
+        });
+    })();
+</script>
+
+
