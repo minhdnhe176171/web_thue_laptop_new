@@ -29,6 +29,10 @@ public partial class Booking
 
     public string? StudentUrl { get; set; }
 
+    public string? RejectReason { get; set; }
+
+    public DateTime? ReturnDueDate { get; set; }
+
     public virtual ICollection<BookingReceipt> BookingReceipts { get; set; } = new List<BookingReceipt>();
 
     public virtual Customer Customer { get; set; } = null!;

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Thông Báo Trả Máy";
 }
@@ -120,29 +120,29 @@ else
 {
     @foreach (var laptop in Model)
     {
-        // ✅ Lấy booking Close (StatusId = 8) có thông báo trả máy (kiểm tra ReturnDueDate)
+        // ✅ Lấy booking Close (StatusId = 8) (tạm thời không kiểm tra ReturnDueDate vì không có trong model)
         var closeBooking = laptop.Bookings?
-            .Where(b => b.StatusId == 8 && b.ReturnDueDate.HasValue)
+            .Where(b => b.StatusId == 8)
             .OrderByDescending(b => b.UpdatedDate)
             .FirstOrDefault();
 
         if (closeBooking != null)
         {
-            // ✅ Lấy thời gian từ ReturnDueDate
+            // ✅ Lấy thời gian (tạm thời dùng DateTime.Now vì ReturnDueDate không có trong model)
             const string FIXED_LOCATION = "Tòa Alpha, L300"; // ✅ Địa điểm cố định
-            var appointmentTime = closeBooking.ReturnDueDate ?? DateTime.Now;
+            var appointmentTime = DateTime.Now;
             
-            // ✅ Parse flag xác nhận từ RejectReason (nếu có)
-            var isConfirmed = !string.IsNullOrEmpty(closeBooking.RejectReason) && closeBooking.RejectReason.Contains("CONFIRMED");
+            // ✅ Parse flag xác nhận (tạm thời false vì RejectReason không có trong model)
+            var isConfirmed = false;
             DateTime? confirmedDate = null;
-            if (isConfirmed && closeBooking.RejectReason != null)
-            {
-                var parts = closeBooking.RejectReason.Split('|');
-                if (parts.Length > 1 && DateTime.TryParse(parts[1], out var cd))
-                {
-                    confirmedDate = cd;
-                }
-            }
+            // if (isConfirmed && closeBooking.RejectReason != null)
+            // {
+            //     var parts = closeBooking.RejectReason.Split('|');
+            //     if (parts.Length > 1 && DateTime.TryParse(parts[1], out var cd))
+            //     {
+            //         confirmedDate = cd;
+            //     }
+            // }
 
             <div class="notification-card">
                 <div class="notification-header">
