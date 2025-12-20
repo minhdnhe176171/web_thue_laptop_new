@@ -1,152 +1,335 @@
 ﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
-    ViewData["Title"] = "Laptop của tôi";
-    var currentStatus = ViewBag.CurrentStatus as string;
+    ViewData["Title"] = "Trang tạo đơn cho thuê laptop";
+    var currentPage = ViewBag.CurrentPage as string ?? "All";
+    
+    // Pagination settings
+    int pageSize = 5;
+    int page = ViewBag.Page ?? 1;
+    var laptopsPaged = Model.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+    int totalPages = (int)Math.Ceiling(Model.Count() / (double)pageSize);
 }
 
 @functions {
     private static string TranslateStatus(string? name) => name?.ToLower() switch
     {
         "pending" => "Đang chờ xử lý",
-        "đang chờ xử lý" => "Đang chờ xử lý",
         "approved" => "Đã phê duyệt",
         "rejected" => "Bị từ chối",
         _ => name ?? string.Empty
     };
 }
 
-<h2>Laptop của tôi</h2>
+<style>
+    /* CSS cho giao diện Student giống Staff */
+    .container, .body-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
 
-<!-- Thanh lọc theo trạng thái -->
-<div class="mb-3">
-    <ul class="nav nav-pills">
-        <li class="nav-item">
-            <a class="nav-link @(string.IsNullOrEmpty(currentStatus) ? "active" : "")" 
-               asp-controller="Student" 
-               asp-action="Index"
-               asp-route-search="@ViewBag.Search">
-                Tất cả (@(ViewBag.TotalCount ?? 0))
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @(currentStatus?.ToLower() == "pending" ? "active" : "")" 
-               asp-controller="Student" 
-               asp-action="Index"
-               asp-route-status="pending"
-               asp-route-search="@ViewBag.Search">
-                Đang chờ xử lý (@(ViewBag.PendingCount ?? 0))
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @(currentStatus?.ToLower() == "approved" ? "active" : "")" 
-               asp-controller="Student" 
-               asp-action="Index"
-               asp-route-status="approved"
-               asp-route-search="@ViewBag.Search">
-                Đã phê duyệt (@(ViewBag.ApprovedCount ?? 0))
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @(currentStatus?.ToLower() == "rejected" ? "active" : "")" 
-               asp-controller="Student" 
-               asp-action="Index"
-               asp-route-status="rejected"
-               asp-route-search="@ViewBag.Search">
-                Bị từ chối (@(ViewBag.RejectedCount ?? 0))
-            </a>
-        </li>
-    </ul>
-</div>
+    .student-wrapper {
+        display: flex;
+        min-height: calc(100vh - 60px);
+        background-color: #f8f9fa;
+        margin-top: -1.5rem;
+        padding-top: 1.5rem;
+    }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <a class="btn btn-primary" asp-controller="Student" asp-action="Create">Tạo laptop cho thuê</a>
-        <a class="btn btn-secondary" asp-controller="Student" asp-action="Report">Báo cáo</a>
+    .student-sidebar {
+        width: 260px;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .sidebar-header {
+        background-color: #0d6efd;
+        color: white;
+        padding: 20px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sidebar-menu {
+        padding-top: 10px;
+    }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 20px;
+            color: #495057;
+            text-decoration: none;
+            transition: 0.2s;
+            border-left: 5px solid transparent;
+            font-weight: 500;
+        }
+
+            .sidebar-menu a:hover {
+                background-color: #f1f4f9;
+                color: #0d6efd;
+            }
+
+            .sidebar-menu a.active {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+                font-weight: bold;
+                border-left-color: #0d6efd;
+            }
+
+            .sidebar-menu a .badge {
+                margin-left: auto;
+            }
+
+    .student-content {
+        flex-grow: 1;
+        padding: 30px;
+        overflow-x: auto;
+    }
+
+    /* Table styling với borders rõ ràng */
+    .table-bordered {
+        border: 1px solid #dee2e6 !important;
+    }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #dee2e6 !important;
+            vertical-align: middle;
+        }
+
+        .table-bordered thead th {
+            border-bottom: 2px solid #dee2e6 !important;
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+    /* Thêm padding cho cells */
+    .table td,
+    .table th {
+        padding: 12px 15px;
+    }
+
+    /* Hover effect */
+    .table-hover tbody tr:hover {
+        background-color: #f1f4f9;
+    }
+</style>
+
+<div class="student-wrapper">
+    <div class="student-sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-laptop"></i> Laptop của tôi
+        </div>
+        <div class="sidebar-menu">
+            <a href="@Url.Action("Index", "Student", new { search = ViewBag.Search })" class="@(currentPage == "All" ? "active" : "")">
+                <i class="fas fa-list"></i> 
+                Tất cả
+                <span class="badge bg-primary">@(ViewBag.TotalCount ?? 0)</span>
+            </a>
+            <a href="@Url.Action("Pending", "Student", new { search = ViewBag.Search })" class="@(currentPage == "Pending" ? "active" : "")">
+                <i class="fas fa-clock"></i> 
+                Đang chờ xử lý
+                <span class="badge bg-warning text-dark">@(ViewBag.PendingCount ?? 0)</span>
+            </a>
+            <a href="@Url.Action("Approved", "Student", new { search = ViewBag.Search })" class="@(currentPage == "Approved" ? "active" : "")">
+                <i class="fas fa-check-circle"></i> 
+                Đã phê duyệt
+                <span class="badge bg-success">@(ViewBag.ApprovedCount ?? 0)</span>
+            </a>
+            <a href="@Url.Action("Rejected", "Student", new { search = ViewBag.Search })" class="@(currentPage == "Rejected" ? "active" : "")">
+                <i class="fas fa-times-circle"></i> 
+                Bị từ chối
+                <span class="badge bg-danger">@(ViewBag.RejectedCount ?? 0)</span>
+            </a>
+           
+        </div>
     </div>
-    <form method="get" class="d-flex" style="width:360px;">
-        <input type="hidden" name="status" value="@currentStatus" />
-        <input type="search" name="search" value="@(ViewBag.Search ?? "")" class="form-control" placeholder="Tìm tên hoặc hãng" />
-        <button class="btn btn-outline-secondary ms-2" type="submit">Tìm</button>
-    </form>
-</div>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">
-        @if (string.IsNullOrEmpty(currentStatus))
+    <div class="student-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-primary mb-0">
+                @if (currentPage == "All")
+                {
+                    <text>Tất cả Laptop</text>
+                }
+                else if (currentPage == "Pending")
+                {
+                    <text>Laptop Đang Chờ Xử Lý</text>
+                }
+                else if (currentPage == "Approved")
+                {
+                    <text>Laptop Đã Phê Duyệt</text>
+                }
+                else if (currentPage == "Rejected")
+                {
+                    <text>Laptop Bị Từ Chối</text>
+                }
+            </h3>
+        </div>
+
+        <div class="mb-3">
+            <a class="btn btn-primary" asp-controller="Student" asp-action="Create">
+                <i class="fas fa-plus"></i> Tạo laptop cho thuê
+            </a>
+            <a class="btn btn-success" asp-controller="Student" asp-action="MyRentals">
+                <i class="fas fa-handshake"></i> Laptop Đang Cho Thuê
+            </a>
+            <a class="btn btn-secondary" asp-controller="Student" asp-action="Report">
+                <i class="fas fa-chart-line"></i> Báo cáo
+            </a>
+           
+        </div>
+
+        <!-- Bộ lọc tìm kiếm -->
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Tìm tên hoặc hãng</label>
+                        <input type="search" name="search" value="@(ViewBag.Search ?? "")" class="form-control" placeholder="Nhập tên laptop hoặc hãng..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Từ ngày</label>
+                        <input type="date" name="fromDate" value="@(ViewBag.FromDate ?? "")" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Đến ngày</label>
+                        <input type="date" name="toDate" value="@(ViewBag.ToDate ?? "")" class="form-control" />
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>Tìm
+                        </button>
+                        <a href="@Url.Action(currentPage == "All" ? "Index" : currentPage, "Student")" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (!Model.Any())
         {
-            <p>Bạn chưa có laptop nào.</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                @if (currentPage == "All")
+                {
+                    <text>Bạn chưa có laptop nào.</text>
+                }
+                else if (currentPage == "Pending")
+                {
+                    <text>Không có laptop nào đang chờ xử lý</text>
+                }
+                else if (currentPage == "Approved")
+                {
+                    <text>Không có laptop nào đã phê duyệt</text>
+                }
+                else if (currentPage == "Rejected")
+                {
+                    <text>Không có laptop nào bị từ chối</text>
+                }
+            </div>
         }
         else
         {
-            <p>Không có laptop nào ở trạng thái "@TranslateStatus(currentStatus)"</p>
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Tên</th>
+                                <th>Hãng</th>
+                                <th class="text-end">Giá</th>
+                                <th class="text-center">Ngày tạo</th>
+                                <th class="text-center">Đến hạn</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    @foreach(var l in laptopsPaged)
+                    {
+                        <tr>
+                            <td class="ps-4">@l.Name</td>
+                            <td>@l.Brand?.BrandName</td>
+                            <td class="text-end">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
+                            <td class="text-center">@(l.CreatedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-center">
+                                @if (l.EndTime.HasValue)
+                                {
+                                    <span class="@(l.EndTime.Value < DateTime.Today ? "text-danger fw-bold" : "")">
+                                        @l.EndTime.Value.ToString("dd/MM/yyyy")
+                                        @if (l.EndTime.Value < DateTime.Today)
+                                        {
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                        }
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="@(l.Status?.StatusName?.ToLower() switch 
+                                    {
+                                        "pending" => "text-black fw-bold",
+                                        "approved" => "text-black fw-bold",
+                                        "rejected" => "text-danger fw-bold",
+                                        _ => "text-secondary fw-bold"
+                                    })">
+                                    @TranslateStatus(l.Status?.StatusName)
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-info me-1" asp-controller="Student" asp-action="Details" asp-route-id="@l.Id">
+                                    <i class="bi bi-eye"></i> Xem chi tiết
+                                </a>
+                                @if (l.Status?.StatusName?.ToLower() == "pending")
+                                {
+                                    <form asp-action="Delete" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-danger" type="submit">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            @* Pagination - Luôn hiển thị *@
+            <nav class="mt-3">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <li class="page-item @(page == 1 ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action(currentPage switch { "Pending" => "Pending", "Approved" => "Approved", "Rejected" => "Rejected", _ => "Index" }, "Student", new { page = page - 1, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">Trước</a>
+                    </li>
+                    
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == page ? "active" : "")">
+                            <a class="page-link" href="@Url.Action(currentPage switch { "Pending" => "Pending", "Approved" => "Approved", "Rejected" => "Rejected", _ => "Index" }, "Student", new { page = i, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">@i</a>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(page == totalPages ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action(currentPage switch { "Pending" => "Pending", "Approved" => "Approved", "Rejected" => "Rejected", _ => "Index" }, "Student", new { page = page + 1, search = ViewBag.Search, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })">Sau</a>
+                    </li>
+                </ul>
+            </nav>
         }
     </div>
-}
-else
-{
-    <table class="table table-bordered table-hover align-middle">
-        <thead class="table-light">
-            <tr>
-                <th>Tên</th>
-                <th>Hãng</th>
-                <th class="text-end">Giá</th>
-                <th class="text-center">Ngày tạo</th>
-                <th class="text-center">Đến hạn</th>
-                <th class="text-center">Trạng thái</th>
-                <th class="text-center">Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-    @foreach(var l in Model)
-    {
-        <tr>
-            <td>@l.Name</td>
-            <td>@l.Brand?.BrandName</td>
-            <td class="text-end">@(l.Price?.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) ?? "-")</td>
-            <td class="text-center">@(l.CreatedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
-            <td class="text-center">
-                @if (l.UpdatedDate.HasValue)
-                {
-                    <span class="@(l.UpdatedDate.Value < DateTime.Today ? "text-danger fw-bold" : "")">
-                        @l.UpdatedDate.Value.ToString("dd/MM/yyyy")
-                        @if (l.UpdatedDate.Value < DateTime.Today)
-                        {
-                            <i class="bi bi-exclamation-triangle-fill"></i>
-                        }
-                    </span>
-                }
-                else
-                {
-                    <span>-</span>
-                }
-            </td>
-            <td class="text-center">
-                <span class="badge 
-                    @(l.Status?.StatusName?.ToLower() switch 
-                    {
-                        "pending" => "bg-warning text-dark",
-                        "approved" => "bg-success",
-                        "rejected" => "bg-danger",
-                        _ => "bg-secondary"
-                    })">
-                    @TranslateStatus(l.Status?.StatusName)
-                </span>
-            </td>
-            <td class="text-center">
-                <a class="btn btn-sm btn-info me-1" asp-controller="Student" asp-action="Details" asp-route-id="@l.Id">
-                    <i class="bi bi-eye"></i> Xem chi tiết
-                </a>
-                <form asp-action="Delete" asp-route-id="@l.Id" asp-controller="Student" method="post" style="display:inline" onsubmit="return confirm('Bạn có chắc muốn xóa laptop này không?');">
-                    @Html.AntiForgeryToken()
-                    <button class="btn btn-sm btn-danger" type="submit">
-                        <i class="bi bi-trash"></i> Xóa
-                    </button>
-                </form>
-            </td>
-        </tr>
-    }
-        </tbody>
-    </table>
-}
+</div>

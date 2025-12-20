@@ -1,0 +1,176 @@
+@model IEnumerable<web_chothue_laptop.Models.Customer>
+
+@{
+    ViewData["Title"] = "Quản Lý Customer Blacklist";
+    Layout = "_ManagerLayout";
+}
+
+<style>
+    .blacklist-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .table-custom thead th {
+        background-color: #0d6efd;
+        color: white;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .table-custom tbody td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .table-custom tbody tr.table-danger:hover {
+        background-color: #f8d7da;
+    }
+</style>
+
+<h3 class="fw-bold text-primary mb-4">
+    <i class="fas fa-users"></i>
+    Quản Lý Customer Blacklist (@(ViewBag.TotalItems ?? 0))
+</h3>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+    </div>
+}
+
+<!-- FILTER -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="CustomerManagement" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tìm kiếm</label>
+                    <input type="text"
+                           class="form-control"
+                           name="search"
+                           value="@ViewBag.Search"
+                           placeholder="Tên, Email, Số điện thoại..." />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Trạng thái</label>
+                    <select class="form-select" name="filterStatus" id="filterStatus">
+                        <option value="">Tất cả</option>
+                        <option value="normal" selected="@(ViewBag.FilterStatus == "normal")">
+                            Bình thường
+                        </option>
+                        <option value="blacklist" selected="@(ViewBag.FilterStatus == "blacklist")">
+                            Blacklist
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string)
+            || !string.IsNullOrEmpty(ViewBag.FilterStatus as string))
+            {
+                <div class="mt-3">
+                    <a asp-action="CustomerManagement" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-times"></i> Xóa bộ lọc
+                    </a>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
+<!-- TABLE -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-bordered table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>SĐT</th>
+                    <th>CMND/CCCD</th>
+                    <th>Ngày tạo</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var customer in Model)
+                    {
+                        <tr class="@(customer.BlackList == true ? "table-danger" : "")">
+                            <td class="fw-bold">#@customer.Id</td>
+                            <td>@customer.LastName @customer.FirstName</td>
+                            <td>@customer.Email</td>
+                            <td>@(customer.Phone ?? "N/A")</td>
+                            <td>@(customer.IdNo ?? "N/A")</td>
+                            <td>@customer.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (customer.BlackList == true)
+                                {
+                                    <span class="blacklist-badge">
+                                        <i class="fas fa-ban"></i> BLACKLIST
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Bình thường</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="RentalHistory"
+                                   asp-route-id="@customer.Id"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-history"></i> Lịch sử
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            Không có dữ liệu
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PAGINATION -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center">
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="CustomerManagement"
+                       asp-route-search="@ViewBag.Search"
+                       asp-route-filterStatus="@ViewBag.FilterStatus"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

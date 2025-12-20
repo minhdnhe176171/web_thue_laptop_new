@@ -1,0 +1,168 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@{
+    ViewData["Title"] = "Đơn từ Sinh viên";
+    Layout = "_ManagerLayout";
+}
+
+<h3 class="mb-4 fw-bold text-primary">
+    <i class="fas fa-laptop"></i> Đơn từ Sinh viên gửi lên cho thuê
+</h3>
+
+<!-- FILTER -->
+<form method="get" asp-action="LaptopRequests" class="mb-3 d-flex gap-2 align-items-center">
+    <input type="text"
+           name="searchString"
+           value="@ViewBag.SearchString"
+           placeholder="Tìm theo tên máy, email, ID..."
+           class="form-control w-auto" />
+
+    <select name="statusId" class="form-select w-auto">
+        <option value="0">Tất cả trạng thái</option>
+        @foreach (var status in ViewBag.StatusList)
+        {
+            <option value="@status.Id" selected="@(ViewBag.SelectedStatus == status.Id)">
+                @status.StatusName
+            </option>
+        }
+    </select>
+
+    <button type="submit" class="btn btn-primary">
+        <i class="fas fa-filter"></i> Lọc
+    </button>
+</form>
+
+<!-- TABLE -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Tên máy</th>
+                    <th>Hãng</th>
+                    <th>Trạng thái</th>
+                    <th>Sinh viên gửi</th>
+                    <th>Email</th>
+                    <th>Ngày gửi</th>
+                    <th class="text-center" width="140">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            Không có dữ liệu
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">
+                                <a asp-action="LaptopDetail"
+                                   asp-route-id="@item.Id"
+                                   class="text-decoration-none">
+                                    @item.Name
+                                </a>
+                            </td>
+                            <td>@item.Brand?.BrandName</td>
+                            <td>
+                                @switch (item.StatusId)
+                                {
+                                    case 1:
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        break;
+                                    case 2:
+                                        <span class="badge bg-success">Approved</span>
+                                        break;
+                                    case 3:
+                                        <span class="badge bg-danger">Rejected</span>
+                                        break;
+                                    case 4:
+                                        <span class="badge bg-orange">Fixing</span>
+                                        break;
+                                    case 5:
+                                        <span class="badge bg-purple">Fixed</span>
+                                        break;
+                                    case 6:
+                                        <span class="badge bg-primary">Active</span>
+                                        break;
+                                    case 7:
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        break;
+                                    case 8:
+                                        <span class="badge bg-dark">Close</span>
+                                        break;
+                                    case 9:
+                                        <span class="badge bg-teal">Available</span>
+                                        break;
+                                    case 10:
+                                        <span class="badge bg-info">Rented</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-light text-dark">Unknown</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@item.Student?.FirstName @item.Student?.LastName</td>
+                            <td>@item.Student?.Email</td>
+                            <td>@item.CreatedDate?.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center">
+                                <a asp-action="LaptopDetail"
+                                   asp-route-id="@item.Id"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i> Xem chi tiết
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PAGINATION -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+
+            <li class="page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="LaptopRequests"
+                   asp-route-page="@(ViewBag.CurrentPage - 1)"
+                   asp-route-searchString="@ViewBag.SearchString"
+                   asp-route-statusId="@ViewBag.SelectedStatus">
+                    Trước
+                </a>
+            </li>
+
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="LaptopRequests"
+                       asp-route-page="@i"
+                       asp-route-searchString="@ViewBag.SearchString"
+                       asp-route-statusId="@ViewBag.SelectedStatus">
+                        @i
+                    </a>
+                </li>
+            }
+
+            <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="LaptopRequests"
+                   asp-route-page="@(ViewBag.CurrentPage + 1)"
+                   asp-route-searchString="@ViewBag.SearchString"
+                   asp-route-statusId="@ViewBag.SelectedStatus">
+                    Sau
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+}

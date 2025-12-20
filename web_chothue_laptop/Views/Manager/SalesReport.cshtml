@@ -1,0 +1,311 @@
+﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+@{
+    ViewData["Title"] = "Báo Cáo Doanh Số";
+    ViewBag.Current = "SalesReport";
+    Layout = "_ManagerLayout";
+}
+
+<style>
+    .stats-row {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        flex: 1;
+        border-radius: 12px;
+        padding: 2rem;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-card-green {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .stat-card-cyan {
+        background: linear-gradient(135deg, #17a2b8 0%, #00d4ff 100%);
+    }
+
+    .stat-card-blue {
+        background: linear-gradient(135deg, #007bff 0%, #00bfff 100%);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.95;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-subtitle {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    .search-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #17a2b8 0%, #00d4ff 100%);
+        color: white;
+        padding: 1.2rem 1.5rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .badge-booking {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .badge-days {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 0.35rem 0.8rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    .price-text {
+        color: #28a745;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary fw-bold">
+            <i class="fas fa-chart-bar me-2"></i>Báo Cáo Doanh Số
+        </h2>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-row">
+        <div class="stat-card stat-card-green">
+            <div class="stat-label">Tổng Doanh Thu</div>
+            <div class="stat-value">@ViewBag.TotalRevenue.ToString("#,##0") đ</div>
+            <div class="stat-subtitle">
+                <i class="fas fa-money-bill-wave me-1"></i>Từ @ViewBag.TotalBookings đơn hoàn thành
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-cyan">
+            <div class="stat-label">Đơn Đã Hoàn Thành</div>
+            <div class="stat-value">@ViewBag.TotalBookings</div>
+            <div class="stat-subtitle">
+                <i class="fas fa-check-circle me-1"></i>Customer đã trả máy
+            </div>
+        </div>
+
+        <div class="stat-card stat-card-blue">
+            <div class="stat-label">TB/Đơn</div>
+            <div class="stat-value">@ViewBag.AvgRevenue.ToString("#,##0") đ</div>
+            <div class="stat-subtitle">
+                <i class="fas fa-calculator me-1"></i>Doanh thu trung bình
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="search-card">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">
+                    <i class="fas fa-search me-1"></i>Tìm kiếm
+                </label>
+                <input type="search" 
+                       name="search" 
+                       value="@ViewBag.Search" 
+                       class="form-control" 
+                       placeholder="Tìm theo mã đơn, laptop, customer..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="fas fa-calendar-alt me-1"></i>Từ ngày
+                </label>
+                <input type="date" 
+                       name="fromDate" 
+                       value="@ViewBag.FromDate" 
+                       class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="fas fa-calendar-alt me-1"></i>Đến ngày
+                </label>
+                <input type="date" 
+                       name="toDate" 
+                       value="@ViewBag.ToDate" 
+                       class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" type="submit">
+                    <i class="fas fa-search me-2"></i>Tìm kiếm
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string) || !string.IsNullOrEmpty(ViewBag.FromDate as string))
+            {
+                <div class="col-md-12">
+                    <a href="@Url.Action("SalesReport", "Manager")" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-2"></i>Làm mới
+                    </a>
+                </div>
+            }
+        </form>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-card">
+        <div class="table-header">
+            <i class="fas fa-list me-2"></i>Chi Tiết Các Đơn Đã Hoàn Thành (@ViewBag.TotalItems đơn)
+        </div>
+        
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="text-center">Mã Đơn</th>
+                            <th>Laptop</th>
+                            <th>Student</th>
+                            <th>Customer</th>
+                            <th class="text-center">Thời Gian</th>
+                            <th class="text-center">Số Ngày</th>
+                            <th class="text-end">Doanh Thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in Model)
+                        {
+                            int totalDays = Math.Max(1, (booking.EndTime - booking.StartTime).Days);
+                            
+                            <tr>
+                                <td class="text-center">
+                                    <span class="badge-booking">#@booking.Id</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-primary">@booking.Laptop?.Name</div>
+                                    <small class="text-muted">@booking.Laptop?.Brand?.BrandName</small>
+                                </td>
+                                <td>
+                                    @if (booking.Laptop?.Student != null)
+                                    {
+                                        <div class="fw-semibold">@(booking.Laptop.Student.LastName + " " + booking.Laptop.Student.FirstName)</div>
+                                        <small class="text-muted">@booking.Laptop.Student.Email</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (booking.Customer != null)
+                                    {
+                                        <div class="fw-semibold">@(booking.Customer.LastName + " " + booking.Customer.FirstName)</div>
+                                        <small class="text-muted">@booking.Customer.Email</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <small>
+                                        @booking.StartTime.ToString("dd/MM/yyyy")<br/>
+                                        <i class="fas fa-arrow-down"></i><br/>
+                                        @booking.EndTime.ToString("dd/MM/yyyy")
+                                    </small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-days">@totalDays ngày</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="price-text">
+                                        @(booking.TotalPrice?.ToString("#,##0") ?? "0") đ
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-3">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="?page=@(ViewBag.CurrentPage - 1)&search=@ViewBag.Search&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        @for (int i = 1; i <= Math.Max(1, ViewBag.TotalPages); i++)
+                        {
+                            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="?page=@i&search=@ViewBag.Search&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">@i</a>
+                            </li>
+                        }
+                        
+                        <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="?page=@(ViewBag.CurrentPage + 1)&search=@ViewBag.Search&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">Chưa có đơn hoàn thành</h5>
+                <p class="text-muted">
+                    @if (!string.IsNullOrEmpty(ViewBag.Search as string) || !string.IsNullOrEmpty(ViewBag.FromDate as string))
+                    {
+                        <text>Không tìm thấy kết quả phù hợp với bộ lọc của bạn.</text>
+                    }
+                    else
+                    {
+                        <text>Chưa có đơn thuê nào được hoàn thành.</text>
+                    }
+                </p>
+            </div>
+        }
+    </div>
+</div>
