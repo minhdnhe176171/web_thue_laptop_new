@@ -1,4 +1,4 @@
-﻿﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Thông Báo Trả Máy";
 }
@@ -138,7 +138,7 @@ else
             if (isConfirmed && closeBooking.RejectReason != null)
             {
                 var parts = closeBooking.RejectReason.Split('|');
-                if (parts.Length > 1 && DateTime.TryParse(parts[1], out var cd))
+                if (parts.Length > 1 && DateTime.TryParse(parts[1], out DateTime cd))
                 {
                     confirmedDate = cd;
                 }

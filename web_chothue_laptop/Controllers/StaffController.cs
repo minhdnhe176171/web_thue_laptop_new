@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
 using web_chothue_laptop.ViewModels;
@@ -244,16 +244,8 @@ namespace web_chothue_laptop.Controllers
             laptop.UpdatedDate = DateTime.Now;
             laptop.RejectReason = null; // Xóa lý do từ chối nếu có
 
-            // ✅ TÍNH GIÁ MỚI: NEW_PRICE = Price / 0.7
-            // Price là 70% giá thực (Student nhập)
-            // NEW_PRICE là 100% giá thực (hiển thị trên web)
-            if (laptop.Price.HasValue)
-            {
-                laptop.NewPrice = Math.Round(laptop.Price.Value / 0.7m, 0); // Làm tròn
-            }
-
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = $"Đã niêm yết máy thành công! Giá niêm yết: {laptop.NewPrice?.ToString("#,##0")} đ/ngày";
+            TempData["SuccessMessage"] = $"Đã niêm yết máy thành công!";
 
             return RedirectToAction(nameof(LaptopRequests));
         }

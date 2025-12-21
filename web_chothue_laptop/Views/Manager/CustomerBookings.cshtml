@@ -1,7 +1,8 @@
-﻿﻿@model IEnumerable<web_chothue_laptop.Models.Booking>
+@model IEnumerable<web_chothue_laptop.Models.Booking>
 @{
     ViewData["Title"] = "Đơn từ Khách hàng";
     Layout = "_ManagerLayout";
+    var statusList = ViewBag.StatusList as IEnumerable<dynamic>;
 }
 <div class="row mb-4">
     <div class="col-md-2">
@@ -73,18 +74,12 @@
 
     <select name="statusId" class="form-select d-inline-block w-auto">
         <option value="0">Tất cả trạng thái</option>
-
-        @foreach (var status in ViewBag.StatusList)
+        @if (statusList != null)
         {
-            if (ViewBag.SelectedStatus == status.Id)
+            @foreach (var status in statusList)
             {
-                <option value="@status.Id" selected="selected">
-                    @status.StatusName
-                </option>
-            }
-            else
-            {
-                <option value="@status.Id">
+                var isSelected = ViewBag.SelectedStatus == status.Id;
+                <option value="@status.Id" selected="@(isSelected ? "selected" : null)">
                     @status.StatusName
                 </option>
             }

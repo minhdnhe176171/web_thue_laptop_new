@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Hỗ trợ khách hàng - Staff";
-    var staffId = ViewBag.StaffId;
-    var staffName = ViewBag.StaffName;
+    var staffId = ViewBag.StaffId as long?;
+    var staffName = ViewBag.StaffName as string;
     var activeCustomers = ViewBag.ActiveCustomers as List<web_chothue_laptop.Services.ActiveCustomer> ?? new List<web_chothue_laptop.Services.ActiveCustomer>();
 }
 
@@ -68,8 +68,8 @@
             .withUrl("/chathub")
             .build();
 
-        const staffId = @staffId;
-        const staffName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(staffName));
+        const staffId = @(staffId.HasValue ? staffId.Value.ToString() : "null");
+        const staffName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(staffName ?? ""));
         let selectedCustomerId = null;
         let selectedCustomerName = null;
 

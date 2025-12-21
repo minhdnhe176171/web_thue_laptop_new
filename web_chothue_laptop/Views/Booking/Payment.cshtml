@@ -252,7 +252,7 @@
             .withUrl("/bookinghub")
             .build();
 
-        const customerId = @customerId.Value;
+        const customerId = @(customerId.Value.ToString());
         const currentBookingId = @booking.Id;
 
         bookingConnection.start().then(function () {

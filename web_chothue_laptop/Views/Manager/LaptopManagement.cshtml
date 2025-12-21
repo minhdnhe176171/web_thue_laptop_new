@@ -1,7 +1,8 @@
-﻿﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Quản lý Laptop";
     Layout = "_ManagerLayout";
+    var statusList = ViewBag.StatusList as IEnumerable<dynamic>;
 }
 <h2 class="mb-4">Quản lý toàn bộ Laptop</h2>
 <div class="row mb-4">
@@ -45,15 +46,12 @@
     <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm kiếm tên máy..." class="form-control d-inline-block w-auto" />
     <select name="statusId" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
         <option value="0">Tất cả trạng thái</option>
-        @foreach (var status in ViewBag.StatusList)
+        @if (statusList != null)
         {
-            if (ViewBag.SelectedStatus == status.Id)
+            @foreach (var status in statusList)
             {
-                <option value="@status.Id" selected>@status.StatusName</option>
-            }
-            else
-            {
-                <option value="@status.Id">@status.StatusName</option>
+                var isSelected = ViewBag.SelectedStatus == status.Id;
+                <option value="@status.Id" selected="@(isSelected ? "selected" : null)">@status.StatusName</option>
             }
         }
     </select>

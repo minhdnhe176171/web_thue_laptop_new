@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace web_chothue_laptop.Models;
@@ -28,6 +28,10 @@ public partial class Booking
     public string? IdNoUrl { get; set; }
 
     public string? StudentUrl { get; set; }
+
+    public DateTime? ReturnDueDate { get; set; }
+
+    public string? RejectReason { get; set; }
 
     public virtual ICollection<BookingReceipt> BookingReceipts { get; set; } = new List<BookingReceipt>();
 

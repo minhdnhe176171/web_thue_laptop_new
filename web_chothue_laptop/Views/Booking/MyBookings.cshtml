@@ -8,6 +8,16 @@
     var paginatedCompleted = ViewBag.PaginatedCompleted as PaginatedList<Booking>;
     var paginatedCancelled = ViewBag.PaginatedCancelled as PaginatedList<Booking>;
     var pageIndex = ViewBag.PageIndex as int? ?? 1;
+    var tabValue = ViewBag.Tab as string ?? "all";
+    var searchValue = ViewBag.Search as string ?? "";
+    var statusValue = ViewBag.Status as string ?? "";
+    var approvedCount = ViewBag.ApprovedCount as int? ?? 0;
+    var pendingCount = ViewBag.PendingCount as int? ?? 0;
+    var rentedCount = ViewBag.RentedCount as int? ?? 0;
+    var completedCount = ViewBag.CompletedCount as int? ?? 0;
+    var cancelledCount = ViewBag.CancelledCount as int? ?? 0;
+    var paginatedBookings = ViewBag.PaginatedBookings as PaginatedList<Booking>;
+    var customerId = ViewBag.CustomerId as long?;
 }
 
 <div class="container py-4">
@@ -38,21 +48,28 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" action="@Url.Action("MyBookings", "Booking")" class="row g-3">
-                <input type="hidden" name="tab" value="@ViewBag.Tab" />
+                <input type="hidden" name="tab" value="@tabValue" />
                 <div class="col-md-6">
                     <label for="search" class="form-label">Tìm kiếm</label>
                     <input type="text" class="form-control" id="search" name="search" 
-                           value="@ViewBag.Search" placeholder="Mã đơn, tên laptop, hãng...">
+                           value="@searchValue" placeholder="Mã đơn, tên laptop, hãng...">
                 </div>
                 <div class="col-md-4">
                     <label for="status" class="form-label">Trạng thái</label>
                     <select class="form-select" id="status" name="status">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="1" selected="@(ViewBag.Status?.ToString() == "1")">Chờ Duyệt</option>
-                        <option value="2" selected="@(ViewBag.Status?.ToString() == "2")">Đã Duyệt</option>
-                        <option value="10" selected="@(ViewBag.Status?.ToString() == "10")">Đang Thuê</option>
-                        <option value="8" selected="@(ViewBag.Status?.ToString() == "8")">Đã Hoàn Thành</option>
-                        <option value="3" selected="@(ViewBag.Status?.ToString() == "3")">Đã Bị Hủy</option>
+                        @{
+                            var status1Selected = statusValue == "1";
+                            var status2Selected = statusValue == "2";
+                            var status10Selected = statusValue == "10";
+                            var status8Selected = statusValue == "8";
+                            var status3Selected = statusValue == "3";
+                        }
+                        <option value="1" selected="@(status1Selected ? "selected" : null)">Chờ Duyệt</option>
+                        <option value="2" selected="@(status2Selected ? "selected" : null)">Đã Duyệt</option>
+                        <option value="10" selected="@(status10Selected ? "selected" : null)">Đang Thuê</option>
+                        <option value="8" selected="@(status8Selected ? "selected" : null)">Đã Hoàn Thành</option>
+                        <option value="3" selected="@(status3Selected ? "selected" : null)">Đã Bị Hủy</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -60,7 +77,7 @@
                         <i class="bi bi-search"></i> Tìm kiếm
                     </button>
                 </div>
-                @if (!string.IsNullOrWhiteSpace(ViewBag.Search?.ToString()) || !string.IsNullOrWhiteSpace(ViewBag.Status?.ToString()))
+                @if (!string.IsNullOrWhiteSpace(searchValue) || !string.IsNullOrWhiteSpace(statusValue))
                 {
                     <div class="col-12">
                         <a href="@Url.Action("MyBookings", "Booking")" class="btn btn-outline-secondary btn-sm">
@@ -73,14 +90,14 @@
     </div>
 
     <!-- Thông báo đơn được duyệt -->
-    @if (ViewBag.ApprovedCount != null && (int)ViewBag.ApprovedCount > 0)
+    @if (approvedCount > 0)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <h5 class="alert-heading">
                 <i class="bi bi-check-circle"></i> Thông Báo Quan Trọng
             </h5>
             <p class="mb-2">
-                <strong>Bạn có @ViewBag.ApprovedCount đơn hàng đã được duyệt!</strong>
+                <strong>Bạn có @approvedCount đơn hàng đã được duyệt!</strong>
             </p>
             <p class="mb-2">
                 Vui lòng vào phần <strong>"Đã Duyệt"</strong> để xử lý thanh toán, hoặc 
@@ -99,59 +116,56 @@
     <!-- Tabs Navigation -->
     <ul class="nav nav-tabs mb-4" id="bookingTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "all" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "all", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <a class="nav-link @(tabValue == "all" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "all", search = searchValue, status = statusValue, page = 1 })">
                 Tất Cả
-                @{
-                    var allBookingsCount = ViewBag.PaginatedBookings as PaginatedList<Booking>;
-                    if (allBookingsCount != null && allBookingsCount.Any())
-                    {
-                        <span class="badge bg-primary ms-2">@allBookingsCount.Count</span>
-                    }
+                @if (paginatedBookings != null && paginatedBookings.Any())
+                {
+                    <span class="badge bg-primary ms-2">@paginatedBookings.Count</span>
                 }
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "pending" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "pending", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <a class="nav-link @(tabValue == "pending" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "pending", search = searchValue, status = statusValue, page = 1 })">
                 Chờ Duyệt 
-                @if (ViewBag.PendingCount != null && (int)ViewBag.PendingCount > 0)
+                @if (pendingCount > 0)
                 {
-                    <span class="badge bg-warning text-dark ms-2">@ViewBag.PendingCount</span>
+                    <span class="badge bg-warning text-dark ms-2">@pendingCount</span>
                 }
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "approved" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "approved", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <a class="nav-link @(tabValue == "approved" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "approved", search = searchValue, status = statusValue, page = 1 })">
                 Đã Duyệt
-                @if (ViewBag.ApprovedCount != null && (int)ViewBag.ApprovedCount > 0)
+                @if (approvedCount > 0)
                 {
-                    <span class="badge bg-success ms-2">@ViewBag.ApprovedCount</span>
+                    <span class="badge bg-success ms-2">@approvedCount</span>
                 }
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "rented" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "rented", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <a class="nav-link @(tabValue == "rented" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "rented", search = searchValue, status = statusValue, page = 1 })">
                 Đang Thuê
-                @if (ViewBag.RentedCount != null && (int)ViewBag.RentedCount > 0)
+                @if (rentedCount > 0)
                 {
-                    <span class="badge bg-info ms-2">@ViewBag.RentedCount</span>
+                    <span class="badge bg-info ms-2">@rentedCount</span>
                 }
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "completed" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "completed", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <a class="nav-link @(tabValue == "completed" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "completed", search = searchValue, status = statusValue, page = 1 })">
                 Đã Hoàn Thành
-                @if (ViewBag.CompletedCount != null && (int)ViewBag.CompletedCount > 0)
+                @if (completedCount > 0)
                 {
-                    <span class="badge bg-secondary ms-2">@ViewBag.CompletedCount</span>
+                    <span class="badge bg-secondary ms-2">@completedCount</span>
                 }
             </a>
         </li>
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(ViewBag.Tab?.ToString() == "cancelled" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "cancelled", search = ViewBag.Search, status = ViewBag.Status, page = 1 })">
+            <a class="nav-link @(tabValue == "cancelled" ? "active" : "")" href="@Url.Action("MyBookings", new { tab = "cancelled", search = searchValue, status = statusValue, page = 1 })">
                 Đã Bị Hủy
-                @if (ViewBag.CancelledCount != null && (int)ViewBag.CancelledCount > 0)
+                @if (cancelledCount > 0)
                 {
-                    <span class="badge bg-danger ms-2">@ViewBag.CancelledCount</span>
+                    <span class="badge bg-danger ms-2">@cancelledCount</span>
                 }
             </a>
         </li>
@@ -160,11 +174,10 @@
     <!-- Tabs Content -->
     <div class="tab-content" id="bookingTabsContent">
         <!-- Tab: Tất Cả (với filter và phân trang) -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "all" ? "show active" : "")" id="all" role="tabpanel">
+        <div class="tab-pane fade @(tabValue == "all" ? "show active" : "")" id="all" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     @{
-                        var paginatedBookings = ViewBag.PaginatedBookings as PaginatedList<Booking>;
                         var totalPages = paginatedBookings?.TotalPages ?? 1;
                         var hasPreviousPage = paginatedBookings?.HasPreviousPage ?? false;
                         var hasNextPage = paginatedBookings?.HasNextPage ?? false;
@@ -256,18 +269,18 @@
                         <nav aria-label="Page navigation" class="p-3">
                             <ul class="pagination justify-content-center mb-0">
                                 <li class="page-item @(!hasPreviousDisplay ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, status = ViewBag.Status, tab = "all" })" aria-label="Previous">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = searchValue, status = statusValue, tab = "all" })" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                     </a>
                                 </li>
                                 @for (int i = 1; i <= displayPages; i++)
                                 {
                                     <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, status = ViewBag.Status, tab = "all" })">@i</a>
+                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = searchValue, status = statusValue, tab = "all" })">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(!hasNextDisplay ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, status = ViewBag.Status, tab = "all" })" aria-label="Next">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = searchValue, status = statusValue, tab = "all" })" aria-label="Next">
                                         <span aria-hidden="true">&raquo;</span>
                                     </a>
                                 </li>
@@ -279,7 +292,7 @@
         </div>
 
         <!-- Tab: Chờ Duyệt -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "pending" ? "show active" : "")" id="pending" role="tabpanel">
+        <div class="tab-pane fade @(tabValue == "pending" ? "show active" : "")" id="pending" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     @if (paginatedPending != null && paginatedPending.Any())
@@ -354,18 +367,18 @@
                         <nav aria-label="Page navigation" class="p-3">
                             <ul class="pagination justify-content-center mb-0">
                                 <li class="page-item @(!hasPreviousPending ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "pending" })" aria-label="Previous">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = searchValue, tab = "pending" })" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                     </a>
                                 </li>
                                 @for (int i = 1; i <= displayPagesPending; i++)
                                 {
                                     <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "pending" })">@i</a>
+                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = searchValue, tab = "pending" })">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(!hasNextPending ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "pending" })" aria-label="Next">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = searchValue, tab = "pending" })" aria-label="Next">
                                         <span aria-hidden="true">&raquo;</span>
                                     </a>
                                 </li>
@@ -377,7 +390,7 @@
         </div>
 
         <!-- Tab: Đã Duyệt -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "approved" ? "show active" : "")" id="approved" role="tabpanel">
+        <div class="tab-pane fade @(tabValue == "approved" ? "show active" : "")" id="approved" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     @if (paginatedApproved != null && paginatedApproved.Any())
@@ -482,18 +495,18 @@
                         <nav aria-label="Page navigation" class="p-3">
                             <ul class="pagination justify-content-center mb-0">
                                 <li class="page-item @(!hasPreviousApproved ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "approved" })" aria-label="Previous">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = searchValue, tab = "approved" })" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                     </a>
                                 </li>
                                 @for (int i = 1; i <= displayPagesApproved; i++)
                                 {
                                     <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "approved" })">@i</a>
+                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = searchValue, tab = "approved" })">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(!hasNextApproved ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "approved" })" aria-label="Next">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = searchValue, tab = "approved" })" aria-label="Next">
                                         <span aria-hidden="true">&raquo;</span>
                                     </a>
                                 </li>
@@ -505,7 +518,7 @@
         </div>
 
         <!-- Tab: Đang Thuê -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "rented" ? "show active" : "")" id="rented" role="tabpanel">
+        <div class="tab-pane fade @(tabValue == "rented" ? "show active" : "")" id="rented" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     @if (paginatedRented != null && paginatedRented.Any())
@@ -595,18 +608,18 @@
                         <nav aria-label="Page navigation" class="p-3">
                             <ul class="pagination justify-content-center mb-0">
                                 <li class="page-item @(!hasPreviousRented ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "rented" })" aria-label="Previous">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = searchValue, tab = "rented" })" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                     </a>
                                 </li>
                                 @for (int i = 1; i <= displayPagesRented; i++)
                                 {
                                     <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "rented" })">@i</a>
+                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = searchValue, tab = "rented" })">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(!hasNextRented ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "rented" })" aria-label="Next">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = searchValue, tab = "rented" })" aria-label="Next">
                                         <span aria-hidden="true">&raquo;</span>
                                     </a>
                                 </li>
@@ -618,7 +631,7 @@
         </div>
 
         <!-- Tab: Đã Hoàn Thành -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "completed" ? "show active" : "")" id="completed" role="tabpanel">
+        <div class="tab-pane fade @(tabValue == "completed" ? "show active" : "")" id="completed" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     @if (paginatedCompleted != null && paginatedCompleted.Any())
@@ -693,18 +706,18 @@
                         <nav aria-label="Page navigation" class="p-3">
                             <ul class="pagination justify-content-center mb-0">
                                 <li class="page-item @(!hasPreviousCompleted ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "completed" })" aria-label="Previous">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = searchValue, tab = "completed" })" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                     </a>
                                 </li>
                                 @for (int i = 1; i <= displayPagesCompleted; i++)
                                 {
                                     <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "completed" })">@i</a>
+                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = searchValue, tab = "completed" })">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(!hasNextCompleted ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "completed" })" aria-label="Next">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = searchValue, tab = "completed" })" aria-label="Next">
                                         <span aria-hidden="true">&raquo;</span>
                                     </a>
                                 </li>
@@ -716,7 +729,7 @@
         </div>
 
         <!-- Tab: Đã Bị Hủy -->
-        <div class="tab-pane fade @(ViewBag.Tab?.ToString() == "cancelled" ? "show active" : "")" id="cancelled" role="tabpanel">
+        <div class="tab-pane fade @(tabValue == "cancelled" ? "show active" : "")" id="cancelled" role="tabpanel">
             <div class="card shadow-sm">
                 <div class="card-body p-0">
                     @if (paginatedCancelled != null && paginatedCancelled.Any())
@@ -791,18 +804,18 @@
                         <nav aria-label="Page navigation" class="p-3">
                             <ul class="pagination justify-content-center mb-0">
                                 <li class="page-item @(!hasPreviousCancelled ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = ViewBag.Search, tab = "cancelled" })" aria-label="Previous">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex - 1, search = searchValue, tab = "cancelled" })" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
                                     </a>
                                 </li>
                                 @for (int i = 1; i <= displayPagesCancelled; i++)
                                 {
                                     <li class="page-item @(i == pageIndex ? "active" : "")">
-                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = ViewBag.Search, tab = "cancelled" })">@i</a>
+                                        <a class="page-link" href="@Url.Action("MyBookings", new { page = i, search = searchValue, tab = "cancelled" })">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(!hasNextCancelled ? "disabled" : "")">
-                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = ViewBag.Search, tab = "cancelled" })" aria-label="Next">
+                                    <a class="page-link" href="@Url.Action("MyBookings", new { page = pageIndex + 1, search = searchValue, tab = "cancelled" })" aria-label="Next">
                                         <span aria-hidden="true">&raquo;</span>
                                     </a>
                                 </li>
@@ -845,10 +858,6 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
-        @{
-            var customerId = ViewBag.CustomerId as long?;
-        }
-        
         @if (customerId.HasValue)
         {
             <text>
@@ -856,7 +865,7 @@
                 .withUrl("/bookinghub")
                 .build();
 
-            const customerId = @customerId.Value;
+            const customerId = @(customerId.Value.ToString());
 
             bookingConnection.start().then(function () {
                 console.log("Booking Hub Connected");

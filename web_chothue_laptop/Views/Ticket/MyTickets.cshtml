@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Lịch Sử Báo Lỗi";
     var tickets = ViewBag.Tickets as List<TicketList> ?? new List<TicketList>();
+    var searchValue = ViewBag.Search as string ?? "";
+    var statusIdValue = ViewBag.StatusId as int?;
 }
 
 <div class="container py-4">
@@ -36,16 +38,22 @@
                 <div class="col-md-6">
                     <label for="search" class="form-label">Tìm kiếm</label>
                     <input type="text" class="form-control" id="search" name="search" 
-                           value="@ViewBag.Search" placeholder="Mã ticket, tên laptop, mô tả...">
+                           value="@searchValue" placeholder="Mã ticket, tên laptop, mô tả...">
                 </div>
                 <div class="col-md-4">
                     <label for="statusId" class="form-label">Trạng thái</label>
                     <select class="form-select" id="statusId" name="statusId">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="1" selected="@(ViewBag.StatusId?.ToString() == "1")">Mới tạo</option>
-                        <option value="2" selected="@(ViewBag.StatusId?.ToString() == "2")">Kỹ thuật đã nhận</option>
-                        <option value="4" selected="@(ViewBag.StatusId?.ToString() == "4")">Đang sửa</option>
-                        <option value="5" selected="@(ViewBag.StatusId?.ToString() == "5")">Hoàn thành</option>
+                        @{
+                            var status1Sel = statusIdValue == 1;
+                            var status2Sel = statusIdValue == 2;
+                            var status4Sel = statusIdValue == 4;
+                            var status5Sel = statusIdValue == 5;
+                        }
+                        <option value="1" selected="@(status1Sel ? "selected" : null)">Mới tạo</option>
+                        <option value="2" selected="@(status2Sel ? "selected" : null)">Kỹ thuật đã nhận</option>
+                        <option value="4" selected="@(status4Sel ? "selected" : null)">Đang sửa</option>
+                        <option value="5" selected="@(status5Sel ? "selected" : null)">Hoàn thành</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -53,7 +61,7 @@
                         <i class="bi bi-search"></i> Tìm kiếm
                     </button>
                 </div>
-                @if (!string.IsNullOrWhiteSpace(ViewBag.Search?.ToString()) || ViewBag.StatusId != null)
+                @if (!string.IsNullOrWhiteSpace(searchValue) || statusIdValue != null)
                 {
                     <div class="col-12">
                         <a href="@Url.Action("MyTickets", "Ticket")" class="btn btn-outline-secondary btn-sm">

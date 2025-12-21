@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Hỗ trợ khách hàng";
-    var customerId = ViewBag.CustomerId;
-    var customerName = ViewBag.CustomerName;
+    var customerId = ViewBag.CustomerId as long?;
+    var customerName = ViewBag.CustomerName as string;
     var messages = ViewBag.Messages as List<web_chothue_laptop.Services.ChatMessage> ?? new List<web_chothue_laptop.Services.ChatMessage>();
 }
 
@@ -50,8 +50,8 @@
             .withUrl("/chathub")
             .build();
 
-        const customerId = @customerId;
-        const customerName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(customerName));
+        const customerId = @(customerId.HasValue ? customerId.Value.ToString() : "null");
+        const customerName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(customerName ?? ""));
 
         connection.start().then(function () {
             console.log("SignalR Connected");
@@ -69,31 +69,31 @@
             const messagesList = document.getElementById("messagesList");
             const messageDiv = document.createElement("div");
             messageDiv.className = "mb-3 " + (data.senderType === "customer" ? "text-end" : "text-start");
-            
+
             const messageContent = document.createElement("div");
-            messageContent.className = "d-inline-block p-3 rounded " + 
+            messageContent.className = "d-inline-block p-3 rounded " +
                 (data.senderType === "customer" ? "bg-primary text-white" : "bg-white border");
             messageContent.style.maxWidth = "70%";
-            
+
             const senderName = document.createElement("div");
             senderName.className = "fw-bold small";
             senderName.textContent = data.senderType === "customer" ? data.customerName : data.staffName;
-            
+
             const messageText = document.createElement("div");
             messageText.textContent = data.message;
-            
+
             const timestamp = document.createElement("div");
             timestamp.className = "small mt-1 opacity-75";
             const date = new Date(data.timestamp);
-            timestamp.textContent = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + 
+            timestamp.textContent = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
                 " " + date.toLocaleDateString('vi-VN');
-            
+
             messageContent.appendChild(senderName);
             messageContent.appendChild(messageText);
             messageContent.appendChild(timestamp);
             messageDiv.appendChild(messageContent);
             messagesList.appendChild(messageDiv);
-            
+
             const chatContainer = document.getElementById("chatContainer");
             chatContainer.scrollTop = chatContainer.scrollHeight;
         });
@@ -105,41 +105,41 @@
         document.getElementById("sendButton").addEventListener("click", function (event) {
             const message = document.getElementById("messageInput").value;
             if (message.trim() === "") return;
-            
+
             // Hiển thị tin nhắn ngay lập tức (optimistic update)
             const messagesList = document.getElementById("messagesList");
             const messageDiv = document.createElement("div");
             messageDiv.className = "mb-3 text-end";
-            
+
             const messageContent = document.createElement("div");
             messageContent.className = "d-inline-block p-3 rounded bg-primary text-white";
             messageContent.style.maxWidth = "70%";
-            
+
             const senderName = document.createElement("div");
             senderName.className = "fw-bold small";
             senderName.textContent = customerName;
-            
+
             const messageText = document.createElement("div");
             messageText.textContent = message;
-            
+
             const timestamp = document.createElement("div");
             timestamp.className = "small mt-1 opacity-75";
             const now = new Date();
-            timestamp.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + 
+            timestamp.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) +
                 " " + now.toLocaleDateString('vi-VN');
-            
+
             messageContent.appendChild(senderName);
             messageContent.appendChild(messageText);
             messageContent.appendChild(timestamp);
             messageDiv.appendChild(messageContent);
             messagesList.appendChild(messageDiv);
-            
+
             const chatContainer = document.getElementById("chatContainer");
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
+
             // Xóa input
             document.getElementById("messageInput").value = "";
-            
+
             // Gửi lên server
             connection.invoke("SendMessageToSupport", customerId, customerName, message).catch(function (err) {
                 console.error("Error sending message:", err.toString());
@@ -154,4 +154,3 @@
         });
     </script>
 }
-

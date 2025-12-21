@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using web_chothue_laptop.Models;
 using System;
@@ -453,7 +453,7 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Toggle blacklist status
-            customer.BlackList = !(customer.BlackList ?? false);
+            customer.BlackList = !customer.BlackList;
 
             try
             {

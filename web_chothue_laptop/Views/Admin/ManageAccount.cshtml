@@ -4,6 +4,8 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var currentRole = ViewBag.CurrentRole?.ToString() ?? "student";
     var actionName = char.ToUpper(currentRole[0]) + currentRole.Substring(1);
+    var filterStatusValue = ViewBag.FilterStatus as string ?? "";
+    var searchAccountValue = ViewBag.SearchAccount as string ?? "";
 }
 
 <div class="container-fluid mt-4">
@@ -40,14 +42,18 @@
                                 <label for="filterStatus" class="form-label">Lọc theo trạng thái:</label>
                                 <select class="form-select" id="filterStatus" name="filterStatus">
                                     <option value="">Tất cả</option>
-                                    <option value="active" selected="@(ViewBag.FilterStatus == "active")">Đang hoạt động</option>
-                                    <option value="locked" selected="@(ViewBag.FilterStatus == "locked")">Đã khóa</option>
+                                    @{
+                                        var activeSelected = filterStatusValue == "active";
+                                        var lockedSelected = filterStatusValue == "locked";
+                                    }
+                                    <option value="active" selected="@(activeSelected ? "selected" : null)">Đang hoạt động</option>
+                                    <option value="locked" selected="@(lockedSelected ? "selected" : null)">Đã khóa</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label for="searchAccount" class="form-label">Tìm kiếm:</label>
                                 <input type="text" class="form-control" id="searchAccount" name="searchAccount"
-                                       placeholder="Email, tên..." value="@ViewBag.SearchAccount">
+                                       placeholder="Email, tên..." value="@searchAccountValue">
                             </div>
                         </div>
                         <div class="row mb-3">

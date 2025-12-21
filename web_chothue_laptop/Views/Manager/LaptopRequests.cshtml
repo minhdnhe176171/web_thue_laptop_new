@@ -1,7 +1,10 @@
-﻿﻿@model IEnumerable<web_chothue_laptop.Models.Laptop>
+@model IEnumerable<web_chothue_laptop.Models.Laptop>
 @{
     ViewData["Title"] = "Đơn từ Sinh viên";
     Layout = "_ManagerLayout";
+    var searchStringValue = ViewBag.SearchString as string ?? "";
+    var selectedStatusValue = ViewBag.SelectedStatus as int? ?? 0;
+    var statusList = ViewBag.StatusList as IEnumerable<dynamic>;
 }
 
 <h3 class="mb-4 fw-bold text-primary">
@@ -12,17 +15,21 @@
 <form method="get" asp-action="LaptopRequests" class="mb-3 d-flex gap-2 align-items-center">
     <input type="text"
            name="searchString"
-           value="@ViewBag.SearchString"
+           value="@searchStringValue"
            placeholder="Tìm theo tên máy, email, ID..."
            class="form-control w-auto" />
 
     <select name="statusId" class="form-select w-auto">
         <option value="0">Tất cả trạng thái</option>
-        @foreach (var status in ViewBag.StatusList)
+        @if (statusList != null)
         {
-            <option value="@status.Id" selected="@(ViewBag.SelectedStatus == status.Id)">
-                @status.StatusName
-            </option>
+            @foreach (var status in statusList)
+            {
+                var isSelected = selectedStatusValue == (int)status.Id;
+                <option value="@status.Id" selected="@(isSelected ? "selected" : null)">
+                    @status.StatusName
+                </option>
+            }
         }
     </select>
 

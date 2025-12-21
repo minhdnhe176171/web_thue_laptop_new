@@ -3,6 +3,11 @@
 @{
     ViewData["Title"] = "Quản Lý Customer Blacklist";
     Layout = "_ManagerLayout";
+    var searchValue = ViewBag.Search as string ?? "";
+    var filterStatusValue = ViewBag.FilterStatus as string ?? "";
+    var totalItems = ViewBag.TotalItems as int? ?? 0;
+    var currentPage = ViewBag.CurrentPage as int? ?? 1;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
 }
 
 <style>
@@ -34,7 +39,7 @@
 
 <h3 class="fw-bold text-primary mb-4">
     <i class="fas fa-users"></i>
-    Quản Lý Customer Blacklist (@(ViewBag.TotalItems ?? 0))
+    Quản Lý Customer Blacklist (@totalItems)
 </h3>
 
 @if (TempData["SuccessMessage"] != null)
@@ -60,7 +65,7 @@
                     <input type="text"
                            class="form-control"
                            name="search"
-                           value="@ViewBag.Search"
+                           value="@searchValue"
                            placeholder="Tên, Email, Số điện thoại..." />
                 </div>
 
@@ -68,18 +73,22 @@
                     <label class="form-label">Trạng thái</label>
                     <select class="form-select" name="filterStatus" id="filterStatus">
                         <option value="">Tất cả</option>
-                        <option value="normal" selected="@(ViewBag.FilterStatus == "normal")">
+                        @{
+                            var normalSelected = filterStatusValue == "normal";
+                            var blacklistSelected = filterStatusValue == "blacklist";
+                        }
+                        <option value="normal" selected="@(normalSelected ? "selected" : null)">
                             Bình thường
                         </option>
-                        <option value="blacklist" selected="@(ViewBag.FilterStatus == "blacklist")">
+                        <option value="blacklist" selected="@(blacklistSelected ? "selected" : null)">
                             Blacklist
                         </option>
                     </select>
                 </div>
             </div>
 
-            @if (!string.IsNullOrEmpty(ViewBag.Search as string)
-                        || !string.IsNullOrEmpty(ViewBag.FilterStatus as string))
+            @if (!string.IsNullOrEmpty(searchValue)
+                        || !string.IsNullOrEmpty(filterStatusValue))
             {
                 <div class="mt-3">
                     <a asp-action="CustomerManagement" class="btn btn-secondary btn-sm">
@@ -155,17 +164,17 @@
 </div>
 
 <!-- PAGINATION -->
-@if (ViewBag.TotalPages > 1)
+@if (totalPages > 1)
 {
     <nav class="mt-3">
         <ul class="pagination justify-content-center">
-            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            @for (int i = 1; i <= totalPages; i++)
             {
-                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                <li class="page-item @(currentPage == i ? "active" : "")">
                     <a class="page-link"
                        asp-action="CustomerManagement"
-                       asp-route-search="@ViewBag.Search"
-                       asp-route-filterStatus="@ViewBag.FilterStatus"
+                       asp-route-search="@searchValue"
+                       asp-route-filterStatus="@filterStatusValue"
                        asp-route-page="@i">
                         @i
                     </a>
