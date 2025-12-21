@@ -63,8 +63,8 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
             var pendingBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == laptop.Id 
+                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id
+                    && b.LaptopId == laptop.Id
                     && b.StatusId == 1);
 
             if (pendingBooking != null)
@@ -76,8 +76,8 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra xem customer có booking nào đang active (approved) với laptop này không
             var activeBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .Where(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == laptop.Id 
+                .Where(b => b.CustomerId == customer.Id
+                    && b.LaptopId == laptop.Id
                     && (b.StatusId == 2 || b.StatusId == 10)
                     && b.EndTime >= DateTime.Today)
                 .FirstOrDefaultAsync();
@@ -110,8 +110,7 @@ namespace web_chothue_laptop.Controllers
             if (string.IsNullOrEmpty(userId))
             {
                 TempData["ErrorMessage"] = "Vui lòng đăng nhập để đặt thuê laptop.";
-                return RedirectToAction("Login", "Account"); 
-
+                return RedirectToAction("Login", "Account");
             }
 
             // Load lại laptop
@@ -173,8 +172,8 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra xem customer đã có booking nào với laptop này đang pending không
             var pendingBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == model.LaptopId 
+                .FirstOrDefaultAsync(b => b.CustomerId == customer.Id
+                    && b.LaptopId == model.LaptopId
                     && b.StatusId == 1);
 
             if (pendingBooking != null)
@@ -185,11 +184,10 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Kiểm tra xem customer có booking nào đang active (approved/rented) với laptop này chưa hoàn thành không
-            // Chỉ cho phép đặt thuê lại khi booking đã completed/closed
             var activeBooking = await _context.Bookings
                 .Include(b => b.Status)
-                .Where(b => b.CustomerId == customer.Id 
-                    && b.LaptopId == model.LaptopId 
+                .Where(b => b.CustomerId == customer.Id
+                    && b.LaptopId == model.LaptopId
                     && (b.StatusId == 2 || b.StatusId == 10)
                     && b.EndTime >= DateTime.Today)
                 .FirstOrDefaultAsync();
@@ -246,12 +244,12 @@ namespace web_chothue_laptop.Controllers
             var days = (endDate - startDate).Days;
             var totalPrice = laptop.Price.Value * days;
 
-            return Json(new 
-            { 
-                success = true, 
-                days = days, 
-                pricePerDay = laptop.Price.Value, 
-                totalPrice = totalPrice 
+            return Json(new
+            {
+                success = true,
+                days = days,
+                pricePerDay = laptop.Price.Value,
+                totalPrice = totalPrice
             });
         }
 
@@ -287,25 +285,11 @@ namespace web_chothue_laptop.Controllers
                 .ToListAsync();
 
             // Phân loại booking theo trạng thái
-            var pendingBookings = allBookings
-                .Where(b => b.StatusId == 1)
-                .ToList();
-
-            var approvedBookings = allBookings
-                .Where(b => b.StatusId == 2)
-                .ToList();
-
-            var rentedBookings = allBookings
-                .Where(b => b.StatusId == 10)
-                .ToList();
-
-            var completedBookings = allBookings
-                .Where(b => b.StatusId == 8)
-                .ToList();
-
-            var cancelledBookings = allBookings
-                .Where(b => b.StatusId == 3)
-                .ToList();
+            var pendingBookings = allBookings.Where(b => b.StatusId == 1).ToList();
+            var approvedBookings = allBookings.Where(b => b.StatusId == 2).ToList();
+            var rentedBookings = allBookings.Where(b => b.StatusId == 10).ToList();
+            var completedBookings = allBookings.Where(b => b.StatusId == 8).ToList();
+            var cancelledBookings = allBookings.Where(b => b.StatusId == 3).ToList();
 
             ViewBag.PendingBookings = pendingBookings;
             ViewBag.ApprovedBookings = approvedBookings;
@@ -344,7 +328,7 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Lấy booking với đầy đủ thông tin
+            // Lấy booking với đầy đủ thông tin (Include cả Laptop, Brand để hiển thị lên View)
             var booking = await _context.Bookings
                 .Include(b => b.Laptop)
                     .ThenInclude(l => l.Brand)
@@ -360,7 +344,7 @@ namespace web_chothue_laptop.Controllers
             // Kiểm tra booking phải ở trạng thái Approved (StatusId = 2)
             if (booking.StatusId != 2)
             {
-                if (booking.StatusId == 10)
+                if (booking.StatusId == 12)
                 {
                     TempData["SuccessMessage"] = "Đơn hàng của bạn đã được xác nhận thanh toán và đang trong quá trình thuê. Cảm ơn quý khách!";
                 }
@@ -371,13 +355,12 @@ namespace web_chothue_laptop.Controllers
                 return RedirectToAction("MyBookings");
             }
 
-            ViewBag.Booking = booking;
-            ViewBag.CustomerId = customer.Id;
-
-            return View();
+            // SỬA LỖI: Trả về Model trực tiếp cho View thay vì dùng ViewBag
+            // View cần @model Booking để không bị NullReferenceException
+            return View(booking);
         }
 
-        // GET: Booking/CheckPaymentStatus/5 - Kiểm tra trạng thái thanh toán
+        // GET: Booking/CheckPaymentStatus/5 - Kiểm tra trạng thái thanh toán (Cho AJAX)
         public async Task<IActionResult> CheckPaymentStatus(long? id)
         {
             if (id == null)
@@ -413,25 +396,24 @@ namespace web_chothue_laptop.Controllers
             }
 
             // Kiểm tra nếu đã chuyển sang Rented (StatusId = 10)
-            if (booking.StatusId == 10)
+            if (booking.StatusId == 12)
             {
-                return Json(new 
-                { 
-                    success = true, 
+                return Json(new
+                {
+                    success = true,
                     status = "rented",
-                    message = "Đã xác nhận giao dịch thành công. Vui lòng trả máy đúng hạn. Cảm ơn quý khách!" 
+                    message = "Đã xác nhận giao dịch thành công. Vui lòng trả máy đúng hạn. Cảm ơn quý khách!"
                 });
             }
 
             // Vẫn còn ở trạng thái Approved
-            return Json(new 
-            { 
-                success = true, 
+            return Json(new
+            {
+                success = true,
                 status = "approved",
-                message = "Đang chờ Staff xác nhận thanh toán..." 
+                message = "Đang chờ Staff xác nhận thanh toán..."
             });
         }
-
 
         private async Task<long?> GetStatusIdAsync(string statusName)
         {
@@ -440,4 +422,3 @@ namespace web_chothue_laptop.Controllers
         }
     }
 }
-

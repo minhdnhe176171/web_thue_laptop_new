@@ -264,7 +264,7 @@ namespace web_chothue_laptop.Controllers
 
         /// <summary>
         /// Danh sách booking cần giao máy
-        /// </summary>
+        // GET: Staff/Deliveries
         public async Task<IActionResult> Deliveries(string searchString, int? pageNumber)
         {
             ViewData["CurrentFilter"] = searchString;
@@ -275,10 +275,9 @@ namespace web_chothue_laptop.Controllers
                 .Include(b => b.Laptop).ThenInclude(l => l.LaptopDetails)
                 .Include(b => b.Status)
                 .Include(b => b.BookingReceipts)
-                // --- SỬA ĐOẠN NÀY ---
-                // Lấy tất cả đơn:
-                // 1. Đã duyệt (StatusId = 2) -> Để hiện thị "Chờ thanh toán"
-                // 2. Đã thanh toán Online (StatusId = 12) -> Để hiện thị nút "Giao máy"
+                // Lấy đơn:
+                // - StatusId = 2: Đã duyệt (Chờ thanh toán)
+                // - StatusId = 12: Đã thanh toán (Chờ giao máy)
                 .Where(b => b.StatusId == 2 || b.StatusId == 12);
 
             if (!string.IsNullOrEmpty(searchString))
@@ -288,7 +287,10 @@ namespace web_chothue_laptop.Controllers
                                       || b.Id.ToString().Contains(searchString));
             }
 
-            query = query.OrderBy(b => b.StartTime);
+            // [CẬP NHẬT] Sắp xếp: Ưu tiên đơn Status 12 (Đã thanh toán) lên đầu để Staff xử lý trước
+            query = query.OrderByDescending(b => b.StatusId) // 12 sẽ hiện trước 2
+                         .ThenBy(b => b.StartTime);
+
             int pageSize = 5;
             return View(await PaginatedList<Booking>.CreateAsync(query.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
